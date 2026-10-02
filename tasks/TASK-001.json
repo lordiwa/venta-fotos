@@ -1,0 +1,25 @@
+{
+  "key": "TASK-001",
+  "title": "Inicializar proyecto venta-fotos",
+  "description": "Crear y configurar la estructura base del proyecto: repo en GitHub, scaffolding Vue 3 + Vite + TypeScript, Firebase Hosting + Firestore + Functions, y la estructura hivemind (PROJECT.md, CLAUDE.md, tasks/, state/).",
+  "acceptance_criteria": [
+    "Repo GitHub lordiwa/venta-fotos creado y accesible públicamente",
+    "Proyecto Vue 3 + TypeScript + Vite funcional con npm run build exitoso",
+    "Firebase configurado con hosting, firestore y functions",
+    "Estructura hivemind completa: PROJECT.md, CLAUDE.md, .claude/settings.json, tasks/TASK-001.json, state/",
+    "docs/PAYMENT.md con decisión de plataforma de pago documentada",
+    "Todo commitado y pusheado a GitHub",
+    "npm run build pasa sin errores"
+  ],
+  "status": "in_progress",
+  "priority": "high",
+  "labels": ["bootstrap", "infrastructure"],
+  "assignee": "developer",
+  "depends_on": [],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [],
+  "created_at": "2026-10-02T22:00:00.000Z",
+  "updated_at": "2026-10-02T22:00:00.000Z",
+  "jira_key": null
+}
