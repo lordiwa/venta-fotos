@@ -17,25 +17,44 @@ watchEffect(async () => {
   try { url.value = await publicUrl(path) } catch { failed.value = true }
 })
 
+const root = ref<HTMLElement | null>(null)
+const closeBtn = ref<HTMLButtonElement | null>(null)
+let opener: HTMLElement | null = null
+
 function onKey(e: KeyboardEvent) {
+  if (e.key === 'Tab' && root.value) { // el foco no sale del dialogo
+    const f = Array.from(root.value.querySelectorAll<HTMLElement>('button'))
+    if (!f.length) return
+    const first = f[0], last = f[f.length - 1], at = document.activeElement
+    if (!root.value.contains(at)) { e.preventDefault(); first.focus() }
+    else if (e.shiftKey && at === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus() }
+    return
+  }
   if (e.key === 'Escape') emit('close')
   else if (e.key === 'ArrowLeft' && props.hasPrev) emit('prev')
   else if (e.key === 'ArrowRight' && props.hasNext) emit('next')
 }
 let sx = 0, sy = 0
-const start = (e: TouchEvent) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY }
+let multi = false
+const start = (e: TouchEvent) => { multi = e.touches.length > 1; sx = e.touches[0].clientX; sy = e.touches[0].clientY }
 function end(e: TouchEvent) {
+  if (multi || e.touches.length) return // gestos multitactiles (zoom) no cambian de foto
   const d = swipeDirection(e.changedTouches[0].clientX - sx, e.changedTouches[0].clientY - sy)
   if (d === 'next' && props.hasNext) emit('next')
   else if (d === 'prev' && props.hasPrev) emit('prev')
 }
-onMounted(() => { window.addEventListener('keydown', onKey); document.body.style.overflow = 'hidden' })
-onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' })
+onMounted(() => {
+  opener = document.activeElement as HTMLElement | null
+  window.addEventListener('keydown', onKey); document.body.style.overflow = 'hidden'
+  closeBtn.value?.focus()
+})
+onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; opener?.focus?.() })
 </script>
 
 <template>
-  <div class="lb" role="dialog" aria-modal="true" aria-label="Foto ampliada" @touchstart.passive="start" @touchend.passive="end">
-    <button class="close" aria-label="Cerrar" @click="emit('close')">&times;</button>
+  <div ref="root" class="lb" role="dialog" aria-modal="true" aria-label="Foto ampliada" @touchstart.passive="start" @touchend.passive="end">
+    <button ref="closeBtn" class="close" aria-label="Cerrar" @click="emit('close')">&times;</button>
     <button v-if="hasPrev" class="nav l" aria-label="Foto anterior" @click="emit('prev')">&lsaquo;</button>
     <button v-if="hasNext" class="nav r" aria-label="Foto siguiente" @click="emit('next')">&rsaquo;</button>
     <img v-if="url" :src="url" :width="photo?.width" :height="photo?.height" alt="Foto del evento" />

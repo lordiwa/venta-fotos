@@ -25,8 +25,11 @@ export async function getPublishedEvent(id: string): Promise<Event | null> {
   try {
     const s = await getDoc(doc(db, 'events', id))
     return s.exists() && s.data().published === true ? ({ id: s.id, ...s.data() } as Event) : null
-  } catch {
-    return null
+  } catch (e) {
+    // Solo "denegado" (evento no publicado) y "no existe" cuentan como no disponible; red u otros errores se propagan.
+    const code = (e as { code?: string }).code
+    if (code === 'permission-denied' || code === 'not-found') return null
+    throw e
   }
 }
 

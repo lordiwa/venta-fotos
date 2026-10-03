@@ -29,8 +29,9 @@ export const eventPath = (eventId: string) => `/eventos/${encodeURIComponent(eve
 export const photoPath = (eventId: string, photoId: string) => `${eventPath(eventId)}/fotos/${encodeURIComponent(photoId)}`
 
 /** Estado de la pagina de evento: un evento ausente/no publicado es "unavailable"; publicado sin fotos listas es "empty". */
-export function galleryState(s: { loading: boolean; eventFound: boolean; photoCount: number }): 'loading' | 'unavailable' | 'empty' | 'ready' {
+export function galleryState(s: { loading: boolean; error?: boolean; eventFound: boolean; photoCount: number }): 'loading' | 'error' | 'unavailable' | 'empty' | 'ready' {
   if (s.loading) return 'loading'
+  if (s.error) return 'error' // fallo de carga (red, etc.): nunca se confunde con "sin fotos" ni "no disponible"
   if (!s.eventFound) return 'unavailable'
   return s.photoCount === 0 ? 'empty' : 'ready'
 }

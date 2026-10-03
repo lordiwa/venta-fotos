@@ -29,5 +29,8 @@ describe('galleryLogic', () => {
     expect(galleryState({ loading: false, eventFound: false, photoCount: 0 })).toBe('unavailable')
     expect(galleryState({ loading: false, eventFound: true, photoCount: 0 })).toBe('empty')
     expect(galleryState({ loading: false, eventFound: true, photoCount: 3 })).toBe('ready')
+    // Prevents: un fallo de red que se muestra como "evento sin fotos" o "no disponible".
+    expect(galleryState({ loading: false, error: true, eventFound: true, photoCount: 0 })).toBe('error')
+    expect(galleryState({ loading: false, error: true, eventFound: false, photoCount: 0 })).toBe('error')
   })
 })
