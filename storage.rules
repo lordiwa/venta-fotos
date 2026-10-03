@@ -13,8 +13,8 @@ service firebase.storage {
     // Originales en alta resolucion: solo el admin lee y sube (JPEG/PNG, max 50 MB).
     match /originals/{eventId}/{file} {
       allow read: if isAdmin();
-      allow write: if isAdmin()
-        && request.resource != null
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
         && request.resource.contentType.matches('image/(jpeg|png)')
         && request.resource.size <= 50 * 1024 * 1024;
     }

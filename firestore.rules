@@ -16,6 +16,7 @@ service cloud.firestore {
     function validProduct() {
       let d = request.resource.data;
       return d.name is string && d.name.size() > 0
+        && d.kind in ['print', 'digital']
         && d.price is number && d.price > 0;
     }
 

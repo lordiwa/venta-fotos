@@ -8,7 +8,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing'
 import { doc, getDoc, getDocs, setDoc, deleteDoc, collection, query, where, Timestamp } from 'firebase/firestore'
-import { ref, uploadBytes, getBytes } from 'firebase/storage'
+import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage'
 
 let env: RulesTestEnvironment
 const bytes = (n = 10) => new Uint8Array(n)
@@ -35,12 +35,12 @@ beforeEach(async () => {
     await setDoc(doc(db, 'events/pub/photos/p1'), { visible: true })
     await setDoc(doc(db, 'events/pub/photos/hidden'), { visible: false })
     await setDoc(doc(db, 'events/draft/photos/p2'), { visible: true })
-    await setDoc(doc(db, 'products/a4'), { name: 'A4', price: 5 })
+    await setDoc(doc(db, 'products/a4'), { name: 'A4', kind: 'print', price: 5 })
     await setDoc(doc(db, 'settings/store'), { shippingCost: 3 })
     await setDoc(doc(db, 'orders/o1'), { total: 5 })
     await setDoc(doc(db, 'users/u1'), { x: 1 })
     const st = ctx.storage()
-    for (const p of ['previews/pub/a.jpg', 'thumbs/pub/a.jpg', 'previews/draft/a.jpg', 'originals/pub/a.jpg'])
+    for (const p of ['previews/pub/a.jpg', 'thumbs/pub/a.jpg', 'previews/draft/a.jpg', 'thumbs/draft/a.jpg', 'originals/pub/a.jpg'])
       await uploadBytes(ref(st, p), bytes(), { contentType: 'image/jpeg' })
   })
 })
@@ -87,16 +87,19 @@ describe('Firestore', () => {
     const db = admin().firestore()
     await assertSucceeds(setDoc(doc(db, 'events/new'), { name: 'N', date: Timestamp.now(), published: false }))
     await assertSucceeds(setDoc(doc(db, 'events/new/photos/x'), { visible: false }))
-    await assertSucceeds(setDoc(doc(db, 'products/b'), { name: 'B', price: 9 }))
+    await assertSucceeds(setDoc(doc(db, 'products/b'), { name: 'B', kind: 'print', price: 9 }))
     await assertSucceeds(setDoc(doc(db, 'settings/store'), { shippingCost: 1 }))
     await assertSucceeds(getDoc(doc(db, 'events/draft')))
     await assertSucceeds(getDoc(doc(db, 'events/pub/photos/hidden')))
     await assertSucceeds(deleteDoc(doc(db, 'products/a4')))
+    await assertSucceeds(deleteDoc(doc(db, 'events/pub')))
   })
   it('UC12 datos invalidos rechazados - evita productos gratis/negativos y eventos sin nombre o fecha', async () => {
     const db = admin().firestore()
-    await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', price: 0 }))
-    await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', price: '5' }))
+    await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', kind: 'print', price: 0 }))
+    await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', kind: 'print', price: '5' }))
+    await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', kind: 'poster', price: 5 }))
+    await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', price: 5 }))
     await assertFails(setDoc(doc(db, 'events/n'), { date: Timestamp.now(), published: true }))
     await assertFails(setDoc(doc(db, 'events/n'), { name: 'N', published: true }))
   })
@@ -108,6 +111,7 @@ describe('Firestore', () => {
       await assertFails(deleteDoc(doc(db, 'orders/o1')))
     }
     await assertFails(getDoc(doc(anon().firestore(), 'orders/o1')))
+    await assertFails(getDoc(doc(user().firestore(), 'orders/o1')))
     await assertSucceeds(getDoc(doc(admin().firestore(), 'orders/o1')))
   })
   it('UC14 colecciones no declaradas denegadas - evita reabrir users/purchases del modelo viejo', async () => {
@@ -123,13 +127,14 @@ describe('Storage', () => {
     await assertSucceeds(getBytes(ref(st, 'previews/pub/a.jpg')))
     await assertSucceeds(getBytes(ref(st, 'thumbs/pub/a.jpg')))
     await assertFails(getBytes(ref(st, 'previews/draft/a.jpg')))
+    await assertFails(getBytes(ref(st, 'thumbs/draft/a.jpg')))
   })
   it('UC16 originales solo admin - evita la fuga de fotos en alta resolucion sin pagar', async () => {
     await assertFails(getBytes(ref(anon().storage(), 'originals/pub/a.jpg')))
     await assertFails(getBytes(ref(user().storage(), 'originals/pub/a.jpg')))
     await assertSucceeds(getBytes(ref(admin().storage(), 'originals/pub/a.jpg')))
   })
-  it('UC17 subidas: solo admin, imagen <=50MB, nada en previews/thumbs - evita subidas hostiles', async () => {
+  it('UC17 subidas: solo admin, imagen <=50MB, nada en previews/thumbs; admin borra originales - evita subidas hostiles y fotos imborrables', async () => {
     const a = admin().storage()
     await assertSucceeds(uploadBytes(ref(a, 'originals/pub/n.png'), bytes(), { contentType: 'image/png' }))
     await assertSucceeds(uploadBytes(ref(a, 'originals/pub/n.jpg'), bytes(), { contentType: 'image/jpeg' }))
@@ -141,5 +146,7 @@ describe('Storage', () => {
     )
     await assertFails(uploadBytes(ref(a, 'previews/pub/n.jpg'), bytes(), { contentType: 'image/jpeg' }))
     await assertFails(uploadBytes(ref(a, 'thumbs/pub/n.jpg'), bytes(), { contentType: 'image/jpeg' }))
-  })
+    await assertFails(deleteObject(ref(user().storage(), 'originals/pub/a.jpg')))
+    await assertSucceeds(deleteObject(ref(a, 'originals/pub/a.jpg')))
+  }, 120000)
 })
