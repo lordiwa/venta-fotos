@@ -1,12 +1,14 @@
-// Uso: npm run set-admin -- <correo>   (emulador: FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099)
+// Uso: npm run set-admin -- <correo> [--prod]   (emulador: FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099)
 import { adminAuth } from './_admin.mjs'
 
-const email = process.argv[2]
+const args = process.argv.slice(2)
+const prod = args.includes('--prod')
+const email = args.find((a) => !a.startsWith('--'))
 if (!email) {
   console.error('Uso: npm run set-admin -- <correo>')
   process.exit(1)
 }
-const { auth, emulator, projectId } = adminAuth()
+const { auth, emulator, projectId } = adminAuth(prod)
 try {
   const user = await auth.getUserByEmail(email)
   await auth.setCustomUserClaims(user.uid, { ...user.customClaims, admin: true })

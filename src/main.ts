@@ -8,7 +8,7 @@ import { routes } from './router'
 import { authReady, authState } from './auth'
 import { installAdminGuard } from './guard'
 
-const router = createRouter({ history: createWebHistory(), routes })
+const router = createRouter({ history: createWebHistory(), routes, sensitive: true })
 installAdminGuard(router, authReady, () => authState.isAdmin)
 
 createApp(App).use(createPinia()).use(router).mount('#app')

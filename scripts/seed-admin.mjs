@@ -4,7 +4,7 @@ const { adminAuth } = await import('./_admin.mjs')
 
 const EMAIL = 'admin@example.test'
 const PASSWORD = 'admin1234'
-const { auth } = adminAuth()
+const { auth } = adminAuth(false)
 let user
 try {
   user = await auth.getUserByEmail(EMAIL)

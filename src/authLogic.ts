@@ -7,6 +7,7 @@ export const NO_ACCESS_ERROR = 'Esta cuenta no tiene acceso'
 export function safeRedirect(raw: unknown): string {
   if (typeof raw !== 'string') return '/admin'
   if (!/^\/admin(\/[^\\\s]*)?(\?[^\\\s]*)?(#[^\\\s]*)?$/.test(raw)) return '/admin'
+  if (/(^|\/)\.\.(\/|\?|#|$)/.test(raw.replace(/%2e/gi, '.').replace(/%2f/gi, '/'))) return '/admin'
   if (raw === '/admin/login' || raw.startsWith('/admin/login?')) return '/admin'
   return raw
 }
@@ -31,14 +32,17 @@ export function validateEmail(email: string): string | null {
   return null
 }
 
-export function isAdminPath(path: string): boolean {
-  return path === '/admin' || path.startsWith('/admin/')
+/** CU1/CU5/CU6/CU7: decide la navegacion. true = continuar; string = redirigir. */
+export interface AdminRouteInfo {
+  fullPath: string
+  requiresAdmin: boolean
+  isLogin: boolean
 }
 
-/** CU1/CU5/CU6/CU7: decide la navegacion. true = continuar; string = redirigir. */
-export function decideAdminNavigation(to: { path: string; fullPath: string }, isAdmin: boolean): true | string {
-  if (!isAdminPath(to.path)) return true
-  if (to.path === '/admin/login') return isAdmin ? '/admin' : true
+/** Se decide por los registros de ruta (meta), no por el texto del path: vue-router ignora mayusculas. */
+export function decideAdminNavigation(to: AdminRouteInfo, isAdmin: boolean): true | string {
+  if (to.isLogin) return isAdmin ? '/admin' : true
+  if (!to.requiresAdmin) return true
   if (isAdmin) return true
   return `/admin/login?redirect=${encodeURIComponent(to.fullPath)}`
 }
