@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-10-03T20:20:09.782Z",
+  "tasks": [
+    {
+      "key": "TASK-001",
+      "title": "Inicializar proyecto venta-fotos",
+      "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-010",
+      "title": "Base de la app: Firebase SDK, router, modelo de datos y reglas de seguridad",
+      "status": "done",
+      "priority": "critical"
+    },
+    {
+      "key": "TASK-011",
+      "title": "Login del fotógrafo y rutas de administración protegidas",
+      "status": "in_progress",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-012",
+      "title": "Gestión de eventos (admin)",
+      "status": "todo",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-013",
+      "title": "Subida en lote de fotos con vista previa con marca de agua",
+      "status": "todo",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-014",
+      "title": "Catálogo de productos y configuración de entrega (admin)",
+      "status": "todo",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-015",
+      "title": "Galería pública por evento",
+      "status": "todo",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-016",
+      "title": "Carrito de compras",
+      "status": "todo",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-017",
+      "title": "Checkout con PayPal, datos de contacto y elección de entrega",
+      "status": "todo",
+      "priority": "critical"
+    },
+    {
+      "key": "TASK-018",
+      "title": "Panel de pedidos y lista de impresión (admin)",
+      "status": "todo",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-019",
+      "title": "Descarga del archivo digital con enlace firmado",
+      "status": "todo",
+      "priority": "medium"
+    },
+    {
+      "key": "TASK-020",
+      "title": "Notificaciones por correo al comprador",
+      "status": "todo",
+      "priority": "medium"
+    },
+    {
+      "key": "TASK-021",
+      "title": "Despliegue a producción en Firebase",
+      "status": "todo",
+      "priority": "medium"
+    }
+  ]
+}

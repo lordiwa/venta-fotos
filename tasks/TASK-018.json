@@ -1,0 +1,31 @@
+{
+  "key": "TASK-018",
+  "title": "Panel de pedidos y lista de impresión (admin)",
+  "description": "El fotógrafo ve los pedidos pagados, filtra por evento, estado y tipo de entrega, abre el detalle (fotos, tamaños, cantidades, contacto, dirección) y avanza el estado: pagado → impreso → listo para retiro / enviado → entregado. Una vista de 'lista de impresión' agrupa lo pendiente de imprimir por tamaño, con referencia al original para descargarlo e imprimirlo.",
+  "acceptance_criteria": [
+    "El fotógrafo ve la lista de pedidos con número, fecha, cliente, total, entrega y estado, y la filtra por evento, estado y tipo de entrega",
+    "El detalle del pedido muestra cada línea con miniatura, producto y cantidad, y los datos de contacto y dirección",
+    "Puede avanzar el estado siguiendo el flujo pagado → impreso → listo para retiro (retiro) / enviado (envío) → entregado; no puede saltar estados no válidos",
+    "La lista de impresión agrupa las copias pendientes por tamaño y permite descargar el original de cada foto",
+    "Los pedidos de solo archivo digital no aparecen en la lista de impresión",
+    "Solo el admin puede ver pedidos y cambiar estados"
+  ],
+  "status": "todo",
+  "priority": "high",
+  "labels": [
+    "admin",
+    "orders"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-017"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [],
+  "created_at": "2026-10-03T18:51:36.087Z",
+  "updated_at": "2026-10-03T18:51:36.087Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true
+}

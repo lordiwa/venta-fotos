@@ -1,0 +1,31 @@
+{
+  "key": "TASK-015",
+  "title": "Galería pública por evento",
+  "description": "Página de inicio con la lista de eventos publicados (portada, nombre, fecha). Al entrar a un evento: cuadrícula de miniaturas con carga progresiva; al tocar una foto, vista ampliada (vista previa con marca de agua) con navegación anterior/siguiente. Pensado primero para celular.",
+  "acceptance_criteria": [
+    "La portada muestra solo eventos publicados, del más reciente al más antiguo",
+    "Al entrar a un evento se ve la cuadrícula de sus fotos visibles (no las ocultas), cargando de forma progresiva",
+    "Tocar una foto abre la vista ampliada con marca de agua y permite pasar a la anterior/siguiente",
+    "Cada evento y cada foto tienen URL propia que se puede compartir",
+    "Un evento sin fotos o inexistente/no publicado muestra un mensaje adecuado",
+    "La galería funciona bien en un celular (sin scroll horizontal)"
+  ],
+  "status": "todo",
+  "priority": "high",
+  "labels": [
+    "storefront",
+    "gallery"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-013"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [],
+  "created_at": "2026-10-03T18:51:35.920Z",
+  "updated_at": "2026-10-03T18:51:35.920Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true
+}

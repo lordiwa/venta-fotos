@@ -1,0 +1,94 @@
+{
+  "key": "TASK-010",
+  "title": "Base de la app: Firebase SDK, router, modelo de datos y reglas de seguridad",
+  "description": "Fundamento sobre el que se apoyan todas las demás tareas. Reemplazar el template de Vite por la estructura de la app: Vue Router, Pinia, inicialización del SDK de Firebase (Auth, Firestore, Storage, Functions) con soporte para emuladores en desarrollo, layout público y layout de administración. Definir el modelo de datos en Firestore: events, photos (por evento), products (tamaños de impresión con precio, archivo digital), settings (costo de envío fijo, datos de retiro), orders. Reescribir firestore.rules y crear storage.rules: lectura pública solo de eventos publicados, sus fotos (metadatos) y vistas previas; originales en alta resolución nunca legibles por el público; escritura de catálogo/eventos/fotos solo para el administrador (identificado por custom claim admin=true); orders nunca escribibles desde el cliente (solo vía Functions).",
+  "acceptance_criteria": [
+    "La app arranca con npm run dev mostrando un layout público y una ruta /admin separada; el template HelloWorld de Vite ya no existe",
+    "El SDK de Firebase se inicializa una sola vez y se conecta a los emuladores (Auth, Firestore, Storage, Functions) cuando se corre en desarrollo",
+    "Tipos TypeScript para Event, Photo, Product, Settings y Order documentados en un único módulo",
+    "firestore.rules: el público puede leer eventos publicados y sus fotos; no puede leer eventos no publicados; solo un usuario con claim admin puede escribir events/photos/products/settings; nadie puede escribir orders desde el cliente",
+    "storage.rules: las vistas previas son legibles públicamente; los originales no son legibles por nadie desde el cliente salvo el admin; solo el admin puede subir",
+    "Tests de reglas con el emulador cubren los permisos de lectura/escritura anteriores",
+    "npm run build pasa sin errores"
+  ],
+  "status": "done",
+  "priority": "critical",
+  "labels": [
+    "foundation",
+    "security"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "a927997",
+    "7da630d"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T18:54:08.131Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: dejar la base técnica de la tienda (estructura Vue, Firebase, modelo de datos y reglas de seguridad) para que el resto de tickets se apoye en ella.\n2. Actor: el desarrollador (directo); indirectos: visitante anónimo, fotógrafo admin.\n3. Problema: el repo solo tiene el template de Vite y reglas de un marketplace multi-usuario que ya no aplica (compras con buyerId, users).\n4. Caminos: principal = app arranca con layouts público/admin conectada a emuladores; alternativos = build de producción sin emuladores, ruta inexistente; fallo = accesos indebidos a datos/archivos denegados por las reglas.\n5. Hecho: casos de uso abajo verificados con tests de reglas en emulador + build verde.\n6. Restricciones: un solo admin por custom claim; compradores sin cuenta; pedidos solo vía Functions; originales nunca públicos; sin secretos en el repo; emuladores con proyecto demo-venta-fotos.\n7. Fuera de alcance: login/UI de admin (TASK-011), CRUDs, Functions de negocio."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T18:54:08.180Z",
+      "body": "CASOS DE USO APROBADOS por el humano (2026-10-03, \"perfecto si\"), con una ronda de auto-refinado que el humano pidió explícitamente (\"dale una ronda de auto refinado tu para cubrir cualquier detalle\").\n\nModelo: events/{eventId} (published bool), events/{eventId}/photos/{photoId} (visible bool), products/{productId}, settings/store, orders/{orderId}. Storage: originals/{eventId}/{photoId}.{ext}, previews/{eventId}/{photoId}.jpg, thumbs/{eventId}/{photoId}.jpg. Admin = custom claim admin == true.\n\nApp\nUC1. npm run dev → \"/\" muestra layout público, \"/admin\" layout de administración (placeholder); el template HelloWorld/hero de Vite no existe.\nUC2. Ruta inexistente → página 404 dentro del layout público.\nUC3. En dev con VITE_USE_EMULATORS=true la app se conecta a los emuladores Auth/Firestore/Storage/Functions; un build de producción nunca apunta a emuladores.\nUC4. La config de Firebase se lee de variables VITE_* (.env.example versionado, .env ignorado); el SDK se inicializa una sola vez.\nUC5. Tipos Event, Photo, Product, StoreSettings, Order (con OrderLine, entrega retiro/envío y estados pagado→impreso→listo_retiro/enviado→entregado) en un único módulo.\n\nReglas Firestore\nUC6. Anónimo lee un evento publicado y lista eventos con consulta filtrada por published == true → permitido.\nUC7. Anónimo lee un evento no publicado, o lista eventos sin filtrar por published → denegado.\nUC8. Anónimo lee/lista fotos visibles de un evento publicado (consulta filtrada por visible == true) → permitido; foto oculta, foto de evento no publicado o consulta sin filtro visible → denegado.\nUC9. Anónimo lee products y settings/store → permitido.\nUC10. Anónimo o usuario autenticado sin claim admin escribe en events, photos, products o settings → denegado.\nUC11. Admin crea/edita/borra events, photos, products y settings → permitido; admin lee cualquier evento/foto aunque no esté publicado/visible.\nUC12. Escrituras de admin con datos inválidos rechazadas: producto con precio no numérico o <= 0; evento sin nombre o sin fecha.\nUC13. Nadie (anónimo, autenticado, admin) crea, modifica ni borra orders desde el cliente; solo el admin lee orders; anónimo no lee orders.\nUC14. Cualquier colección no declarada → denegada por defecto (incluidas las antiguas users y purchases).\n\nReglas Storage\nUC15. Anónimo lee thumbs y previews de un evento publicado → permitido; de un evento no publicado → denegado (regla cross-service con firestore.get).\nUC16. Anónimo o no-admin lee un original → denegado; admin lee un original → permitido.\nUC17. Admin sube un JPEG/PNG de hasta 50 MB a originals/ → permitido; no-admin sube cualquier cosa → denegado; admin sube un no-imagen o > 50 MB → denegado; nadie escribe en previews/thumbs desde el cliente (solo Functions/Admin SDK).\n\nVerificación\nUC18. firebase.json declara storage.rules y la configuración de emuladores; npm run test:rules ejecuta los tests de reglas contra los emuladores (proyecto demo-venta-fotos) cubriendo UC6–UC17.\nUC19. npm run build pasa sin errores."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-03T18:59:15.443Z",
+      "body": "Hand-off: commit a927997 (local). npm run build verde; npm test 1/1 (router, red-green plantado). npm run test:rules NO EJECUTADO: falta Java (\"Could not spawn java -version\"); reglas Firestore/Storage y rules-tests/rules.test.ts (UC6–UC17) escritos pero nunca corridos. Riesgos: get() de evento padre en listados de fotos, test de 50MB+1, firestore.get cross-service en emulador de Storage. Tests (13) superan el cap de 7 ACs: agrupados por UC para trazabilidad."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-03T19:03:06.117Z",
+      "body": "Review a927997: REQUEST-CHANGES.\n[FINDING-HIGH: R-1] Las reglas de seguridad (UC6–UC17) y rules-tests nunca se ejecutaron (falta Java); el criterio de hecho exige verificación en emulador. El texto de las reglas es correcto a la lectura.\nMEDIUM: M-1 checklist pre-hand-off no detallado, sin red-green en tests de reglas; M-2 test de 50MB+1 con timeout 20s probablemente lento/inestable.\nLOW: L-1 storage.rules impide al admin borrar originales desde el cliente; L-2 huecos de test (no-admin lee orders, admin borra events, thumbs de borrador); L-3 validProduct no exige kind; L-4 firebase-tools no fijado como devDependency.\nBuild y npm test verdes; UC1–UC5, UC18–UC19 OK por inspección."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-03T19:05:05.082Z",
+      "body": "Ronda de arreglos: commit 7da630d. M-2 timeout 120s en UC17; L-1 admin puede borrar originales (+test); L-2 asserts añadidos (no-admin lee orders denegado, admin borra event, thumbs/draft denegado); L-3 validProduct exige kind in ['print','digital']; L-4 firebase-tools 15.32.1 como devDependency, test:rules vía npx --no-install. Build verde, npm test 1/1. test:rules sigue sin ejecutarse (sin Java); red-green de tests de reglas pendiente hasta tener emulador."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:09:58.549Z",
+      "body": "[WARGAMING] Atacados UC6–UC17 (caminos de fallo: acceso anónimo, no-admin, admin con datos inválidos, escritura de pedidos desde cliente, originales/previews/thumbs de eventos no publicados, límites de subida) con JDK 21 instalado.\n1) npm run test:rules (commit 7da630d): 12/12 PASS en emuladores Firestore+Storage (demo-venta-fotos).\n2) Pruebas de mutación (copia aislada del repo, reglas originales intactas): 18 mutantes, 18 DETECTADOS — M1 orders escribible (UC13), M2 orders legible por todos (UC13), M3 eventos sin filtro published (UC7), M4 fotos sin visible (UC8), M5 fotos sin evento publicado (UC8), M6 escritura de eventos sin admin (UC10), M7 producto sin validar precio (UC12), M8 evento sin validar (UC12), M9 catch-all abierto (UC14), M10 settings escribible (UC10), M11 originales públicos (UC16), M12 previews de borrador (UC15), M13 thumbs de borrador (UC15), M14 sin límite 50 MB (UC17), M15 sin tipo de imagen (UC17), M16 previews escribibles por cliente (UC17), M17 subida sin admin (UC17), M18 borrar originales sin admin (UC17).\nSobrevivientes: ninguno. Esto cubre también el red-green pendiente de M-1 para los tests de reglas.\nVeredicto wargaming: PASS, sin hallazgos HIGH."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:09:58.638Z",
+      "body": "[FINDING-RESOLVED: R-1] npm run test:rules ejecutado con JDK 21: 12/12 PASS sobre 7da630d, y 18/18 mutantes de reglas detectados (ver comentario [WARGAMING])."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-03T20:12:42.459Z",
+      "body": "Re-review 7da630d (rango a927997~1..7da630d): PASS. Build verde, npm test 1/1, npm run test:rules 12/12 re-ejecutado con JDK 21 y firebase-tools 15.32.1 fijado. R-1, M-2, L-1, L-2, L-3, L-4 resueltos sin regresiones. Sin HIGH. MEDIUM: hand-off sin checklist itemizado (solo proceso). LOW: storage.rules:6 usar request.auth.token.get('admin', false) para evitar ruido de evaluación (deniega igual)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:13:12.310Z",
+      "body": "ENTREGA — TASK-010\n\n1. CASOS DE USO APROBADOS (aprobados por el humano el 2026-10-03, con auto-refinado pedido por él; ver el comentario \"CASOS DE USO APROBADOS\", donde figuran como UC1-UC19)\n   CU1 layouts público / admin, template Vite eliminado -> cumplido\n   CU2 página 404 -> cumplido\n   CU3 emuladores solo en dev con VITE_USE_EMULATORS -> cumplido\n   CU4 config VITE_*, .env.example, init única -> cumplido\n   CU5 tipos en src/types.ts -> cumplido\n   CU6 lectura de eventos publicados / consulta filtrada -> cumplido\n   CU7 eventos no publicados / consulta sin filtro denegados -> cumplido\n   CU8 fotos visibles de evento publicado; ocultas o borrador denegadas -> cumplido\n   CU9 lectura pública de products y settings -> cumplido\n   CU10 escritura de anónimo / no-admin denegada -> cumplido\n   CU11 CRUD de admin -> cumplido\n   CU12 validación de evento y producto (incluye kind) -> cumplido\n   CU13 orders sin escritura de cliente; solo el admin lee -> cumplido\n   CU14 denegación por defecto -> cumplido\n   CU15 previews/thumbs solo de eventos publicados -> cumplido\n   CU16 originales solo para el admin -> cumplido\n   CU17 subida admin JPEG/PNG <= 50MB; previews/thumbs sin escritura de cliente -> cumplido (más el borrado de originales por el admin, L-1)\n   CU18 firebase.json con storage y emuladores; npm run test:rules -> cumplido\n   CU19 npm run build -> cumplido\n\n2. RESULTADO\n   La app Vue 3 tiene router (público / admin / 404), Pinia y el SDK de Firebase con emuladores. El modelo de datos está tipado. Las reglas de Firestore y Storage protegen eventos, fotos, catálogo, pedidos y originales. Archivos: src/{firebase,router,types}.ts, src/layouts, src/views, firestore.rules, storage.rules, rules-tests/, firebase.json, .env.example. Commits a927997 y 7da630d (locales, sin push). Fuera de alcance: login (TASK-011), CRUDs, Functions de negocio.\n\n3. WARGAMING\n   Atacado: CU6-CU17 por sus caminos de fallo. El camino de fallo del anónimo atacó CU7, CU8, CU13 y CU15; el del no-admin, CU10 y CU16; el del admin con datos inválidos, CU12 y CU17; el camino de escritura de pedidos desde el cliente, CU13; y el de denegación por defecto, CU14.\n   Sobrevivió: npm run test:rules 12/12 en emuladores, y 18 de 18 mutantes de reglas detectados (p. ej. orders escribible en CU13, originales públicos en CU16, previews de borrador en CU15, sin límite de 50MB en CU17).\n   No sobrevivió: nada. Ningún HIGH abierto; R-1 resuelto.\n   Specs e2e afectados: ninguno (los rules-tests son los afectados, corridos acá). CU1-CU5, CU18 y CU19 verificados por build, test del router y revisión.\n   Veredicto: PASS.\n\n4. UAT\n   UAT no solicitado: requires_uat=false. Es infraestructura sin pantalla observable de negocio, verificada con tests de reglas.\n\n5. ESTADO Y DEUDAS\n   LOW: usar request.auth.token.get('admin', false) en las reglas (va en TASK-011). MEDIUM de proceso: hand-off sin checklist itemizado. El bundle pesa 568 kB: lazy-load más adelante. TASK-002..009 genéricas pendientes de borrar por el humano. TASK-001 (bootstrap) sigue in_progress."
+    }
+  ],
+  "created_at": "2026-10-03T18:50:40.318Z",
+  "updated_at": "2026-10-03T20:13:12.310Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": false,
+  "linked_commits_verification": {
+    "at": "2026-10-03T20:13:12.310Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "a927997",
+        "state": "verified"
+      },
+      {
+        "sha": "7da630d",
+        "state": "verified"
+      }
+    ]
+  }
+}

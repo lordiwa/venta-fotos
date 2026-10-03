@@ -3,7 +3,10 @@
   "mcpServers": {
     "github": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
@@ -42,5 +45,32 @@
   },
   "worktree": {
     "baseRef": "main"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"C:\\Users\\srpar\\.claude\\plugins\\cache\\hivemind-marketplace\\hivemind\\0.23.0\\context-monitor\\statusline.mjs\""
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\srpar\\.claude\\plugins\\cache\\hivemind-marketplace\\hivemind\\0.23.0\\context-monitor\\stop-hook.mjs\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\srpar\\.claude\\plugins\\cache\\hivemind-marketplace\\hivemind\\0.23.0\\context-monitor\\session-start.mjs\""
+          }
+        ]
+      }
+    ]
   }
 }

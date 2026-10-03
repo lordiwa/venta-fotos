@@ -1,0 +1,34 @@
+{
+  "key": "TASK-017",
+  "title": "Checkout con PayPal, datos de contacto y elección de entrega",
+  "description": "El comprador ingresa nombre, correo y teléfono, elige retiro en persona o envío a domicilio (con dirección; se suma el costo fijo de envío) y paga con los botones de PayPal (sandbox en desarrollo). Cloud Function createOrder recalcula el total en el servidor desde el catálogo y crea la orden PayPal (Orders v2); captureOrder la captura, verifica el monto y guarda el pedido en Firestore como pagado. Ver docs/PAYMENT.md. Credenciales de PayPal como secretos de Functions, nunca en el repo.",
+  "acceptance_criteria": [
+    "El checkout pide nombre, correo y teléfono (validados) y la elección retiro/envío; con envío pide dirección y suma el costo fijo al total",
+    "El total de la orden de PayPal lo calcula el servidor desde el catálogo; un precio alterado en el cliente no cambia lo cobrado",
+    "Tras un pago exitoso se crea un pedido en Firestore con estado pagado, líneas, datos de contacto, entrega e ID de PayPal, y el carrito se vacía",
+    "El comprador ve una página de confirmación con el número de pedido",
+    "Si el comprador cancela o el pago falla, no se crea pedido pagado y el carrito se conserva",
+    "Capturar dos veces la misma orden no crea pedidos duplicados",
+    "Las credenciales de PayPal no aparecen en el código del cliente ni en el repositorio"
+  ],
+  "status": "todo",
+  "priority": "critical",
+  "labels": [
+    "storefront",
+    "checkout",
+    "payments",
+    "security"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-016"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [],
+  "created_at": "2026-10-03T18:51:36.021Z",
+  "updated_at": "2026-10-03T18:51:36.021Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true
+}

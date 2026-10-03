@@ -1,0 +1,32 @@
+{
+  "key": "TASK-016",
+  "title": "Carrito de compras",
+  "description": "Desde la vista ampliada de una foto el comprador elige un producto (tamaño de impresión o archivo digital) y una cantidad, y lo agrega al carrito. El carrito persiste en el navegador, muestra subtotales y el total estimado, y permite cambiar cantidades o quitar líneas. Los precios mostrados vienen del catálogo vigente.",
+  "acceptance_criteria": [
+    "Desde una foto se elige tamaño (o digital) y cantidad y se agrega al carrito; un indicador muestra la cantidad de ítems",
+    "Agregar la misma foto con el mismo producto suma cantidad en vez de duplicar la línea",
+    "El archivo digital tiene cantidad fija de 1",
+    "En el carrito se cambian cantidades, se quitan líneas y se ve subtotal por línea y total",
+    "El carrito sobrevive a recargar la página",
+    "Si un producto se desactivó o cambió de precio desde que se agregó, el carrito lo indica y usa el precio actual"
+  ],
+  "status": "todo",
+  "priority": "high",
+  "labels": [
+    "storefront",
+    "cart"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-014",
+    "TASK-015"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [],
+  "created_at": "2026-10-03T18:51:35.969Z",
+  "updated_at": "2026-10-03T18:51:35.969Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true
+}

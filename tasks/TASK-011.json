@@ -1,0 +1,42 @@
+{
+  "key": "TASK-011",
+  "title": "Login del fotógrafo y rutas de administración protegidas",
+  "description": "El fotógrafo (único administrador) inicia sesión con Firebase Auth (correo y contraseña). Las rutas /admin/** solo son accesibles para un usuario con custom claim admin=true. Incluir un script de una sola vez (functions o node con firebase-admin) para asignar el claim admin a la cuenta del fotógrafo. Los compradores no tienen cuenta.",
+  "acceptance_criteria": [
+    "Desde /admin/login el fotógrafo inicia sesión con correo y contraseña y llega al panel",
+    "Credenciales incorrectas muestran un mensaje de error claro y no dan acceso",
+    "Un visitante sin sesión que entra a cualquier /admin/** es redirigido al login",
+    "Un usuario autenticado sin claim admin no puede ver el panel",
+    "Cerrar sesión devuelve al login y bloquea /admin/**",
+    "Existe un script documentado para asignar el claim admin a una cuenta"
+  ],
+  "status": "in_progress",
+  "priority": "high",
+  "labels": [
+    "admin",
+    "auth"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-010"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:20:09.435Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: que solo el fotógrafo pueda entrar al panel de administración.\n2. Actor: el fotógrafo (admin único); también un visitante y un usuario autenticado sin claim.\n3. Problema: /admin es hoy accesible para cualquiera; no hay login.\n4. Caminos: principal = login correcto lleva al panel; alternativos = ya logueado, recarga de la página, redirección de vuelta a la página pedida; fallo = credenciales malas, cuenta sin claim, demasiados intentos, cierre de sesión con el botón atrás.\n5. Hecho: los casos de abajo cumplidos y verificados.\n6. Restricciones: Firebase Auth con correo y contraseña; admin por custom claim; sin registro ni recuperación de contraseña; no revelar si una cuenta existe.\n7. Fuera de alcance: CRUDs del panel (TASK-012 en adelante)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:20:09.618Z",
+      "body": "CASOS DE USO APROBADOS por el humano el 2026-10-03 (\"si\").\nCU1. En /admin/login, el fotógrafo entra con correo y contraseña válidos y llega al panel /admin.\nCU2. Contraseña incorrecta o usuario inexistente → mensaje genérico \"Correo o contraseña incorrectos\" (no revela cuál falló).\nCU3. Correo vacío o mal formado → el formulario no se envía y marca el campo.\nCU4. Mientras inicia sesión, el botón queda deshabilitado con indicador de carga (sin doble envío).\nCU5. Un visitante sin sesión que entra a cualquier /admin/** va al login y, tras iniciar sesión, vuelve a la página que pidió (solo rutas internas /admin; nunca una URL externa).\nCU6. Un usuario autenticado sin claim admin ve \"Esta cuenta no tiene acceso\", se cierra su sesión y no ve el panel.\nCU7. Un fotógrafo ya logueado que abre /admin/login va directo al panel.\nCU8. Al recargar, la sesión se mantiene, y la ruta protegida no muestra el panel ni un instante antes de resolver el estado de autenticación.\nCU9. \"Cerrar sesión\" lleva al login; después /admin vuelve a pedir login, incluso con el botón atrás.\nCU10. Si Firebase bloquea por demasiados intentos (auth/too-many-requests), aparece un mensaje claro de esperar.\nCU11. npm run set-admin -- <correo> asigna el claim admin a una cuenta existente; falla con un mensaje claro si no existe; el uso queda documentado.\nCU12. En los emuladores existe un usuario administrador de prueba para desarrollo (seed documentado).\nCU13. No existe registro de usuarios ni \"olvidé mi contraseña\"."
+    }
+  ],
+  "created_at": "2026-10-03T18:51:35.654Z",
+  "updated_at": "2026-10-03T20:20:09.782Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true
+}

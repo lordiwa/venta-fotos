@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "session_id": "20261003T184652Z-bda20da3",
+  "lifecycle_state": "active",
+  "updated_at": "2026-10-03T20:13:20.417Z",
+  "active_task": "TASK-011",
+  "workflow_step": "fetch",
+  "next_action": "Con aprobación: registrar pedido + casos en TASK-011, in_progress, lanzar developer (incluir LOW: token.get(admin,false) en reglas).",
+  "handoff_summary": "TASK-010 CERRADA (a927997, 7da630d; reglas 12/12, mutación 18/18). JDK 21 en C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot (exportar PATH si el shell no lo ve). Casos de uso de TASK-011 (13 casos, login admin) presentados; esperando aprobación humana.",
+  "open_questions": [
+    "Java (JDK 21) no está instalado: necesario para los emuladores de Firestore/Storage",
+    "El proyecto Firebase \"venta-fotos\" de .firebaserc no existe en la cuenta; usar demo-venta-fotos para emuladores hasta crearlo",
+    "Plan Blaze necesario para Functions con llamadas salientes (PayPal)"
+  ],
+  "blockers": [],
+  "decisions": [
+    {
+      "at": "2026-10-03T18:52:22.115Z",
+      "decision": "Compradores sin cuenta; vistas previas con marca de agua; envío con costo fijo; total recalculado en servidor; admin vía custom claim"
+    },
+    {
+      "at": "2026-10-03T18:54:30.004Z",
+      "decision": "TASK-010: modelo events/{id}/photos subcolección, settings/store, Storage originals/previews/thumbs, reglas cross-service para previews"
+    }
+  ],
+  "subagent_results": [
+    {
+      "at": "2026-10-03T19:03:13.579Z",
+      "agent": "reviewer",
+      "task": "TASK-010",
+      "summary": "REQUEST-CHANGES solo por R-1 (reglas sin ejecutar). Reglas correctas a la lectura; M-2 test 50MB lento; L-1..L-4 menores."
+    },
+    {
+      "at": "2026-10-03T19:05:06.245Z",
+      "agent": "developer",
+      "task": "TASK-010",
+      "summary": "Fix round 7da630d: M-2, L-1, L-2, L-3, L-4 aplicados; build verde; reglas sin ejecutar (sin Java)."
+    },
+    {
+      "at": "2026-10-03T20:13:20.417Z",
+      "agent": "reviewer",
+      "task": "TASK-010",
+      "summary": "Re-review 7da630d PASS; test:rules 12/12 re-ejecutado; LOW token.get."
+    }
+  ],
+  "pending_human_confirmation": "Aprobación casos de uso TASK-011"
+}

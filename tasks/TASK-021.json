@@ -1,0 +1,33 @@
+{
+  "key": "TASK-021",
+  "title": "Despliegue a producción en Firebase",
+  "description": "Desplegar Hosting, reglas, índices y Functions al proyecto Firebase real, configurar secretos (PayPal live, correo), crear la cuenta admin del fotógrafo y documentar en el README cómo desarrollar localmente con emuladores y cómo desplegar.",
+  "acceptance_criteria": [
+    "La tienda está accesible en la URL de Firebase Hosting",
+    "Reglas de Firestore y Storage e índices desplegados",
+    "Functions desplegadas con secretos configurados (sin credenciales en el repo)",
+    "La cuenta del fotógrafo tiene el claim admin y puede entrar al panel en producción",
+    "Un pedido de prueba de punta a punta funciona en producción",
+    "README explica desarrollo local con emuladores y despliegue"
+  ],
+  "status": "todo",
+  "priority": "medium",
+  "labels": [
+    "deploy",
+    "infrastructure"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-018",
+    "TASK-019",
+    "TASK-020"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [],
+  "created_at": "2026-10-03T18:51:36.286Z",
+  "updated_at": "2026-10-03T18:51:36.286Z",
+  "jira_key": null,
+  "verification_tier": "uat-only",
+  "requires_uat": true
+}

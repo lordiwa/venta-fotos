@@ -11,15 +11,42 @@
     "Todo commitado y pusheado a GitHub",
     "npm run build pasa sin errores"
   ],
-  "status": "in_progress",
+  "status": "done",
   "priority": "high",
-  "labels": ["bootstrap", "infrastructure"],
+  "labels": [
+    "bootstrap",
+    "infrastructure"
+  ],
   "assignee": "developer",
   "depends_on": [],
-  "linked_commits": [],
+  "linked_commits": [
+    "2d082d6"
+  ],
   "linked_prs": [],
-  "comments": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:19:55.481Z",
+      "body": "[CLOSE-EXCEPTION] Ticket de bootstrap creado antes de inicializar hivemind, sin casos de uso aprobados ni ciclo de review. Su trabajo ya está hecho: el repo está pusheado (2d082d6) y TASK-010 rehízo y verificó la base (build, Firebase, reglas). El humano autorizó el cierre el 2026-10-03."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:19:55.481Z",
+      "body": "ENTREGA — TASK-001\n\n1. CASOS DE USO APROBADOS: no hubo lista aprobada (ticket previo a hivemind). CU1 repo GitHub creado -> cumplido. CU2 scaffolding Vue 3 + Vite + TS -> cumplido. CU3 Firebase configurado -> cumplido (rehecho en TASK-010). CU4 estructura hivemind -> cumplido. CU5 docs/PAYMENT.md -> cumplido. CU6 pusheado -> cumplido. CU7 build verde -> cumplido.\n\n2. RESULTADO: bootstrap del repo en 2d082d6. TASK-010 reemplazó el template y las reglas.\n\n3. WARGAMING: no hubo pasada propia. La base fue atacada en TASK-010 (CU6-CU17 de ese ticket, caminos de fallo de reglas, 18/18 mutantes detectados). Este ticket cierra por excepción.\n\n4. UAT: UAT no solicitado (ticket de infraestructura).\n\n5. ESTADO Y DEUDAS: ninguna."
+    }
+  ],
   "created_at": "2026-10-02T22:00:00.000Z",
-  "updated_at": "2026-10-02T22:00:00.000Z",
-  "jira_key": null
+  "updated_at": "2026-10-03T20:19:55.481Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-03T20:19:55.481Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "2d082d6",
+        "state": "verified"
+      }
+    ]
+  }
 }

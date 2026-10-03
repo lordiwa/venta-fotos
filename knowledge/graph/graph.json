@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "task-001",
+      "type": "task",
+      "ref": "tasks/TASK-001.json",
+      "label": "Inicializar proyecto venta-fotos"
+    },
+    {
+      "id": "task-010",
+      "type": "task",
+      "ref": "tasks/TASK-010.json",
+      "label": "Base de la app: Firebase SDK, router, modelo de datos y reglas de seguridad"
+    }
+  ],
+  "edges": []
+}

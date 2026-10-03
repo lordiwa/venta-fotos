@@ -33,11 +33,11 @@
 
 Se elige PayPal SDK por las siguientes razones:
 
-1. **Simplicidad**: venta-fotos vende fotos digitales individuales — no necesita un carrito de compras completo ni catálogo gestionado externamente. La lógica es: seleccionar foto → pagar → recibir descarga.
+1. **Simplicidad**: venta-fotos es la tienda de un solo fotógrafo. El comprador arma un carrito con fotos de un evento (tamaño de impresión, copias y/o archivo digital) y paga el total en una sola orden de PayPal. El catálogo y el carrito viven en nuestra app; no hace falta una tienda gestionada externamente como Ecwid.
 
 2. **Costo**: Sin costo de suscripción mensual. Solo las tarifas de transacción de PayPal (~2.9% + $0.30).
 
-3. **Control**: La lógica de negocio (liberación de archivos, registro de ventas) se queda en Firebase Functions + Firestore, sin depender de un intermediario.
+3. **Control**: La lógica de negocio (registro del pedido, lista de impresión, estados de entrega, liberación del archivo digital) se queda en Firebase Functions + Firestore, sin depender de un intermediario.
 
 4. **Integración nativa con Firebase**: El SDK de PayPal se integra directamente con Cloud Functions para webhooks de confirmación.
 
@@ -46,9 +46,10 @@ Se elige PayPal SDK por las siguientes razones:
 ### Implementación
 
 - **Frontend**: Botón de "Comprar con PayPal" usando el SDK JS de PayPal
-- **Backend**: Cloud Function `createCheckoutSession` → PayPal Orders API → webhook de confirmación
-- **Post-pago**: Firestore actualiza la compra, Firebase Storage genera URL de descarga firmada
-- **Protección**: Solo el comprador autenticado puede descargar el archivo original
+- **Backend**: Cloud Function `createOrder` recalcula el total del carrito en el servidor a partir del catálogo (nunca confía en el precio que manda el cliente) → PayPal Orders API (una orden con varias líneas; el envío va como línea aparte si aplica) → `captureOrder` + webhook de confirmación
+- **Post-pago**: Firestore marca el pedido como `pagado` y aparece en el panel del fotógrafo con su método de entrega (retiro o envío). Se manda un correo de confirmación al comprador
+- **Archivo digital**: si el pedido incluye el digital, Firebase Storage genera una URL firmada con vencimiento que se envía por correo al comprador
+- **Protección**: los originales en alta resolución nunca son públicos; la galería solo sirve vistas previas con marca de agua
 
 ### Referencias
 
@@ -58,4 +59,4 @@ Se elige PayPal SDK por las siguientes razones:
 
 ---
 
-*Decisión tomada: 2026-10-02*
+*Decisión tomada: 2026-10-02 · Actualizada: 2026-10-03 (tienda de eventos con impresiones, carrito y entrega física)*
