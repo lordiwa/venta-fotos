@@ -19,6 +19,13 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./layouts/PublicLayout.vue'),
     children: [
       { path: '', name: 'home', component: () => import('./views/HomeView.vue') },
+      {
+        // La foto es una ruta hija sin contenido propio: el lightbox se superpone a la cuadricula, que sigue montada.
+        path: 'eventos/:eventId',
+        name: 'event',
+        component: () => import('./views/EventGallery.vue'),
+        children: [{ path: 'fotos/:photoId', name: 'event-photo', component: { render: () => null } }],
+      },
       { path: ':pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue') },
     ],
   },
