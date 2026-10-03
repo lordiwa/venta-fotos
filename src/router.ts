@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 
 export const routes: RouteRecordRaw[] = [
+  { path: '/admin/login', name: 'admin-login', component: () => import('./views/AdminLogin.vue') },
   {
     path: '/admin',
     component: () => import('./layouts/AdminLayout.vue'),

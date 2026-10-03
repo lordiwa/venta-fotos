@@ -5,8 +5,10 @@ import './style.css'
 import './firebase'
 import App from './App.vue'
 import { routes } from './router'
+import { authReady, authState } from './auth'
+import { installAdminGuard } from './guard'
 
-createApp(App)
-  .use(createPinia())
-  .use(createRouter({ history: createWebHistory(), routes }))
-  .mount('#app')
+const router = createRouter({ history: createWebHistory(), routes })
+installAdminGuard(router, authReady, () => authState.isAdmin)
+
+createApp(App).use(createPinia()).use(router).mount('#app')

@@ -8,7 +8,9 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:rules": "npx --no-install firebase emulators:exec --only firestore,storage --project demo-venta-fotos \"vitest run --config rules-tests/vitest.config.ts\""
+    "test:rules": "npx --no-install firebase emulators:exec --only firestore,storage --project demo-venta-fotos \"vitest run --config rules-tests/vitest.config.ts\"",
+    "set-admin": "node scripts/set-admin.mjs",
+    "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
     "firebase": "^12.19.0",
@@ -21,6 +23,7 @@
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
+    "firebase-admin": "^13.10.0",
     "firebase-tools": "15.32.1",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
