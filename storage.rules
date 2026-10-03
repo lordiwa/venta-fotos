@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function eventPublished(eventId) {
+      return firestore.get(/databases/(default)/documents/events/$(eventId)).data.published == true;
+    }
+
+    // Originales en alta resolucion: solo el admin lee y sube (JPEG/PNG, max 50 MB).
+    match /originals/{eventId}/{file} {
+      allow read: if isAdmin();
+      allow write: if isAdmin()
+        && request.resource != null
+        && request.resource.contentType.matches('image/(jpeg|png)')
+        && request.resource.size <= 50 * 1024 * 1024;
+    }
+
+    // Derivados publicos: los genera una Function (Admin SDK); el cliente solo lee.
+    match /previews/{eventId}/{file} {
+      allow read: if isAdmin() || eventPublished(eventId);
+      allow write: if false;
+    }
+    match /thumbs/{eventId}/{file} {
+      allow read: if isAdmin() || eventPublished(eventId);
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
