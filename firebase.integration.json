@@ -1,0 +1,15 @@
+{
+  "functions": { "source": "functions", "runtime": "nodejs22" },
+  "firestore": { "rules": "firestore.rules" },
+  "storage": { "rules": "storage.rules" },
+  "emulators": {
+    "functions": { "port": 5101 },
+    "firestore": { "port": 8180 },
+    "storage": { "port": 9299 },
+    "eventarc": { "port": 9399 },
+    "hub": { "port": 4410 },
+    "logging": { "port": 4510 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

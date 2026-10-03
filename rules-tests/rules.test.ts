@@ -13,11 +13,17 @@ import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage'
 let env: RulesTestEnvironment
 const bytes = (n = 10) => new Uint8Array(n)
 
+/** emulators:exec exporta host:puerto de cada emulador (puertos no estandar incluidos); por defecto los de firebase.json. */
+function hostPort(v: string | undefined, port: number) {
+  const [host, p] = (v ?? '').split(':')
+  return { host: host || '127.0.0.1', port: p ? Number(p) : port }
+}
+
 beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-venta-fotos',
-    firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 },
-    storage: { rules: readFileSync('storage.rules', 'utf8'), host: '127.0.0.1', port: 9199 },
+    firestore: { rules: readFileSync('firestore.rules', 'utf8'), ...hostPort(process.env.FIRESTORE_EMULATOR_HOST, 8080) },
+    storage: { rules: readFileSync('storage.rules', 'utf8'), ...hostPort(process.env.FIREBASE_STORAGE_EMULATOR_HOST, 9199) },
   })
 })
 afterAll(async () => {

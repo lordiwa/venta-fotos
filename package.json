@@ -9,6 +9,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:rules": "npx --no-install firebase emulators:exec --only firestore,storage --project demo-venta-fotos \"vitest run --config rules-tests/vitest.config.ts\"",
+    "test:functions": "npm --prefix functions test",
+    "test:functions:integration": "npm --prefix functions run build && npx --no-install firebase emulators:exec --config firebase.integration.json --only functions,firestore,storage --project demo-venta-fotos \"npm --prefix functions run test:integration\"",
+    "build:functions": "npm --prefix functions run build",
+    "emulators": "npm run build:functions && npx --no-install firebase emulators:start --only auth,functions,firestore,storage --project demo-venta-fotos",
     "set-admin": "node scripts/set-admin.mjs",
     "seed:admin": "node scripts/seed-admin.mjs"
   },

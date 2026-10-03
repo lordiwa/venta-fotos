@@ -12,11 +12,20 @@ export interface Event {
   coverPhotoId?: string
 }
 
+export type PhotoStatus = 'processing' | 'ready' | 'error'
+
 /** events/{eventId}/photos/{photoId}. Los archivos viven en Storage: originals|previews|thumbs/{eventId}/{photoId}. */
 export interface Photo {
   id: string
   eventId: string
   visible: boolean
+  /** La crea la Function al recibir el original: processing -> ready | error. */
+  status: PhotoStatus
+  /** Nombre del archivo subido. */
+  name?: string
+  width?: number
+  height?: number
+  errorMessage?: string
   /** Rutas de Storage (el original nunca es publico). */
   originalPath: string
   previewPath?: string
@@ -39,6 +48,8 @@ export interface Product {
 export interface StoreSettings {
   shippingCost: number
   pickupInfo: string
+  /** Texto de la marca de agua de las vistas previas. Si falta o queda vacio, la Function usa "MUESTRA". */
+  watermarkText?: string
 }
 
 /** orders/{orderId}: solo escribible por Cloud Functions. */

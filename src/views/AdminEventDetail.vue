@@ -5,6 +5,8 @@ import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { db } from '../firebase'
 import { deleteEvent, getEvent, setCover, setPublished } from '../eventsApi'
 import PhotoThumb from '../components/PhotoThumb.vue'
+import PhotoUploader from '../components/PhotoUploader.vue'
+import { deletePhoto, setPhotoVisible } from '../photosApi'
 import type { Event, Photo } from '../types'
 
 const route = useRoute()
@@ -50,6 +52,14 @@ const togglePublished = () =>
   run(() => setPublished(id.value, !event.value!.published), 'No se pudo cambiar el estado de publicación.')
 const chooseCover = (photoId: string) => run(() => setCover(id.value, photoId), 'No se pudo elegir la portada.')
 
+const toggleVisible = (p: Photo) =>
+  run(() => setPhotoVisible(id.value, p.id, !p.visible), 'No se pudo cambiar la visibilidad de la foto.')
+
+async function removePhoto(p: Photo) {
+  if (!window.confirm(`¿Eliminar la foto "${p.name ?? p.id}"? Se borran también su vista previa y miniatura.`)) return
+  run(() => deletePhoto(id.value, p.id, event.value?.coverPhotoId === p.id), 'No se pudo eliminar la foto.')
+}
+
 async function remove() {
   const n = photos.value.length
   const extra = n ? ` Se borrarán también sus ${n} fotos.` : ''
@@ -85,14 +95,25 @@ async function remove() {
     </div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
 
+    <h2>Subir fotos</h2>
+    <PhotoUploader :event-id="id" />
+
     <h2>Fotos ({{ photos.length }})</h2>
     <p v-if="!photos.length">Este evento aún no tiene fotos.</p>
     <ul class="grid">
-      <li v-for="p in photos" :key="p.id" :class="{ cover: event.coverPhotoId === p.id }">
-        <PhotoThumb :path="p.thumbPath" />
-        <button class="small" :disabled="event.coverPhotoId === p.id" @click="chooseCover(p.id)">
-          {{ event.coverPhotoId === p.id ? 'Portada' : 'Usar como portada' }}
-        </button>
+      <li v-for="p in photos" :key="p.id" :class="{ cover: event.coverPhotoId === p.id, hidden: !p.visible }">
+        <PhotoThumb v-if="p.status === 'ready'" :path="p.thumbPath" />
+        <div v-else class="state" :class="p.status">
+          {{ p.status === 'error' ? 'Error al procesar' : 'Procesando…' }}
+        </div>
+        <div class="btns">
+          <button v-if="p.status === 'ready'" :disabled="event.coverPhotoId === p.id" @click="chooseCover(p.id)">
+            {{ event.coverPhotoId === p.id ? 'Es la portada' : 'Usar de portada' }}
+          </button>
+          <button v-if="p.status === 'ready'" @click="toggleVisible(p)">{{ p.visible ? 'Ocultar' : 'Mostrar' }}</button>
+          <button class="danger" @click="removePhoto(p)">Eliminar</button>
+        </div>
+        <small v-if="!p.visible" class="tag">Oculta</small>
       </li>
     </ul>
   </template>
@@ -106,7 +127,13 @@ async function remove() {
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 1rem 0; }
 button, .btn2 { padding: 0.6rem 1rem; border: 1px solid #1f2430; border-radius: 6px; background: #fff; color: #1f2430; font: inherit; cursor: pointer; text-decoration: none; }
 button.danger { border-color: #b42318; color: #b42318; }
-button.small { width: 100%; padding: 0.4rem; font-size: 0.8rem; border-radius: 0 0 6px 6px; }
+.btns { display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.25rem; }
+.btns button { flex: 1 1 auto; padding: 0.3rem 0.4rem; font-size: 0.75rem; }
+.state { aspect-ratio: 1; display: grid; place-items: center; background: #eef0f4; color: #6b7280; font-size: 0.85rem; text-align: center; padding: 0.5rem; }
+.state.error { background: #fde8e6; color: #b42318; }
+.grid li { position: relative; }
+.grid li.hidden img, .grid li.hidden .ph { opacity: 0.4; }
+.tag { position: absolute; top: 0.25rem; left: 0.25rem; background: #1f2430; color: #fff; padding: 0 0.4rem; border-radius: 4px; }
 button:disabled { opacity: 0.6; cursor: default; }
 .grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.75rem; }
 .grid li { border: 2px solid transparent; border-radius: 8px; overflow: hidden; }
