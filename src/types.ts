@@ -19,6 +19,10 @@ export interface Photo {
   id: string
   eventId: string
   visible: boolean
+  /**
+   * Consulta publica (TASK-015): las reglas solo dejan leer fotos con evento published == true, visible == true
+   * y status == 'ready'; la query debe filtrar por visible y por status (y el evento por published).
+   */
   /** La crea la Function al recibir el original: processing -> ready | error. */
   status: PhotoStatus
   /** Nombre del archivo subido. */

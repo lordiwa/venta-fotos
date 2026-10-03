@@ -38,9 +38,11 @@ beforeEach(async () => {
     const date = Timestamp.now()
     await setDoc(doc(db, 'events/pub'), { name: 'Pub', date, published: true })
     await setDoc(doc(db, 'events/draft'), { name: 'Draft', date, published: false })
-    await setDoc(doc(db, 'events/pub/photos/p1'), { visible: true })
-    await setDoc(doc(db, 'events/pub/photos/hidden'), { visible: false })
-    await setDoc(doc(db, 'events/draft/photos/p2'), { visible: true })
+    await setDoc(doc(db, 'events/pub/photos/p1'), { visible: true, status: 'ready' })
+    await setDoc(doc(db, 'events/pub/photos/hidden'), { visible: false, status: 'ready' })
+    await setDoc(doc(db, 'events/pub/photos/proc'), { visible: true, status: 'processing' })
+    await setDoc(doc(db, 'events/pub/photos/err'), { visible: true, status: 'error' })
+    await setDoc(doc(db, 'events/draft/photos/p2'), { visible: true, status: 'ready' })
     await setDoc(doc(db, 'products/a4'), { name: 'A4', kind: 'print', price: 5 })
     await setDoc(doc(db, 'settings/store'), { shippingCost: 3 })
     await setDoc(doc(db, 'orders/o1'), { total: 5 })
@@ -68,7 +70,13 @@ describe('Firestore', () => {
   })
   it('UC8 fotos: solo visibles de eventos publicados - evita exponer fotos ocultas o de borradores', async () => {
     const db = anon().firestore()
-    await assertSucceeds(getDocs(query(collection(db, 'events/pub/photos'), where('visible', '==', true))))
+    await assertSucceeds(
+      getDocs(query(collection(db, 'events/pub/photos'), where('visible', '==', true), where('status', '==', 'ready'))),
+    )
+    await assertFails(getDocs(query(collection(db, 'events/pub/photos'), where('visible', '==', true)))) // sin filtro status
+    await assertFails(getDoc(doc(db, 'events/pub/photos/proc'))) // procesando: no es publica
+    await assertFails(getDoc(doc(db, 'events/pub/photos/err'))) // con error: no es publica
+    await assertSucceeds(getDoc(doc(admin().firestore(), 'events/pub/photos/err')))
     await assertSucceeds(getDoc(doc(db, 'events/pub/photos/p1')))
     await assertFails(getDoc(doc(db, 'events/pub/photos/hidden')))
     await assertFails(getDoc(doc(db, 'events/draft/photos/p2')))

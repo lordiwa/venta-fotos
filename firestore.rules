@@ -30,6 +30,7 @@ service cloud.firestore {
       match /photos/{photoId} {
         allow read: if isAdmin()
           || (resource.data.visible == true
+              && resource.data.status == 'ready'
               && get(/databases/$(database)/documents/events/$(eventId)).data.published == true);
         allow write: if isAdmin();
       }

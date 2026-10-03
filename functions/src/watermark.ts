@@ -4,6 +4,8 @@
  * (la vista previa quedaria SIN marca de agua).
  */
 export const DEFAULT_WATERMARK = "MUESTRA";
+/** Maximo de caracteres de la marca de agua (la letra se reduce para que quepa; mas largo se corta con aviso en el log). */
+export const MAX_WATERMARK_CHARS = 40;
 
 // Cada glifo: 7 filas de 5 columnas separadas por espacio ('#' = relleno).
 const FONT: Record<string, string> = {
@@ -56,14 +58,18 @@ export function normalizeWatermarkText(raw: unknown): string {
     .toUpperCase()
     .replace(/[^A-Z0-9 .-]/g, "")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 24);
+    .trim();
   return /[A-Z0-9]/.test(t) ? t : "";
 }
 
 /** SVG (width x height) con el texto repetido en diagonal sobre toda la imagen. */
 export function buildWatermarkSvg(rawText: unknown, width: number, height: number): string {
-  const text = normalizeWatermarkText(rawText) || DEFAULT_WATERMARK;
+  let text = normalizeWatermarkText(rawText) || DEFAULT_WATERMARK;
+  if (text.length > MAX_WATERMARK_CHARS) {
+    // Tope documentado: el texto se acorta (el tamaño de letra se ajusta al ancho de la imagen hasta ese tope).
+    console.warn(`watermarkText tiene ${text.length} caracteres validos; se usan los primeros ${MAX_WATERMARK_CHARS}.`);
+    text = text.slice(0, MAX_WATERMARK_CHARS).trim();
+  }
   const chars = [...text];
   const u = Math.max(2, Math.round((Math.max(width, height) * 0.28) / (chars.length * 6 - 1)));
   const tw = (chars.length * 6 - 1) * u;

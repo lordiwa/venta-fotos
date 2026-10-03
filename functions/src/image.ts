@@ -1,6 +1,8 @@
 import sharp from "sharp";
 import { buildWatermarkSvg } from "./watermark";
 
+/** Tope de pixeles de entrada (anti "decompression bomb"); 80 MP cubre camaras de alta gama. */
+export const MAX_INPUT_PIXELS = 80e6;
 export const THUMB_SIZE = 400;
 export const PREVIEW_SIZE = 1600;
 
@@ -14,7 +16,7 @@ export interface Derivatives {
 
 /** Miniatura (~400px lado largo) y vista previa (~1600px) con marca de agua, ambas JPEG. Lanza si el archivo no es una imagen valida. */
 export async function makeDerivatives(input: Buffer, watermarkText: unknown): Promise<Derivatives> {
-  const base = sharp(input, { failOn: "error" }).rotate(); // aplica EXIF y lo descarta
+  const base = sharp(input, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS }).rotate(); // aplica EXIF y lo descarta
   const meta = await base.metadata();
   const swap = (meta.orientation ?? 1) >= 5;
   const width = swap ? meta.height : meta.width;

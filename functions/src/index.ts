@@ -21,7 +21,7 @@ export const createCheckoutSession = onCall(async (request) => {
 // ---- TASK-013: procesamiento de fotos ----
 
 /** Original subido -> miniatura + vista previa con marca de agua + documento photo (processing/ready/error). */
-export const processPhoto = onObjectFinalized({ memory: "1GiB", timeoutSeconds: 300 }, async (event) => {
+export const processPhoto = onObjectFinalized({ memory: "2GiB", timeoutSeconds: 300 }, async (event) => {
   const { name, metadata } = event.data;
   await processOriginal(admin.firestore(), admin.storage().bucket(event.data.bucket), name, metadata?.originalName);
 });

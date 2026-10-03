@@ -39,5 +39,8 @@ describe("makeDerivatives", () => {
     await expect(makeDerivatives(Buffer.from("esto no es una imagen"), "MUESTRA")).rejects.toThrow();
     const truncated = (await gray(800, 600)).subarray(0, 300);
     await expect(makeDerivatives(truncated, "MUESTRA")).rejects.toThrow();
+    // dimensiones desmesuradas (PNG liso diminuto en disco, 81 MP al decodificar) -> error en vez de agotar la memoria
+    const huge = await sharp({ create: { width: 9000, height: 9000, channels: 3, background: "#000" } }).png().toBuffer();
+    await expect(makeDerivatives(huge, "MUESTRA")).rejects.toThrow(/pixel/i);
   });
 });

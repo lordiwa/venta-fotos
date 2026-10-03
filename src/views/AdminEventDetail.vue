@@ -110,7 +110,7 @@ async function remove() {
           <button v-if="p.status === 'ready'" :disabled="event.coverPhotoId === p.id" @click="chooseCover(p.id)">
             {{ event.coverPhotoId === p.id ? 'Es la portada' : 'Usar de portada' }}
           </button>
-          <button v-if="p.status === 'ready'" @click="toggleVisible(p)">{{ p.visible ? 'Ocultar' : 'Mostrar' }}</button>
+          <button @click="toggleVisible(p)">{{ p.visible ? 'Ocultar' : 'Mostrar' }}</button>
           <button class="danger" @click="removePhoto(p)">Eliminar</button>
         </div>
         <small v-if="!p.visible" class="tag">Oculta</small>
