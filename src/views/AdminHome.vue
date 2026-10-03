@@ -1,4 +1,6 @@
 <template>
   <h1>Panel de administración</h1>
-  <p>Próximamente.</p>
+  <ul>
+    <li><RouterLink to="/admin/eventos">Eventos y fotos</RouterLink></li>
+  </ul>
 </template>

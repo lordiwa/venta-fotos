@@ -7,6 +7,7 @@ export interface Event {
   name: string
   date: Timestamp
   published: boolean
+  place?: string
   description?: string
   coverPhotoId?: string
 }
@@ -59,6 +60,8 @@ export type Delivery =
 export interface Order {
   id: string
   lines: OrderLine[]
+  /** Ids de evento de las lineas, sin repetir (desnormalizado al crear el pedido). Permite `eventIds array-contains <id>`; TASK-012 lo usa para bloquear la baja de eventos con pedidos. */
+  eventIds: string[]
   total: number
   status: OrderStatus
   delivery: Delivery

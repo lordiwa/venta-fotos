@@ -114,6 +114,16 @@ describe('Firestore', () => {
     await assertFails(getDoc(doc(user().firestore(), 'orders/o1')))
     await assertSucceeds(getDoc(doc(admin().firestore(), 'orders/o1')))
   })
+  it('TASK-012 consulta de pedidos por evento solo admin - evita borrar eventos con pedidos y que otros espien pedidos', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'orders/o3'), { eventIds: ['pub'], total: 5 })
+    })
+    const q = (c: ReturnType<typeof admin>) => getDocs(query(collection(c.firestore(), 'orders'), where('eventIds', 'array-contains', 'pub')))
+    const snap = await assertSucceeds(q(admin()))
+    if (snap.size !== 1) throw new Error('el admin debe ver 1 pedido, vio ' + snap.size)
+    await assertFails(q(anon()))
+    await assertFails(q(user()))
+  })
   it('UC14 colecciones no declaradas denegadas - evita reabrir users/purchases del modelo viejo', async () => {
     const db = admin().firestore()
     await assertFails(getDoc(doc(db, 'users/u1')))
