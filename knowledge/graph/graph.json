@@ -12,6 +12,24 @@
       "type": "task",
       "ref": "tasks/TASK-010.json",
       "label": "Base de la app: Firebase SDK, router, modelo de datos y reglas de seguridad"
+    },
+    {
+      "id": "task-012",
+      "type": "task",
+      "ref": "tasks/TASK-012.json",
+      "label": "Gestión de eventos (admin)"
+    },
+    {
+      "id": "task-013",
+      "type": "task",
+      "ref": "tasks/TASK-013.json",
+      "label": "Subida en lote de fotos con vista previa con marca de agua"
+    },
+    {
+      "id": "task-015",
+      "type": "task",
+      "ref": "tasks/TASK-015.json",
+      "label": "Galería pública por evento"
     }
   ],
   "edges": []

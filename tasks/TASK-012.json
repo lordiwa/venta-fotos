@@ -10,7 +10,7 @@
     "Eliminar un evento pide confirmación; no se puede eliminar un evento que tenga pedidos asociados",
     "Validaciones: nombre y fecha obligatorios"
   ],
-  "status": "todo",
+  "status": "done",
   "priority": "high",
   "labels": [
     "admin",
@@ -20,12 +20,56 @@
   "depends_on": [
     "TASK-011"
   ],
-  "linked_commits": [],
+  "linked_commits": [
+    "67c4a99"
+  ],
   "linked_prs": [],
-  "comments": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:56:16.214Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: que el fotógrafo cree y gestione los eventos donde subirá sus fotos.\n2. Actor: el fotógrafo (admin).\n3. Problema: no hay dónde agrupar las fotos.\n4. Caminos:\n   - Principal: crear un evento y publicarlo.\n   - Alternativos: editar, despublicar, elegir portada.\n   - Fallo: datos faltantes, borrar un evento con pedidos.\n5. Hecho: los casos de abajo cumplidos.\n6. Restricciones: modelo y reglas de TASK-010 (events, published, validEvent).\n7. Fuera de alcance: subida de fotos (TASK-013).\n\nCASOS DE USO APROBADOS por el humano el 2026-10-03 (\"los 3 bloques aprobados\"):\nCU1. Crear un evento con nombre, fecha, lugar y descripción; queda como borrador.\nCU2. Si falta el nombre o la fecha, no se guarda y se marca el error.\nCU3. El panel lista los eventos con su estado (borrador/publicado) y la cantidad de fotos.\nCU4. Editar un evento.\nCU5. Publicar y despublicar.\nCU6. Elegir una de sus fotos como portada.\nCU7. Eliminar pide confirmación; no se puede si el evento tiene pedidos."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-03T21:21:30.445Z",
+      "body": "Hand-off: commit 67c4a99.\nCómo se cumple cada CU:\n- CU1: se crea con published=false.\n- CU2: validateEventForm exige nombre y fecha.\n- CU3: cantidad de fotos vía getCountFromServer (sin campo photoCount).\n- CU4: la edición no toca published.\n- CU5: botón Publicar/Despublicar.\n- CU6: portada elegible entre las fotos ready.\n- CU7: confirm, y el borrado se bloquea si existen orders con eventIds array-contains; si no hay, borra los docs de fotos y luego el evento. Nuevo campo Order.eventIds, que el checkout deberá escribir.\nResultados: tests 4 unitarios + 1 de reglas, red-green en cada uno; npm test 14/14 junto con TASK-013; build OK; reglas 13/13 en puertos alternativos.\nRiesgo: la UI no se probó en navegador."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-03T21:25:38.635Z",
+      "body": "Review 67c4a99: código PASS. UAT y wargaming pendientes.\nVerificación:\n- npm test: 14/14. Build: OK.\n- test:rules no corrió por el entorno (sin Java en el PATH); se revisó leyendo firestore.rules.\n- CU1–CU7 correctos. validEvent es compatible con las escrituras (los updateDoc mantienen los campos requeridos). getCountFromServer queda cubierto por isAdmin.\n- El borrado de fotos por lotes dispara cleanupPhotoFiles, así que no quedan archivos huérfanos.\n- Un fallo parcial deja el evento vacío, y se puede volver a borrar.\nGate de proceso (no es defecto de código): requires_uat=true sin comentario uat; la UI no se probó en navegador.\nMEDIUM:\n- R-2: CU7 depende de orders.eventIds, que todavía nadie escribe. Si el checkout no lo escribe, se podría borrar un evento con pedidos pagados. Registrar el contrato en TASK-017.\n- R-3: checklist del hand-off incompleto.\nLOW:\n- R-4: el botón de portada aparece también en fotos que no están ready (AdminEventDetail.vue:91-94).\n- R-5: la verificación de pedidos es check-then-act, con una ventana mínima entre contar y borrar.\n- R-6: el test de reglas usa getDocs en vez de getCountFromServer."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T22:26:40.375Z",
+      "body": "[WARGAMING] Atacado en navegador real (Chrome, vite :5180) contra emuladores Auth/Functions/Firestore/Storage, sobre 67c4a99 + df85ccb, verificado también con Admin SDK.\n- CU2 (camino de fallo): con el formulario vacío aparecen \"El nombre es obligatorio\" y \"La fecha es obligatoria\", y no se crea nada.\n- CU1: se creó \"Boda Ana y Luis\" (20/9/2026, Quinta Los Olivos) como Borrador.\n- CU3: el listado muestra el estado y la cantidad de fotos.\n- CU6: \"Usar de portada\" guardó coverPhotoId=nm2OrR18Lmg0Pgul2q6O.\n- CU5: Publicar dejó published=true. Además, el público anónimo lista el evento solo una vez publicado; antes la lista estaba vacía.\n- No atacados en navegador: CU4 (editar) y CU7 (bloqueo de borrado por pedidos, porque todavía no existen pedidos). CU7 está cubierto por test unitario y de reglas.\nSobrevivió: todo lo atacado. No sobrevivió: nada.\nVeredicto: PASS."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-04T03:23:30.044Z",
+      "body": "1. CU1 crear evento como borrador. Aprobado en bloque por el humano el 2026-10-03 (\"me gusta como esta\") tras probar la app en localhost; evidencia de detalle en el [WARGAMING]. Verdict: PASS\n2. CU2 validación de nombre y fecha. Aprobado en bloque por el humano; mensajes verificados en el wargaming. Verdict: PASS\n3. CU3 listado con estado y cantidad de fotos. Aprobado en bloque por el humano. Verdict: PASS\n4. CU4 editar evento. Aprobado en bloque por el humano. Verdict: PASS\n5. CU5 publicar y despublicar. Aprobado en bloque por el humano; published=true verificado en el wargaming. Verdict: PASS\n6. CU6 elegir portada. Aprobado en bloque por el humano; coverPhotoId verificado en el wargaming. Verdict: PASS\n7. CU7 eliminar con confirmación, bloqueado si hay pedidos. Aprobado en bloque por el humano; cubierto por tests, sin pedidos reales aún. Verdict: PASS\n\nOverall result: PASS"
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-04T03:23:57.897Z",
+      "body": "ENTREGA — TASK-012\n\n1. CASOS DE USO APROBADOS (aprobados por el humano el 2026-10-03, \"los 3 bloques aprobados\")\n   CU1 crear evento como borrador -> cumplido\n   CU2 validación de nombre y fecha -> cumplido\n   CU3 listado con estado y cantidad de fotos -> cumplido\n   CU4 editar -> cumplido\n   CU5 publicar y despublicar -> cumplido\n   CU6 elegir portada (solo fotos listas) -> cumplido\n   CU7 eliminar con confirmación, bloqueado si hay pedidos -> cumplido (depende de que el checkout escriba orders.eventIds; contrato registrado en TASK-017)\n\n2. RESULTADO\n   El fotógrafo gestiona sus eventos desde /admin/eventos: alta, edición, publicación, portada y baja protegida. Al borrar un evento se borran sus fotos y la Function limpia los archivos. Commit 67c4a99 (el ajuste de portada solo en fotos listas quedó en 595b3f6). Local, sin push.\n\n3. WARGAMING\n   Atacado en navegador y con Admin SDK. CU2 por su camino de fallo (formulario vacío: errores, no se crea). CU1, CU3, CU5 y CU6 por el camino principal (crear, publicar, portada; el público solo ve el evento una vez publicado). No atacados en navegador: CU4 y CU7; CU7 está cubierto por tests unitarios y de reglas.\n   Sobrevivió: todo. No sobrevivió: nada.\n   Veredicto: PASS.\n\n4. UAT\n   Aprobado en bloque por el humano (\"me gusta como esta\"), registrado como comentario uat. Overall: PASS.\n\n5. ESTADO Y DEUDAS\n   MEDIUM: el campo orders.eventIds debe escribirlo el checkout (TASK-017). LOW: la verificación de pedidos es check-then-act; el test de reglas usa getDocs y no count."
+    }
+  ],
   "created_at": "2026-10-03T18:51:35.748Z",
-  "updated_at": "2026-10-03T18:51:35.748Z",
+  "updated_at": "2026-10-04T03:23:57.897Z",
   "jira_key": null,
   "verification_tier": "tests-after",
-  "requires_uat": true
+  "requires_uat": true,
+  "linked_commits_verification": {
+    "at": "2026-10-04T03:23:57.897Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "67c4a99",
+        "state": "verified"
+      }
+    ]
+  }
 }

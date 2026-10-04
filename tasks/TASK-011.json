@@ -10,7 +10,7 @@
     "Cerrar sesión devuelve al login y bloquea /admin/**",
     "Existe un script documentado para asignar el claim admin a una cuenta"
   ],
-  "status": "in_progress",
+  "status": "in_review",
   "priority": "high",
   "labels": [
     "admin",
@@ -32,10 +32,45 @@
       "author": "orchestrator",
       "at": "2026-10-03T20:20:09.618Z",
       "body": "CASOS DE USO APROBADOS por el humano el 2026-10-03 (\"si\").\nCU1. En /admin/login, el fotógrafo entra con correo y contraseña válidos y llega al panel /admin.\nCU2. Contraseña incorrecta o usuario inexistente → mensaje genérico \"Correo o contraseña incorrectos\" (no revela cuál falló).\nCU3. Correo vacío o mal formado → el formulario no se envía y marca el campo.\nCU4. Mientras inicia sesión, el botón queda deshabilitado con indicador de carga (sin doble envío).\nCU5. Un visitante sin sesión que entra a cualquier /admin/** va al login y, tras iniciar sesión, vuelve a la página que pidió (solo rutas internas /admin; nunca una URL externa).\nCU6. Un usuario autenticado sin claim admin ve \"Esta cuenta no tiene acceso\", se cierra su sesión y no ve el panel.\nCU7. Un fotógrafo ya logueado que abre /admin/login va directo al panel.\nCU8. Al recargar, la sesión se mantiene, y la ruta protegida no muestra el panel ni un instante antes de resolver el estado de autenticación.\nCU9. \"Cerrar sesión\" lleva al login; después /admin vuelve a pedir login, incluso con el botón atrás.\nCU10. Si Firebase bloquea por demasiados intentos (auth/too-many-requests), aparece un mensaje claro de esperar.\nCU11. npm run set-admin -- <correo> asigna el claim admin a una cuenta existente; falla con un mensaje claro si no existe; el uso queda documentado.\nCU12. En los emuladores existe un usuario administrador de prueba para desarrollo (seed documentado).\nCU13. No existe registro de usuarios ni \"olvidé mi contraseña\"."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-03T20:32:07.753Z",
+      "body": "Hand-off: commit e4812d4 (local). Archivos: src/authLogic.ts, guard.ts, auth.ts, views/AdminLogin.vue, auth.test.ts, scripts/{_admin,set-admin,seed-admin}.mjs, router/main/AdminLayout, README, reglas con token.get('admin', false), index.html lang=es. npm run build OK; npm test 6/6 (5 nuevos, red-green en cada uno); npm run test:rules 12/12; scripts set-admin/seed:admin probados contra el emulador de Auth (incluida la cuenta inexistente). Riesgo: la UI del login no se probó en navegador, solo la lógica pura y el guard."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-03T20:40:05.326Z",
+      "body": "Review e4812d4: REQUEST-CHANGES.\n[FINDING-HIGH: R-1] Se puede saltar el guard por mayúsculas: vue-router hace el match sin distinguir mayúsculas, pero isAdminPath (src/authLogic.ts:36) compara to.path literal. Un anónimo que abre /Admin ve AdminLayout + AdminHome (reproducido en navegador por el orquestador). Viola CU5/CU9 y el AC3.\nR-2 (UAT requerido aún sin registrar): se resuelve en el paso de UAT, no es un defecto de código.\nMEDIUM: scripts/_admin.mjs:4-8: set-admin apunta a producción en silencio si falta FIREBASE_AUTH_EMULATOR_HOST; hay que mostrar el destino y exigir confirmación explícita (--prod). Checklist de hand-off incompleto.\nLOW: guard.ts:7: toda navegación, también la pública, espera authReady. authLogic.ts:9: safeRedirect acepta segmentos '..'.\nVerificado correcto: open-redirect (//evil, /\\evil, /admin@evil, javascript:), mapeo genérico de CU2, CU10, CU13, UI en español, lectura del claim con token fresco, signOut sin claim, reglas con token.get. npm test 6/6, test:rules 12/12, build OK."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-03T20:44:54.874Z",
+      "body": "Ronda de arreglos: commit a84d778.\n- R-1: el guard decide por meta del registro (requiresAdmin, adminLogin) vía to.matched, más un catch-all hijo de /admin y router sensitive: true. Tests para /Admin, /ADMIN/, /admin/, /admin/x/y y /Admin/Eventos.\n- MEDIUM: set-admin se niega sin emulador salvo --prod e imprime el destino antes de modificar; README actualizado.\n- LOW: authReady solo se espera en rutas admin y login.\n- LOW: safeRedirect rechaza '..' y sus variantes codificadas.\nnpm test 8/8 (red-green por mutación en cada uno), build OK, rules 12/12."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:50:37.400Z",
+      "body": "[WARGAMING] Atacado en navegador real (Chrome, vite :5180 y emuladores Auth/Firestore/Storage, commit a84d778) contra CU1–CU13.\nCaminos de fallo atacados:\n- Bypass del guard (CU5/CU9): /Admin, /ADMIN/, /Admin/Eventos y /%61dmin muestran el 404 público, nunca el panel. /admin/x/y sin sesión redirige al login. Antes del arreglo, /Admin mostraba el panel a un anónimo (R-1, reproducido el 2026-10-03).\n- CU2: con contraseña incorrecta aparece \"Correo o contraseña incorrectos\".\n- CU3: con el correo vacío aparece \"Ingresa tu correo\"; con uno mal formado, \"Ingresa un correo válido\"; aria-invalid=true y el formulario no se envía.\n- CU6: la cuenta sin claim (cliente@example.test) ve \"Esta cuenta no tiene acceso\", currentUser=null y se queda en el login.\n- CU9: tras cerrar sesión, el botón atrás muestra el login, no el panel.\nCaminos principales y alternativos:\n- CU1: el login de admin llega a /admin.\n- CU4: mientras entra, el botón muestra \"Entrando…\" deshabilitado.\n- CU5: tras el login vuelve a /admin/x/y.\n- CU7: logueado, /admin/login lleva a /admin.\n- CU8: al recargar, la sesión se mantiene y el panel nunca se pinta antes de resolver el estado.\n- CU13: no hay enlaces de registro ni de recuperación.\n- CU10: cubierto por test unitario (el emulador no aplica too-many-requests).\n- CU11 y CU12: scripts probados por el developer contra el emulador, incluida la negativa sin --prod.\nSobrevivió: todo. No sobrevivió: nada nuevo.\nNota de entorno: en dev, Vite a veces recarga la página justo después de navegar, y eso borra lo tipeado. No afecta al build de producción.\nVeredicto: PASS."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-03T20:51:41.170Z",
+      "body": "Re-review de a84d778 (rango e4812d4~1..a84d778): PASS (código).\n- npm test: 8/8. Reglas: 12/12. Build: OK.\n- Sondeo independiente del guard: 30 variantes anónimas de ruta, con sensitive true y false. Ningún caso monta AdminLayout sin redirigir al login.\n- R-1 corregido y verificado.\n- set-admin: sin --prod se niega antes de inicializar; con --prod imprime el destino antes de modificar.\n- MEDIUM (proceso): el checklist del hand-off no está itemizado; 8 specs para 6 ACs, sin justificación explícita (Regla 3).\n- LOW: auth.test.ts:12 crea el router de test sin sensitive: true. safeRedirect deja pasar /admin/login/, lo cual es inofensivo.\n- Pendiente para cerrar: el UAT del humano."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:51:41.258Z",
+      "body": "[FINDING-RESOLVED: R-1] Corregido en a84d778: el guard decide por la meta de los registros y el router es sensitive. Lo verificó el re-review (30 variantes de ruta) y el wargaming en navegador (/Admin, /ADMIN/, /Admin/Eventos y /%61dmin muestran el 404 público)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-03T20:56:16.100Z",
+      "body": "UAT en pausa por decisión del humano (2026-10-03): \"no te preocupes con el login ahora porque vamos a manejar eso con firebase mas bien preocupate de que subir fotos sirvan y que se puedan ver las fotos\". El ticket queda en in_review con review PASS y wargaming PASS; se cierra cuando el humano haga el UAT o redefina el login."
     }
   ],
   "created_at": "2026-10-03T18:51:35.654Z",
-  "updated_at": "2026-10-03T20:20:09.782Z",
+  "updated_at": "2026-10-03T20:56:16.100Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true

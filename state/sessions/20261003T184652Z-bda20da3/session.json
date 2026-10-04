@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-03T20:13:20.417Z",
-  "active_task": "TASK-011",
-  "workflow_step": "fetch",
-  "next_action": "Con aprobación: registrar pedido + casos en TASK-011, in_progress, lanzar developer (incluir LOW: token.get(admin,false) en reglas).",
-  "handoff_summary": "TASK-010 CERRADA (a927997, 7da630d; reglas 12/12, mutación 18/18). JDK 21 en C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot (exportar PATH si el shell no lo ve). Casos de uso de TASK-011 (13 casos, login admin) presentados; esperando aprobación humana.",
+  "updated_at": "2026-10-04T03:24:08.210Z",
+  "active_task": null,
+  "workflow_step": "idle",
+  "next_action": "Preguntar al humano el siguiente bloque (recomendado: TASK-014 catálogo + TASK-016 carrito) y presentar sus casos de uso para aprobación.",
+  "handoff_summary": "Cerradas: TASK-001, 010, 012, 013, 015 (subir y ver fotos funciona). TASK-011 (login) en in_review con review y wargaming PASS; el UAT está en pausa porque el humano manejará el login con Firebase. Decisiones del humano: la marca MUESTRA queda como está y las miniaturas sin marca. Pendientes en el backlog: 014 catálogo, 016 carrito, 017 checkout PayPal (con el contrato orders.eventIds), 018 pedidos, 019 descarga digital, 020 correos, 021 despliegue. Hay procesos huérfanos de emuladores y vite (PIDs 46036, 44688, 38848, 34660); se le pidió al humano que los cierre.",
   "open_questions": [
     "Java (JDK 21) no está instalado: necesario para los emuladores de Firestore/Storage",
     "El proyecto Firebase \"venta-fotos\" de .firebaserc no existe en la cuenta; usar demo-venta-fotos para emuladores hasta crearlo",
@@ -21,6 +21,14 @@
     {
       "at": "2026-10-03T18:54:30.004Z",
       "decision": "TASK-010: modelo events/{id}/photos subcolección, settings/store, Storage originals/previews/thumbs, reglas cross-service para previews"
+    },
+    {
+      "at": "2026-10-03T20:56:55.609Z",
+      "decision": "Login UAT pospuesto por el humano; prioridad subir/ver fotos (012, 013, 015). Marca de agua por defecto MUESTRA, configurable en settings/store.watermarkText"
+    },
+    {
+      "at": "2026-10-04T03:24:08.210Z",
+      "decision": "Humano aprueba en bloque subir/ver fotos (\"me gusta como esta\"): marca MUESTRA pixelada aceptada, miniaturas sin marca"
     }
   ],
   "subagent_results": [
@@ -41,7 +49,31 @@
       "agent": "reviewer",
       "task": "TASK-010",
       "summary": "Re-review 7da630d PASS; test:rules 12/12 re-ejecutado; LOW token.get."
+    },
+    {
+      "at": "2026-10-03T20:40:16.571Z",
+      "agent": "reviewer",
+      "task": "TASK-011",
+      "summary": "REQUEST-CHANGES: HIGH R-1 bypass por mayúsculas; R-2 UAT pendiente; MEDIUM set-admin sin --prod; LOW authReady global, safeRedirect con .."
+    },
+    {
+      "at": "2026-10-03T20:51:41.832Z",
+      "agent": "reviewer",
+      "task": "TASK-011",
+      "summary": "Re-review a84d778 PASS; 30 variantes de ruta sin bypass; set-admin seguro."
+    },
+    {
+      "at": "2026-10-03T21:27:31.494Z",
+      "agent": "reviewer",
+      "task": "TASK-012/013",
+      "summary": "012 código PASS (R-2 eventIds pasado a TASK-017). 013 MEDIUMs: limitInputPixels, docs processing/error públicos, ocultar fotos en error. Marca de agua verificada visualmente: no recortable."
+    },
+    {
+      "at": "2026-10-03T22:29:17.917Z",
+      "agent": "reviewer",
+      "task": "TASK-015",
+      "summary": "Re-review ec815c7 PASS; LOWs menores del lightbox."
     }
   ],
-  "pending_human_confirmation": "Aprobación casos de uso TASK-011"
+  "pending_human_confirmation": null
 }
