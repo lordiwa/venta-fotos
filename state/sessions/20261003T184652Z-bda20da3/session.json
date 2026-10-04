@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
-  "lifecycle_state": "active",
-  "updated_at": "2026-10-04T03:24:08.210Z",
+  "lifecycle_state": "paused",
+  "updated_at": "2026-10-04T03:33:10.233Z",
   "active_task": null,
   "workflow_step": "idle",
-  "next_action": "Preguntar al humano el siguiente bloque (recomendado: TASK-014 catálogo + TASK-016 carrito) y presentar sus casos de uso para aprobación.",
-  "handoff_summary": "Cerradas: TASK-001, 010, 012, 013, 015 (subir y ver fotos funciona). TASK-011 (login) en in_review con review y wargaming PASS; el UAT está en pausa porque el humano manejará el login con Firebase. Decisiones del humano: la marca MUESTRA queda como está y las miniaturas sin marca. Pendientes en el backlog: 014 catálogo, 016 carrito, 017 checkout PayPal (con el contrato orders.eventIds), 018 pedidos, 019 descarga digital, 020 correos, 021 despliegue. Hay procesos huérfanos de emuladores y vite (PIDs 46036, 44688, 38848, 34660); se le pidió al humano que los cierre.",
+  "next_action": "Al retomar: proponer TASK-014 (catálogo) + TASK-016 (carrito), presentar sus casos de uso con auto-refinado y esperar la aprobación del humano. Recordar el contrato orders.eventIds para TASK-017.",
+  "handoff_summary": "PAUSADA por el humano (2026-10-03). Cerradas: TASK-001, 010, 012, 013 y 015 (subir y ver fotos funciona; el humano lo aprobó). TASK-011 (login) está en in_review con review y wargaming PASS; el UAT queda en pausa porque el humano manejará el login con Firebase. Todo está pusheado a origin/main (929f7da). Decisiones: la marca MUESTRA queda pixelada como está, las miniaturas sin marca, los compradores sin cuenta y el envío con costo fijo. Entorno: JDK 21 en C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot (agregarlo al PATH si la terminal no lo ve); .env.local de demo ya creado; npm run emulators, npm run seed:admin y npm run dev. Puede haber procesos huérfanos de emuladores o vite (PIDs 46036, 44688, 38848, 34660).",
   "open_questions": [
     "Java (JDK 21) no está instalado: necesario para los emuladores de Firestore/Storage",
     "El proyecto Firebase \"venta-fotos\" de .firebaserc no existe en la cuenta; usar demo-venta-fotos para emuladores hasta crearlo",
