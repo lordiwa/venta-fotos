@@ -20,7 +20,13 @@ Los casos de uso de los 5 tickets ya están APROBADOS por el humano.
 - Wargaming en navegador HECHO y registrado en el ticket: CU1–CU8 sobreviven.
   - MEDIUM W-1: el límite por IP se salta con un X-Forwarded-For falso. Arreglo: usar la IP real (`request.rawRequest.ip`, o la entrada de XFF que agrega GFE, no la primera).
   - LOW: sufijos "[404]"/"[429]" en los mensajes al comprador (también en checkout).
-- **Pendiente:** el veredicto del reviewer (lanzado en contexto anterior; si se perdió, relanzar `hivemind:reviewer` sobre `git show 8c64cff`).
+- **Review RECIBIDA** (registrada en el ticket): REQUEST-CHANGES por R-1 (falta uat). Antes de cerrar hay que arreglar:
+  - M-1: el limitador por IP toma la entrada izquierda de XFF; usar la derecha (la de GFE) y agregar un test. Coincide con W-1 del wargaming.
+  - M-2: quitar `email` del resumen de captureOrder; el cliente ya lo tiene del form y lo guarda en saveSummary.
+  - LOW: DIGITAL_ID duplicado; filename* UTF-8 y extensión en responseDisposition.
+  - M-4: justificar la cantidad de specs en el hand-off.
+  - M-5: correr el test de reglas de downloadAttempts y el caso de integración CU8 (paso de verificación final).
+  - El vencimiento real (AC3) y la firma v4 solo se verifican desplegados; dejarlo explícito en el uat como pendiente de deploy.
 - Luego:
   1. ronda de fix con el developer (W-1, quitar sufijos "[NNN]" y lo que diga el reviewer);
   2. comentario `uat` (los AC de TASK-019 con PASS; CU3 vencimiento solo en UI, porque el emulador no lo aplica) y `[FINDING-RESOLVED]` de los HIGH;

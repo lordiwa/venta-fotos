@@ -42,10 +42,15 @@
       "author": "orchestrator",
       "at": "2026-10-12T04:15:51.022Z",
       "body": "[WARGAMING] Atacado en Chrome real y emuladores (8c64cff) contra CU1–CU8, como comprador anónimo.\nSobrevivió:\n- CU1/CU8: compra simulada con 2 digitales y una 10x15 (correo con mayúsculas) → /pedido/TYYXUQRC muestra 2 \"Descargar\" con \"Disponible hasta el 18/10/2026\".\n- CU2: el enlace sirve 200 image/jpeg de 1600×1067 (el original) con color plano en esquina, centro y franja media, sin marca de agua.\n- CU4: en /descargas, \"tyyxuqrc\" y \"  carla.ruiz@example.TEST \" generan enlaces nuevos.\n- CU5: correo equivocado y número inexistente dan el mismo mensaje \"No encontramos un pedido con esos datos\" y el mismo código 404.\n- CU6: el pedido solo de impresiones YC67G9RR → \"Este pedido no incluye archivos digitales.\". La API solo acepta número y correo, así que no se puede pedir una foto arbitraria.\n- CU7: tras 10 fallos en la ventana → 429 RESOURCE_EXHAUSTED \"Demasiados intentos\".\n- CU3 (UI): con el reloj del navegador +8 días, cada archivo muestra \"El enlace venció\", se ocultan los botones y se ofrece \"Generar un enlace nuevo\". En el emulador Storage no aplica la expiración; en producción la aplica la URL firmada v4.\nNo sobrevivió (sin HIGH):\n- MEDIUM W-1: el límite por IP se salta con un X-Forwarded-For falso (petición con XFF 9.9.9.9 → 200 estando la IP real bloqueada). El riesgo queda acotado porque también hay que conocer el correo del comprador y sigue el límite por número.\n- LOW: mensajes con sufijo técnico \"[404]\"/\"[429]\".\n- LOW/UX: el bloqueo por IP también alcanza la descarga automática de la página de confirmación de un comprador legítimo que comparte la IP.\nE2E afectados: ninguno (no hay capa e2e)."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T04:17:38.416Z",
+      "body": "Review de 8c64cff: REQUEST-CHANGES.\n[FINDING-HIGH: R-1] requires_uat: true sin comentario uat. El vencimiento real (AC3) y la firma v4 solo se verifican desplegados.\nMEDIUM:\n- M-1: index.ts:101-102, el limitador por IP usa la entrada IZQUIERDA de XFF, falsificable. Hay que usar la que agrega GFE (la derecha) y testearlo. El límite por número es la defensa real.\n- M-2: captureOrder devuelve buyer.email en el resumen; quien tenga el paypalOrderId obtiene número + correo (la credencial de descarga). Mantener el correo solo del lado del cliente.\n- M-3: checklist de hand-off.\n- M-4: 10 specs para 5 AC sin justificar.\n- M-5: el test de reglas de downloadAttempts y el caso de integración CU8 nunca se corrieron.\nLOW:\n- DIGITAL_ID duplicado.\n- responseDisposition sin filename* UTF-8 ni extensión.\n- Bucket de IP \"unknown\" compartido.\n- Cada fallo cuesta 2 transacciones.\n- \"now\" de DownloadList solo se refresca al hacer clic.\nVerificado: npm test 67/67; test:functions 19/19; vue-tsc OK. El control de acceso es sólido; no hay oráculo entre número y correo; la rama de emulador no es alcanzable en producción."
     }
   ],
   "created_at": "2026-10-03T18:51:36.158Z",
-  "updated_at": "2026-10-12T04:15:51.022Z",
+  "updated_at": "2026-10-12T04:17:38.416Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true
