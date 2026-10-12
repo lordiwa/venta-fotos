@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Icon from './Icon.vue'
 
-withDefaults(defineProps<{ title?: string; hint?: string; accept?: string; disabled?: boolean }>(), {
+withDefaults(defineProps<{ title?: string; hint?: string; accept?: string }>(), {
   title: 'Arrastra fotos aquí o toca para elegirlas',
   hint: 'JPEG o PNG, hasta 50 MB cada una',
   accept: 'image/jpeg,image/png',
@@ -21,6 +21,6 @@ function onChange(e: Event) {
     <span class="es-dropzone-icon"><Icon name="subir" :size="20" /></span>
     <strong>{{ title }}</strong>
     <small>{{ hint }}</small>
-    <input type="file" multiple :accept="accept" :disabled="disabled" @change="onChange">
+    <input type="file" multiple :accept="accept" @change="onChange">
   </label>
 </template>

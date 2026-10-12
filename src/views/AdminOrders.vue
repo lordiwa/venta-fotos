@@ -6,12 +6,7 @@ import { advanceOrder, getPhoto, listOrders } from '../ordersApi'
 import { filterOrders, nextStatus, STATUS_LABEL, STATUSES, type OrderFilters, type OrderRow } from '../ordersLogic'
 import { formatMoney } from '../productsLogic'
 import { Alert, Badge, Button, Field, OrderNumber } from '../ui'
-import type { Event, OrderStatus } from '../types'
-
-// Tono del badge por estado (sistema Estudio).
-const STATUS_TONE: Record<OrderStatus, 'amber' | 'info' | 'teal' | 'violet' | 'success'> = {
-  pagado: 'amber', impreso: 'info', listo_retiro: 'teal', enviado: 'violet', entregado: 'success',
-}
+import type { Event } from '../types'
 
 const orders = ref<OrderRow[]>([])
 const events = ref<Event[]>([])
@@ -129,7 +124,7 @@ async function advance(o: OrderRow) {
                 <td class="client">{{ o.buyer.name }}</td>
                 <td class="mono-md money">{{ formatMoney(o.total) }}</td>
                 <td class="body-sm muted">{{ o.delivery.method === 'envio' ? 'Envío' : 'Retiro' }}</td>
-                <td><Badge :tone="STATUS_TONE[o.status]">{{ STATUS_LABEL[o.status] }}</Badge></td>
+                <td><Badge :status="o.status" /></td>
                 <td class="act"><Button type="button" @click="show(o)">Ver detalle</Button></td>
               </tr>
             </tbody>
@@ -139,7 +134,7 @@ async function advance(o: OrderRow) {
         <section v-if="open" class="detail" aria-label="Detalle del pedido">
           <div class="detail-head">
             <OrderNumber size="sm" caption="Pedido">{{ open.number }}</OrderNumber>
-            <Badge :tone="STATUS_TONE[open.status]">{{ STATUS_LABEL[open.status] }}</Badge>
+            <Badge :status="open.status" />
           </div>
           <ul class="lines">
             <li v-for="(l, i) in open.lines" :key="i">

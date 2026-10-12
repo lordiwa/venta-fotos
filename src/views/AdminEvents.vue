@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { listEvents } from '../eventsApi'
 import { getPhoto } from '../ordersApi'
-import { Alert, Badge, Button } from '../ui'
+import { Alert, Badge, Button, Icon } from '../ui'
 import type { Event } from '../types'
 
 const events = ref<(Event & { photoCount: number })[]>([])
@@ -46,7 +46,7 @@ onMounted(async () => {
         </RouterLink>
         <span class="mono-sm count">{{ e.photoCount }} {{ e.photoCount === 1 ? 'foto' : 'fotos' }}</span>
         <Badge :status="e.published ? 'publicado' : 'borrador'" />
-        <Button icon="siguiente" icon-only variant="ghost" :to="`/admin/eventos/${e.id}`" :label="`Abrir ${e.name}`" />
+        <Icon class="chev" name="siguiente" :size="16" />
       </li>
     </ul>
   </div>
@@ -67,5 +67,6 @@ h1 { margin: 0; color: var(--ink); }
 .info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .info .mono-sm, .count { color: var(--ink-muted); }
 .count { min-width: 64px; }
+.chev { color: var(--ink-muted); }
 @media (max-width: 720px) { .row { padding: var(--space-3) var(--space-4); } }
 </style>

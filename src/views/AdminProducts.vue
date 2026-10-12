@@ -129,12 +129,12 @@ async function toggle(p: Product) {
           <Card as="form" sunken novalidate aria-label="Tamaño de copia" @submit.prevent="submit">
             <h3>{{ editingId ? 'Editar tamaño' : 'Nuevo tamaño' }}</h3>
             <div class="fields">
-              <Field label="Nombre" placeholder="10x15" :error="errors.name">
+              <Field label="Nombre" :error="errors.name">
                 <template #default="{ id, describedby, invalid, inputClass }">
                   <input :id="id" v-model="form.name" :class="inputClass" :disabled="saving" placeholder="10x15" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
                 </template>
               </Field>
-              <Field label="Precio" mono placeholder="5.00" :error="errors.price">
+              <Field label="Precio" mono :error="errors.price">
                 <template #default="{ id, describedby, invalid, inputClass }">
                   <input :id="id" v-model="form.price" :class="inputClass" :disabled="saving" inputmode="decimal" placeholder="5.00" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
                 </template>
