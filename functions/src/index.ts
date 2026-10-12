@@ -8,7 +8,7 @@ import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { assertSimulationAllowed, CheckoutError, CheckoutSnapshot, classifyCapture, extractCapture } from "./checkout";
 import { getDownloadLinks as buildDownloadLinks } from "./downloads";
-import { ttlDays } from "./downloadsLogic";
+import { clientIp, ttlDays } from "./downloadsLogic";
 import { AdvanceError, isAdmin, planAdvance } from "./orderStatus";
 import { computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
 import { capturePaypalOrder, createPaypalOrder } from "./paypal";
@@ -98,8 +98,7 @@ const DOWNLOAD_TTL_DAYS = defineInt("DOWNLOAD_TTL_DAYS", { default: 7 });
 
 /** Con numero de pedido + correo devuelve enlaces nuevos al original de sus fotos digitales. Sin cuenta; con limite de intentos. */
 export const getDownloadLinks = onCall(async (request) => {
-  const fwd = request.rawRequest?.headers?.["x-forwarded-for"];
-  const ip = (typeof fwd === "string" ? fwd.split(",")[0].trim() : request.rawRequest?.ip) || "unknown";
+  const ip = clientIp(request.rawRequest?.headers?.["x-forwarded-for"], request.rawRequest?.ip);
   return buildDownloadLinks(admin.firestore(), request.data ?? {}, ip, ttlDays(DOWNLOAD_TTL_DAYS.value()));
 });
 
