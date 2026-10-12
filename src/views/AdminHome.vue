@@ -3,6 +3,8 @@
   <ul>
     <li><RouterLink to="/admin/eventos">Eventos y fotos</RouterLink></li>
     <li><RouterLink to="/admin/productos">Productos y precios</RouterLink></li>
+    <li><RouterLink to="/admin/pedidos">Pedidos</RouterLink></li>
+    <li><RouterLink to="/admin/impresion">Lista de impresión</RouterLink></li>
     <li><RouterLink to="/admin/configuracion">Configuración de la tienda</RouterLink></li>
   </ul>
 </template>

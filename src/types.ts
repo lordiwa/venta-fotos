@@ -87,4 +87,6 @@ export interface Order {
   buyer: { name: string; email: string; phone?: string }
   paypalOrderId: string
   createdAt: Timestamp
+  /** Cambios de estado hechos por advanceOrder (el alta no genera entrada). */
+  statusHistory?: { status: OrderStatus; at: Timestamp; by: string }[]
 }
