@@ -10,7 +10,7 @@
     "Un pedido de prueba de punta a punta funciona en producción",
     "README explica desarrollo local con emuladores y despliegue"
   ],
-  "status": "in_progress",
+  "status": "blocked",
   "priority": "medium",
   "labels": [
     "deploy",
@@ -34,10 +34,15 @@
       "author": "orchestrator",
       "at": "2026-10-12T17:41:18.729Z",
       "body": "Infra: humano activó Blaze, Storage (southamerica-east1) y Auth email/password. Firestore se había creado en nam5 por consola; con aprobación del humano se borró (vacía) y se recreó (default) en southamerica-east1 (verificado con databases:get). Commit caa73a3: setGlobalOptions region southamerica-east1 en functions, FUNCTIONS_REGION en el cliente, URLs del test de integración actualizadas, .firebaserc → venta-fotos-estudio. Pendiente: correr test:functions:integration con emuladores detenidos; secretos PayPal live; deploy; cuenta admin real; README."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T17:45:52.408Z",
+      "body": "Deploy parcial 2026-10-12 a pedido del humano (\"deploy como está para que lo vea el cliente\"): Hosting (https://venta-fotos-estudio.web.app, HTTP 200) y reglas+índices de Firestore desplegados. NO desplegados: Functions (la cuenta de facturación del proyecto no está abierta: Secret Manager no se puede habilitar) y Storage (no inicializado en la consola). Sin Functions/Storage la tienda carga pero no hay eventos, ni subida/proceso de fotos, ni checkout. Push hecho hasta 7af249b. Bloqueado hasta: billing activo + Storage 'Get started' en southamerica-east1 + credenciales PayPal + correo del admin."
     }
   ],
   "created_at": "2026-10-03T18:51:36.286Z",
-  "updated_at": "2026-10-12T17:41:18.729Z",
+  "updated_at": "2026-10-12T17:45:52.512Z",
   "jira_key": null,
   "verification_tier": "uat-only",
   "requires_uat": true

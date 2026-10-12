@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-12T17:41:18.729Z",
+  "generated_at": "2026-10-12T17:45:52.512Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -76,7 +76,7 @@
     {
       "key": "TASK-021",
       "title": "Despliegue a producción en Firebase",
-      "status": "in_progress",
+      "status": "blocked",
       "priority": "medium"
     },
     {
