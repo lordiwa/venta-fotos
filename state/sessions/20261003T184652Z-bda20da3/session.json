@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "paused",
-  "updated_at": "2026-10-12T04:16:25.033Z",
+  "updated_at": "2026-10-12T15:41:30.757Z",
   "active_task": null,
-  "workflow_step": "review",
-  "next_action": "Leer HANDOFF.md. Obtener o relanzar la review de 8c64cff, ronda de fix (W-1 y sufijos [NNN]), uat, cerrar TASK-019 y pushear. Después detener los emuladores, correr test:rules y test:functions:integration, y salir del loop (set-mode harness, release).",
-  "handoff_summary": "Loop keys:TASK-014,016,017,018,019. Cerrados y pusheados: 011, 014, 016, 017, 018. TASK-019 in_review (8c64cff local, sin push): wargaming PASS con MEDIUM W-1 (XFF spoofing en el límite por IP); falta el veredicto del reviewer, la ronda de fix, uat, el cierre y el push. Detalle completo en HANDOFF.md.",
+  "workflow_step": "idle",
+  "next_action": "Salir del loop (loop-ctl set-mode --mode harness; loop-ctl release), lo corre el humano. Luego decidir: vista de cobros sin pedido; credenciales sandbox PayPal; deploy para verificar vencimiento real, firma v4 y Content-Disposition de TASK-019.",
+  "handoff_summary": "Loop keys:TASK-014,016,017,018,019 COMPLETO. Todos cerrados y pusheados. TASK-019 cerrado (2c05b68) tras fix round (6b5f8e5..5903de3), re-review APPROVE, UAT PASS. Verificación final: test:rules 15/15, test:functions:integration 3/3 (c40428e corrige la carrera del test CU8). Emuladores y vite detenidos; los datos de prueba del emulador se perdieron.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"

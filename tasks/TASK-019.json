@@ -74,10 +74,15 @@
       "author": "orchestrator",
       "at": "2026-10-12T15:23:01.054Z",
       "body": "ENTREGA TASK-019\n\n1. CASOS DE USO APROBADOS\nReferencia: comentario \"CASOS DE USO PROPUESTOS\", aprobado por el humano (CU1–CU8). Todos se cumplen y ningún caso cambió.\n\n2. RESULTADO\nEl comprador de fotos digitales recibe en la confirmación un enlace firmado por foto, válido 7 días (DOWNLOAD_TTL_DAYS). En /descargas regenera los enlaces con número de pedido y correo; los intentos fallidos se limitan por IP real (entrada de XFF agregada por GFE) en downloadAttempts. Commits: 8c64cff (feature), 6b5f8e5, da9d5a7, 5ae2f4b, fcb22ee y 5903de3 (fixes de review y re-review). Afuera a propósito: el vencimiento real de la URL, la firma v4 y Content-Disposition solo se verifican desplegados; el supuesto de que no hay balanceador externo está documentado en clientIp.\n\n3. WARGAMING\nSe atacaron en Chrome real CU1–CU8 (ver el comentario [WARGAMING]).\nCaminos alternativos: pedido mixto (digital + impresión), solo digital, regeneración desde /descargas y correo con otra capitalización.\nCaminos de fallo: correo o número incorrecto, foto fuera de pedido pagado, exceso de intentos (429) y XFF falsificado.\nW-1 (XFF spoofing) se corrigió en 6b5f8e5 y quedó fijado con un test. Veredicto: PASS.\n\n4. UAT\nPASS en los 5 AC, verificado por el orquestador a pedido del humano (ver el comentario uat). AC3 queda PASS en UI; lo pendiente de deploy está declarado."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T15:39:33.345Z",
+      "body": "Verificación final, posterior al cierre (M-5): `npm run test:rules` dio 15/15 PASS, corrido por el humano. `npm run test:functions:integration` dio 3/3 PASS después de c40428e. CU8 fallaba en su primera corrida por una carrera en el armado del test: el original falso disparaba processPhoto, que dejaba la foto en \"error\", y createOrder la rechazaba. Ahora el test sube un JPEG válido y espera a que la foto quede \"ready\". No hubo cambios en el código de producto y las aserciones no se debilitaron. El orquestador lo re-corrió y dio 3/3."
     }
   ],
   "created_at": "2026-10-03T18:51:36.158Z",
-  "updated_at": "2026-10-12T15:23:01.054Z",
+  "updated_at": "2026-10-12T15:39:33.345Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true,
