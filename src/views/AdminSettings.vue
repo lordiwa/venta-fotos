@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { getSettings, saveSettings } from '../settingsApi'
-import { formatMoney, validateSettingsForm, type SettingsErrors } from '../productsLogic'
+import { saveErrorMessage, settingsToForm, validateSettingsForm, type SettingsErrors } from '../productsLogic'
 
 const form = ref({ shippingCost: '', pickupInfo: '' })
 const errors = ref<SettingsErrors>({})
@@ -14,7 +14,7 @@ const saving = ref(false)
 onMounted(async () => {
   try {
     const s = await getSettings()
-    if (s) form.value = { shippingCost: formatMoney(s.shippingCost), pickupInfo: s.pickupInfo }
+    form.value = settingsToForm(s)
   } catch {
     loadError.value = 'No se pudo cargar la configuración.'
   } finally {
@@ -31,9 +31,9 @@ async function submit() {
   try {
     await saveSettings(form.value)
     saved.value = true
-  } catch {
+  } catch (e) {
     // CU10: el formulario conserva lo escrito.
-    saveError.value = 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo; tus datos siguen en el formulario.'
+    saveError.value = saveErrorMessage(e)
   } finally {
     saving.value = false
   }

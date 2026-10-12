@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { createPrint, listProducts, saveDigital, setProductActive, updateProduct } from '../productsApi'
-import { formatMoney, validateProductForm, type ProductErrors } from '../productsLogic'
+import { formatMoney, PERMISSION_MESSAGE, saveErrorMessage, validateProductForm, type ProductErrors } from '../productsLogic'
 import type { Product } from '../types'
-
-const NET_ERROR = 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo; tus datos siguen en el formulario.'
 
 const products = ref<Product[]>([])
 const loading = ref(true)
@@ -19,7 +17,7 @@ async function load() {
     products.value = await listProducts()
     loadError.value = null
   } catch {
-    loadError.value = 'No se pudieron cargar los productos.'
+    loadError.value = 'No se pudieron cargar los productos.' // se conserva la lista anterior
   } finally {
     loading.value = false
   }
@@ -55,8 +53,8 @@ async function submit() {
     else await createPrint(form.value)
     cancel()
     await load()
-  } catch {
-    saveError.value = NET_ERROR
+  } catch (e) {
+    saveError.value = saveErrorMessage(e)
   } finally {
     saving.value = false
   }
@@ -66,16 +64,20 @@ async function submit() {
 const digitalPrice = ref('')
 const digitalError = ref<string | null>(null)
 const digitalSaveError = ref<string | null>(null)
+const digitalSaving = ref(false)
 async function submitDigital() {
   digitalError.value = validateProductForm({ name: '', price: digitalPrice.value }, { requireName: false }).price ?? null
   if (digitalError.value) return
+  digitalSaving.value = true
   digitalSaveError.value = null
   try {
     await saveDigital({ name: '', price: digitalPrice.value })
     digitalPrice.value = ''
     await load()
-  } catch {
-    digitalSaveError.value = NET_ERROR
+  } catch (e) {
+    digitalSaveError.value = saveErrorMessage(e)
+  } finally {
+    digitalSaving.value = false
   }
 }
 
@@ -85,8 +87,9 @@ async function toggle(p: Product) {
   try {
     await setProductActive(p.id, !isActive(p))
     await load()
-  } catch {
-    toggleError.value = 'No se pudo cambiar el estado. Inténtalo de nuevo.'
+  } catch (e) {
+    const m = saveErrorMessage(e)
+    toggleError.value = m === PERMISSION_MESSAGE ? m : 'No se pudo cambiar el estado. Inténtalo de nuevo.'
   }
 }
 </script>
@@ -94,8 +97,8 @@ async function toggle(p: Product) {
 <template>
   <h1>Productos</h1>
   <p v-if="loading">Cargando…</p>
-  <p v-else-if="loadError" class="error" role="alert">{{ loadError }}</p>
   <template v-else>
+    <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
     <p v-if="toggleError" class="error" role="alert">{{ toggleError }}</p>
 
     <h2>Copias impresas</h2>
@@ -132,7 +135,7 @@ async function toggle(p: Product) {
       <label>{{ digital ? 'Nuevo precio' : 'Precio' }} <input v-model="digitalPrice" inputmode="decimal" placeholder="3.00" /></label>
       <p v-if="digitalError" class="error" role="alert">{{ digitalError }}</p>
       <p v-if="digitalSaveError" class="error" role="alert">{{ digitalSaveError }}</p>
-      <button type="submit">Guardar</button>
+      <button type="submit" :disabled="digitalSaving">{{ digitalSaving ? 'Guardando…' : 'Guardar' }}</button>
     </form>
   </template>
 </template>

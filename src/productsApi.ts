@@ -1,14 +1,14 @@
-import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Product } from './types'
-import { DIGITAL_ID, DIGITAL_NAME, productFields, type ProductForm } from './productsLogic'
+import { DIGITAL_ID, DIGITAL_NAME, productFields, sortByName, type ProductForm } from './productsLogic'
 
 const toProduct = (id: string, d: Record<string, unknown>) => ({ id, ...d }) as Product
 
 /** Admin: todos los productos (activos e inactivos). */
 export async function listProducts(): Promise<Product[]> {
-  const snap = await getDocs(query(collection(db, 'products'), orderBy('name')))
-  return snap.docs.map((d) => toProduct(d.id, d.data()))
+  const snap = await getDocs(collection(db, 'products'))
+  return sortByName(snap.docs.map((d) => toProduct(d.id, d.data())))
 }
 
 /** CU9: consulta publica (la usara la tienda de TASK-016): solo productos con active == true. */

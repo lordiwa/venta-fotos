@@ -50,8 +50,9 @@ export interface Product {
 
 /** settings/store */
 export interface StoreSettings {
-  shippingCost: number
-  pickupInfo: string
+  /** Pueden faltar: TASK-013 crea el documento solo con watermarkText. */
+  shippingCost?: number
+  pickupInfo?: string
   /** Texto de la marca de agua de las vistas previas. Si falta o queda vacio, la Function usa "MUESTRA". */
   watermarkText?: string
 }

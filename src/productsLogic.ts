@@ -41,4 +41,21 @@ export function settingsFields(f: SettingsForm) {
   return { shippingCost: parseMoney(f.shippingCost) as number, pickupInfo: f.pickupInfo.trim() }
 }
 
+/** Documento settings/store (posiblemente incompleto) -> valores del formulario. */
+export function settingsToForm(s: { shippingCost?: number; pickupInfo?: string } | null): SettingsForm {
+  return { shippingCost: s?.shippingCost == null ? '' : formatMoney(s.shippingCost), pickupInfo: s?.pickupInfo ?? '' }
+}
+
+export const PERMISSION_MESSAGE = 'No tienes permiso para guardar. Vuelve a iniciar sesión.'
+export const NETWORK_MESSAGE = 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo; tus datos siguen en el formulario.'
+
+/** CU10/CU11: distingue permiso denegado de un fallo de red al guardar. */
+export function saveErrorMessage(e: unknown): string {
+  return (e as { code?: string } | null)?.code === 'permission-denied' ? PERMISSION_MESSAGE : NETWORK_MESSAGE
+}
+
+/** Orden numerico-aware por nombre: "9x13" antes que "20x25". */
+export const sortByName = <T extends { name: string }>(xs: T[]): T[] =>
+  [...xs].sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true }))
+
 export const formatMoney = (n: number) => n.toFixed(2)
