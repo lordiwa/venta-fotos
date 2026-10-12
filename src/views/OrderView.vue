@@ -6,6 +6,7 @@ import { formatMoney } from '../productsLogic'
 import { CURRENCY, loadSummary } from '../checkoutLogic'
 import { downloadErrorMessage, getDownloadLinks } from '../downloadsApi'
 import { hasDigital, type DownloadResult } from '../downloadsLogic'
+import { Alert, Button, Card, Icon, OrderNumber } from '../ui'
 
 const route = useRoute()
 const number = computed(() => String(route.params.number))
@@ -34,26 +35,58 @@ onMounted(() => { if (wantsLinks.value) void loadLinks() })
 </script>
 
 <template>
-  <h1>¡Gracias por tu compra!</h1>
-  <p>Número de pedido: <strong data-testid="order-number">{{ number }}</strong></p>
-  <template v-if="order">
-    <ul>
-      <li v-for="(l, i) in order.lines" :key="i">{{ l.productName }} × {{ l.quantity }} — {{ formatMoney(l.unitPrice * l.quantity) }}</li>
-    </ul>
-    <p v-if="order.delivery.method === 'envio'">Envío a domicilio: {{ order.delivery.address }} (+ {{ formatMoney(order.delivery.cost) }})</p>
-    <p v-else>Retiro en persona.</p>
-    <p><strong>Total:</strong> {{ formatMoney(order.total) }} {{ CURRENCY }}</p>
-    <section v-if="wantsLinks" aria-label="Descargas">
-      <h2>Tus archivos digitales</h2>
-      <p v-if="busy && !links">Preparando tus enlaces…</p>
-      <template v-if="links">
-        <p v-if="links.message">{{ links.message }}</p>
-        <DownloadList :files="links.files" :busy="busy" @refresh="loadLinks" />
-      </template>
-      <p v-if="linksError" role="alert">{{ linksError }} <button type="button" :disabled="busy" @click="loadLinks">Generar un enlace nuevo</button></p>
-    </section>
-  </template>
-  <p v-else>No tenemos el detalle de este pedido en este navegador. Guarda tu número de pedido.</p>
-  <p>¿Necesitas volver a descargar tus archivos? <RouterLink to="/descargas">Ir a Mis descargas</RouterLink></p>
-  <RouterLink to="/">Volver al inicio</RouterLink>
+  <div class="narrow">
+    <div class="hero">
+      <span class="seal" aria-hidden="true"><Icon name="check" :size="34" :stroke-width="2.4" /></span>
+      <h1 class="display-lg">¡Gracias por tu compra!</h1>
+      <div class="num">
+        <OrderNumber><span data-testid="order-number">{{ number }}</span></OrderNumber>
+        <span class="body-sm muted">Guárdalo: lo necesitas para volver a descargar tus archivos.</span>
+      </div>
+    </div>
+    <template v-if="order">
+      <Card aria-label="Detalle del pedido">
+        <ul class="rows">
+          <li v-for="(l, i) in order.lines" :key="i"><span>{{ l.productName }} × {{ l.quantity }}</span><span class="mono-md">{{ formatMoney(l.unitPrice * l.quantity) }}</span></li>
+          <li v-if="order.delivery.method === 'envio'"><span>Envío a domicilio: {{ order.delivery.address }}</span><span class="mono-md">+ {{ formatMoney(order.delivery.cost) }}</span></li>
+          <li v-else class="muted"><span>Retiro en persona.</span><span class="mono-md">—</span></li>
+        </ul>
+        <p class="total"><strong>Total:</strong> <span class="display-md amount">{{ formatMoney(order.total) }} <span class="label muted">{{ CURRENCY }}</span></span></p>
+      </Card>
+      <Card v-if="wantsLinks" title="Tus archivos digitales" aria-label="Descargas">
+        <p v-if="busy && !links" class="mono-sm muted">Preparando tus enlaces…</p>
+        <template v-if="links">
+          <Alert v-if="links.message">{{ links.message }}</Alert>
+          <DownloadList :files="links.files" :busy="busy" @refresh="loadLinks" />
+        </template>
+        <Alert v-if="linksError" tone="danger">
+          {{ linksError }}
+          <template #action><Button :disabled="busy" @click="loadLinks">Generar un enlace nuevo</Button></template>
+        </Alert>
+      </Card>
+    </template>
+    <Alert v-else>No tenemos el detalle de este pedido en este navegador. Guarda tu número de pedido.</Alert>
+    <div class="links">
+      <span>¿Necesitas volver a descargar tus archivos? <RouterLink to="/descargas" class="strong">Ir a Mis descargas</RouterLink></span>
+      <RouterLink to="/" class="soft">Volver al inicio</RouterLink>
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.muted { color: var(--ink-muted); }
+.narrow { max-width: 760px; margin: 0 auto; padding: var(--space-8) 0 var(--space-12); display: flex; flex-direction: column; gap: var(--space-7); }
+.hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-5); }
+.hero h1 { margin: 0; font-size: clamp(36px, 7vw, 56px); text-wrap: balance; }
+.seal { display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: var(--radius-pill); background: var(--amber); color: var(--on-amber); box-shadow: 0 0 0 12px var(--amber-soft); }
+.num { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); max-width: 100%; }
+.num :deep(.es-ordernum-value) { overflow-wrap: anywhere; }
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); font-size: 15px; }
+.rows li { display: flex; justify-content: space-between; gap: var(--space-3); }
+.rows li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.total { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+.amount { font-size: 28px; }
+.links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3) var(--space-7); font-size: 15px; text-align: center; }
+.strong { font-weight: 500; }
+.soft { color: var(--ink-muted); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+</style>

@@ -5,6 +5,7 @@ import PhotoThumb from '../components/PhotoThumb.vue'
 import PhotoLightbox from '../components/PhotoLightbox.vue'
 import { fetchPhotosPage, getPublishedEvent, type PhotoCursor } from '../publicApi'
 import { eventPath, galleryState, photoNav, photoPath } from '../galleryLogic'
+import { Alert, Button, Icon } from '../ui'
 import type { Event, Photo } from '../types'
 
 const route = useRoute()
@@ -28,6 +29,20 @@ let observer: IntersectionObserver | null = null
 const ids = () => photos.value.map((p) => p.id)
 const state = computed(() => galleryState({ loading: loading.value, error: loadError.value, eventFound: !!event.value, photoCount: photos.value.length }))
 const nav = computed(() => (photoId.value ? photoNav(ids(), photoId.value, hasMore.value) : null))
+const cover = computed(() => photos.value.find((p) => p.id === event.value?.coverPhotoId) ?? null)
+const dateText = computed(() => {
+  const e = event.value
+  if (!e) return ''
+  return `${e.date.toDate().toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}${e.place ? ` · ${e.place}` : ''}`
+})
+const position = computed(() => photos.value.findIndex((p) => p.id === photoId.value) + 1) // 0 si aun no se cargo
+const tag = computed(() => (position.value ? `Foto #${position.value}` : ''))
+const caption = computed(() => {
+  if (!position.value) return event.value?.name ?? ''
+  return `${event.value?.name ?? ''} · Foto ${position.value}${hasMore.value ? '' : ` de ${photos.value.length}`}`
+})
+// Mosaico: algunas miniaturas ocupan mas espacio (patron cada 15 fotos, como en el diseno).
+const spanOf = (i: number) => ([0, 7].includes(i % 15) ? 'es-tile-big' : [3, 9].includes(i % 15) ? 'es-tile-wide' : '')
 const current = computed(() => photos.value.find((p) => p.id === photoId.value) ?? null)
 
 function loadMore(): Promise<void> {
@@ -109,34 +124,55 @@ onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-  <p v-if="state === 'loading'">Cargando…</p>
-  <div v-else-if="state === 'error'">
-    <p role="alert">No pudimos cargar el evento. Revisa tu conexión e intenta de nuevo.</p>
-    <button @click="load">Reintentar</button>
+  <p v-if="state === 'loading'" class="mono-sm muted">Cargando…</p>
+  <div v-else-if="state === 'error'" class="stack">
+    <Alert tone="danger">
+      No pudimos cargar el evento. Revisa tu conexión e intenta de nuevo.
+      <template #action><Button @click="load">Reintentar</Button></template>
+    </Alert>
   </div>
-  <div v-else-if="state === 'unavailable'">
-    <h1>Evento no disponible</h1>
-    <p>Este evento no existe o todavía no fue publicado.</p>
-    <RouterLink to="/">Ver todos los eventos</RouterLink>
+  <div v-else-if="state === 'unavailable'" class="stack">
+    <h1 class="display-lg">Evento no disponible</h1>
+    <p class="muted">Este evento no existe o todavía no fue publicado.</p>
+    <Button variant="secondary" to="/">Ver todos los eventos</Button>
   </div>
   <template v-else>
-    <RouterLink to="/">&larr; Eventos</RouterLink>
-    <h1>{{ event!.name }}</h1>
-    <p v-if="failed" role="alert">No pudimos cargar todas las fotos. <button @click="retryMore">Reintentar</button></p>
-    <p v-if="state === 'empty' && !failed">Este evento todavía no tiene fotos.</p>
-    <ul v-else-if="state === 'ready'" class="grid">
+    <section class="hero">
+      <div v-if="cover" class="hero-img"><PhotoThumb :path="cover.thumbPath" fill /></div>
+      <div class="hero-shade" aria-hidden="true" />
+      <div class="hero-body">
+        <RouterLink to="/" class="back"><Icon name="flecha-izquierda" :size="16" />Eventos</RouterLink>
+        <div class="hero-row">
+          <div class="hero-title-box">
+            <h1 class="display-lg hero-title">{{ event!.name }}</h1>
+            <span class="mono-sm hero-meta">{{ dateText }}</span>
+          </div>
+          <span v-if="state === 'ready' && !hasMore" class="mono-sm hero-meta">{{ photos.length }} {{ photos.length === 1 ? 'foto' : 'fotos' }}</span>
+        </div>
+      </div>
+    </section>
+    <Alert v-if="failed" tone="danger" class="gap">
+      No pudimos cargar todas las fotos.
+      <template #action><Button @click="retryMore">Reintentar</Button></template>
+    </Alert>
+    <Alert v-if="state === 'empty' && !failed" class="gap">Este evento todavía no tiene fotos.</Alert>
+    <ul v-else-if="state === 'ready'" class="es-gallery">
       <li v-for="(p, i) in photos" :key="p.id">
-        <a :href="photoPath(eventId, p.id)" :aria-label="`Ver foto ${i + 1}`" @click.prevent="open(p.id)"><PhotoThumb :path="p.thumbPath" /></a>
+        <a :href="photoPath(eventId, p.id)" :aria-label="`Ver foto ${i + 1}`" class="es-tile" :class="spanOf(i)" @click.prevent="open(p.id)">
+          <PhotoThumb :path="p.thumbPath" fill />
+          <span class="es-tile-veil" aria-hidden="true"><span>#{{ i + 1 }}</span><span class="es-tile-cta">Ver</span></span>
+        </a>
       </li>
     </ul>
     <div ref="sentinel" class="sentinel" />
-    <p v-if="loadingMore">Cargando más…</p>
+    <p v-if="loadingMore" role="status" class="more"><span class="more-bar" aria-hidden="true" />Cargando más…</p>
   </template>
 
   <PhotoLightbox
     v-if="photoId && (state === 'ready' || state === 'empty')"
     :photo="current"
     :loading="!nav?.found && !!nav?.needsMore && !failed"
+    :caption="caption" :tag="tag"
     :has-prev="!!nav?.prevId"
     :has-next="!!nav?.nextId || !!nav?.needsMore"
     @prev="prev" @next="next" @close="close"
@@ -144,8 +180,25 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 
 <style scoped>
-.grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr)); gap: 0.25rem; }
-.grid a { display: block; }
+.muted { color: var(--ink-muted); }
+.stack { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+.stack h1, .stack p { margin: 0; }
+.hero { position: relative; min-height: 280px; display: flex; align-items: flex-end; overflow: hidden; border-radius: var(--radius-lg); background: var(--rail); margin-bottom: var(--space-6); }
+.hero-img { position: absolute; inset: 0; }
+.hero-shade { position: absolute; inset: 0; background: linear-gradient(180deg, #15140f40 0%, #15140f99 50%, #15140fe6 100%); }
+.hero-body { position: relative; width: 100%; padding: var(--space-12) var(--space-8) var(--space-8); display: flex; flex-direction: column; gap: var(--space-4); color: var(--on-rail); min-width: 0; }
+.back { display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start; text-decoration: none; color: var(--on-rail-muted); font-size: 14px; font-weight: 500; min-height: 44px; }
+.back:hover { color: var(--on-rail); }
+.hero-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.hero-title-box { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.hero-title { margin: 0; font-size: clamp(36px, 7vw, 72px); color: var(--on-rail); overflow-wrap: anywhere; }
+.hero-meta { color: var(--on-rail-muted); }
+.gap { margin-bottom: var(--space-4); }
 .sentinel { height: 1px; }
-h1 { overflow-wrap: anywhere; }
+.more { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin: 0; padding: var(--space-5); font: 13px var(--font-mono); color: var(--ink-muted); }
+.more-bar { display: inline-block; width: 40px; height: 2px; background: linear-gradient(90deg, var(--amber), #0000); }
+@media (max-width: 720px) {
+  .hero { min-height: 220px; }
+  .hero-body { padding: var(--space-6) var(--space-5) var(--space-6); }
+}
 </style>
