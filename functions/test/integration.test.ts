@@ -61,7 +61,7 @@ describe("pipeline de fotos (emuladores)", () => {
 
 describe("checkout simulado (emuladores)", () => {
   const call = async (name: string, data: unknown) => {
-    const res = await fetch(`http://127.0.0.1:5101/demo-venta-fotos/us-central1/${name}`, {
+    const res = await fetch(`http://127.0.0.1:5101/demo-venta-fotos/southamerica-east1/${name}`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }),
     });
     return (await res.json()) as { result?: any; error?: { message: string } };
@@ -95,7 +95,7 @@ describe("checkout simulado (emuladores)", () => {
 
 describe("descargas digitales (emuladores)", () => {
   const call = async (name: string, data: unknown) => {
-    const res = await fetch(`http://127.0.0.1:5101/demo-venta-fotos/us-central1/${name}`, {
+    const res = await fetch(`http://127.0.0.1:5101/demo-venta-fotos/southamerica-east1/${name}`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }),
     });
     return (await res.json()) as { result?: any; error?: { status: string; message: string } };

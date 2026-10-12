@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { randomUUID } from "crypto";
 import { logger } from "firebase-functions";
+import { setGlobalOptions } from "firebase-functions/v2";
 import { defineInt, defineSecret, defineString } from "firebase-functions/params";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
@@ -15,6 +16,9 @@ import { capturePaypalOrder, createPaypalOrder } from "./paypal";
 import { deletePhotoFiles, processOriginal } from "./process";
 
 admin.initializeApp();
+
+// Misma region que Firestore y Storage (southamerica-east1); el cliente en src/firebase.ts debe coincidir.
+setGlobalOptions({ region: "southamerica-east1" });
 
 // ---- TASK-017: checkout con PayPal ----
 

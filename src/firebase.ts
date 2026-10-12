@@ -20,7 +20,9 @@ const app = getApps().length
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
-export const functions = getFunctions(app)
+/** Debe coincidir con la region de functions/src/index.ts. */
+export const FUNCTIONS_REGION = 'southamerica-east1'
+export const functions = getFunctions(app, FUNCTIONS_REGION)
 
 /** Los emuladores solo se usan en desarrollo (import.meta.env.DEV es false en el build de produccion). */
 if (env.DEV && env.VITE_USE_EMULATORS === 'true') {
