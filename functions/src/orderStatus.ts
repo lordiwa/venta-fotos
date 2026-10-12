@@ -28,4 +28,4 @@ export function planAdvance(o: OrderLike, from: unknown): OrderStatus {
 }
 
 /** Solo el claim admin === true (booleano estricto) autoriza; "true", 1 o la ausencia del claim no. */
-export const isAdmin = (auth: { token?: { admin?: unknown } } | null | undefined): boolean => auth?.token?.admin === true;
+export const isAdmin = (auth: { token?: object } | null | undefined): boolean => (auth?.token as { admin?: unknown } | undefined)?.admin === true;
