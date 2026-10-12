@@ -22,9 +22,15 @@
   ],
   "linked_commits": [],
   "linked_prs": [],
-  "comments": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:52:25.199Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: que quien compró el archivo digital descargue el original sin marca de agua.\n2. Actor: comprador anónimo con un pedido pagado; Function que firma URLs.\n3. Problema: los originales nunca son públicos; no hay manera de entregarlos.\n4. Caminos: principal (enlaces en la confirmación); alternativos (enlace vencido → pedir uno nuevo); fallo (datos incorrectos, foto no comprada, pedido no pagado).\n5. Fuera de alcance: envío por correo (TASK-020).\n6. Datos: orders (status, lines con kind digital, buyer.email); Storage originals/.\n\nCASOS DE USO PROPUESTOS (pendientes de aprobación del humano)\nCU1. Tras pagar un pedido con archivo digital, /pedido/<número> muestra un botón \"Descargar\" por cada foto digital comprada.\nCU2. El botón descarga el original en alta resolución, sin marca de agua.\nCU3. El enlace vence a los 7 días (configurable). Pasado el plazo, la descarga falla y la página ofrece \"Generar un enlace nuevo\".\nCU4. En /descargas, con el número de pedido y el correo del comprador correctos, se generan enlaces nuevos para sus fotos digitales.\nCU5. Con un número o un correo incorrectos aparece \"No encontramos un pedido con esos datos\", sin revelar cuál de los dos falló.\nCU6. No se puede obtener el original de una foto que no está en un pedido pagado de ese comprador, ni de un pedido solo con impresiones.\nCU7. Repetir muchos intentos fallidos en /descargas no permite adivinar pedidos (número de pedido no secuencial y límite simple de intentos).\nCU8. En los emuladores la descarga funciona con el pedido creado por \"Simular pago\"."
+    }
+  ],
   "created_at": "2026-10-03T18:51:36.158Z",
-  "updated_at": "2026-10-03T18:51:36.158Z",
+  "updated_at": "2026-10-12T01:52:25.199Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true

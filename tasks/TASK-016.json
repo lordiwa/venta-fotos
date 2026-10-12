@@ -10,7 +10,7 @@
     "El carrito sobrevive a recargar la página",
     "Si un producto se desactivó o cambió de precio desde que se agregó, el carrito lo indica y usa el precio actual"
   ],
-  "status": "todo",
+  "status": "done",
   "priority": "high",
   "labels": [
     "storefront",
@@ -21,7 +21,10 @@
     "TASK-014",
     "TASK-015"
   ],
-  "linked_commits": [],
+  "linked_commits": [
+    "8cf15b0",
+    "c746f26"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -33,11 +36,61 @@
       "author": "orchestrator",
       "at": "2026-10-12T01:29:27.073Z",
       "body": "CASOS DE USO APROBADOS por el humano el 2026-10-11 (\"yes\"): CU1–CU11 tal como figuran en el comentario \"CASOS DE USO PROPUESTOS\", sin cambios."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-12T01:55:11.216Z",
+      "body": "Hand-off: commit 8cf15b0 (local). Nuevos: cartLogic.ts(+test), stores/cart.ts, components/PurchasePanel.vue, views/CartView.vue; editados PhotoLightbox.vue, PublicLayout.vue, publicApi.ts (getPublicPhoto), router.ts (/carrito). build OK; npm test 49/49 (16 casos en cartLogic). Red-green: 7 roturas plantadas, cada una rompió un test. Unit tests: CU2, 3, 5, 6 (parseo/corrupción), 7, 8, 9, 10 y la lógica de CU4. Solo UI: CU1, el selector de CU3, la tabla de CU4, el vacío de CU5, el wiring de CU6, el revert de CU10, CU11. Un error de red no marca líneas como no disponibles (muestra reintento). Sin verificación en navegador."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T01:59:42.589Z",
+      "body": "Review de 8cf15b0: REQUEST-CHANGES (solo por UAT).\n[FINDING-HIGH: R-1] requires_uat: true sin comentario uat; 7 de 11 CU son solo UI.\nMEDIUM:\n- reconcile no limita a 1 la cantidad del digital: el storage alterado muestra cantidad 1 pero el subtotal sale ×N.\n- N+1: getPublicPhoto lee el evento por cada foto.\n- PurchasePanel se remonta en cada navegación del lightbox: listActiveProducts se vuelve a consultar y se pierde la selección.\n- Un id con '/' en el storage hace que doc() lance → error permanente sin \"Quitar\".\nLOW:\n- watch de photoId muerto;\n- lastValid no se resetea al pasar a digital;\n- el selector no usa sortByName;\n- una línea con producto no disponible muestra \"Producto\";\n- falta un test de ruta /carrito.\nVerificado: npm test 49/49, vue-tsc OK; parse robusto; priceAtAdd nunca entra en los totales; un error de red nunca marca líneas no disponibles; la a11y del lightbox de TASK-015 se mantiene; sin XSS."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T02:03:22.653Z",
+      "body": "Re-review de c746f26: PASS. Los 4 MEDIUM corregidos y con tests donde aplica (clamp del digital, una lectura por evento, catálogo en caché con fallo no cacheado y panel montado entre fotos, ids con '/' rechazados y Quitar en estado de error). CartView reconcilia contra el catálogo fresco, así que la caché del lightbox no causa totales viejos. A11y del lightbox sin regresión. npm test 50/50, vue-tsc OK. LOW: panel visible con la vista previa fallida; load() duplicado en PurchasePanel; usar lineKey en el estado de error. R-1 (UAT) queda a cargo del orquestador."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T02:04:55.318Z",
+      "body": "[WARGAMING] Atacado en Chrome real (vite :5180, emuladores, c746f26) contra CU1–CU11, como comprador anónimo (sesión cerrada) y con datos cambiados desde el servidor.\nSobrevivió:\n- CU1: 10x15 ×2 → \"Agregado al carrito\" e insignia 2.\n- CU2: +1 → una sola línea ×3.\n- CU3: digital con cantidad 1 deshabilitada; agregado dos veces sigue en 1.\n- CU10 en el lightbox: 0, -3, abc y 100 vuelven al último valor válido. En el carrito, 0 vuelve a 4.\n- Selector ordenado, y la selección se mantiene al pasar de foto sin parpadeo de carga.\n- CU4: miniaturas, c/u, subtotales y \"Total estimado\"; cantidad 4 → 24,00 y el total se recalcula.\n- CU6: el carrito sobrevive a la recarga.\n- CU7: precio 6→6,50 en el servidor → \"El precio cambió\" y 26,00.\n- CU8: 20x25 desactivado → \"Este producto ya no está disponible\", fuera del total.\n- CU9: foto oculta → \"Esta foto ya no está disponible\", fuera del total.\n- Storage alterado ('garbage', null, id 'a/b', digital con qty 50 y priceAtAdd 0,01) → se ignora o se ajusta; el total usa el precio del catálogo y el digital cuenta 1.\n- Red cortada → \"No pudimos actualizar tu carrito. Reintentar\" con Quitar disponible y ninguna línea marcada no disponible; Reintentar se recupera.\n- CU5: quitar líneas actualiza el total; vacío → \"Tu carrito está vacío. Ver las fotos\".\n- CU11: sin productos activos → \"Por ahora no hay productos a la venta\".\nNo sobrevivió (sin HIGH):\n- LOW: la insignia cuenta también las líneas no disponibles (7 con 2 no disponibles).\n- LOW: en el estado de error, el digital alterado muestra \"× 51\" (solo visual; los totales usan 1).\n- Contrato para TASK-017: createOrder debe recalcular y limitar el digital a 1 en el servidor y no confiar en las cantidades del cliente.\nE2E afectados: ninguno (no hay capa e2e). Veredicto: PASS."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-12T02:04:55.369Z",
+      "body": "UAT de TASK-016 sobre c746f26, Chrome real con emuladores, como comprador anónimo. Veredicto: PASS. El orquestador lo verificó a pedido del humano (uat_delegated_to_orchestrator).\n1. Elegir tamaño o digital y cantidad, agregar, insignia con la cantidad → PASS (10x15 ×2, insignia 2).\n2. La misma foto con el mismo producto suma cantidad → PASS (una línea ×3).\n3. El digital tiene cantidad fija 1 → PASS (input deshabilitado; agregado dos veces sigue en 1).\n4. Cambiar cantidades, quitar líneas, subtotal y total → PASS (×4 → 24,00 y el total se recalcula; quitar actualiza).\n5. El carrito sobrevive a la recarga → PASS.\n6. Producto desactivado o con precio cambiado se indica y usa el precio actual → PASS (\"El precio cambió\" a 6,50; \"ya no está disponible\" fuera del total)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T02:04:55.417Z",
+      "body": "[FINDING-RESOLVED: R-1] El comentario uat quedó registrado con los 6 AC en PASS (verificación en navegador sobre c746f26)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T02:05:12.996Z",
+      "body": "ENTREGA TASK-016\n\n1. CASOS DE USO APROBADOS\nReferencia: comentario \"CASOS DE USO PROPUESTOS\", aprobado por el humano el 2026-10-11 (\"yes\"), CU1–CU11. Todos cumplidos; ningún caso cambió.\n\n2. RESULTADO\nEl comprador anónimo elige tamaño o digital y cantidad desde el lightbox y ve la insignia en la cabecera. En /carrito cambia cantidades, quita líneas y ve subtotales y el total estimado. El carrito persiste en localStorage y se reconcilia contra el catálogo vigente y la disponibilidad de cada foto. Commits 8cf15b0 y c746f26. Afuera a propósito: sincronización entre pestañas y envío en el total (TASK-017).\n\n3. WARGAMING\nAtacado: CU1–CU11 en Chrome real como anónimo.\nCaminos alternativos: misma foto y producto (CU2), digital repetido (CU3), recarga (CU6), selección al cambiar de foto.\nCaminos de fallo: cantidades inválidas (CU10), precio cambiado (CU7), producto desactivado (CU8), foto oculta (CU9), catálogo vacío (CU11), storage alterado y red cortada con reintento.\nSobrevivió todo. No sobrevivió: dos LOW cosméticos (la insignia cuenta líneas no disponibles; \"× 51\" en el estado de error). Contrato pasado a TASK-017: el servidor limita el digital a 1.\nE2E afectados: ninguno (no hay capa e2e). Veredicto: PASS.\n\n4. UAT\nVeredicto: PASS en los 6 AC, verificado por el orquestador a pedido del humano (ver el comentario uat)."
     }
   ],
   "created_at": "2026-10-03T18:51:35.969Z",
-  "updated_at": "2026-10-12T01:29:27.073Z",
+  "updated_at": "2026-10-12T02:05:12.996Z",
   "jira_key": null,
   "verification_tier": "tests-after",
-  "requires_uat": true
+  "requires_uat": true,
+  "linked_commits_verification": {
+    "at": "2026-10-12T02:05:12.996Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "8cf15b0",
+        "state": "verified"
+      },
+      {
+        "sha": "c746f26",
+        "state": "verified"
+      }
+    ]
+  }
 }

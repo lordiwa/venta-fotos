@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-12T01:43:06.594Z",
+  "generated_at": "2026-10-12T02:05:12.996Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -46,7 +46,7 @@
     {
       "key": "TASK-016",
       "title": "Carrito de compras",
-      "status": "todo",
+      "status": "done",
       "priority": "high"
     },
     {

@@ -42,6 +42,12 @@
       "type": "task",
       "ref": "tasks/TASK-015.json",
       "label": "Galería pública por evento"
+    },
+    {
+      "id": "task-016",
+      "type": "task",
+      "ref": "tasks/TASK-016.json",
+      "label": "Carrito de compras"
     }
   ],
   "edges": []

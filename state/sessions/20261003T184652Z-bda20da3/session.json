@@ -2,9 +2,9 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "paused",
-  "updated_at": "2026-10-12T01:28:37.545Z",
+  "updated_at": "2026-10-12T03:23:24.347Z",
   "active_task": null,
-  "workflow_step": "review",
+  "workflow_step": "update",
   "next_action": "Al retomar: proponer TASK-014 (catálogo) + TASK-016 (carrito), presentar sus casos de uso con auto-refinado y esperar la aprobación del humano. Recordar el contrato orders.eventIds para TASK-017.",
   "handoff_summary": "PAUSADA por el humano (2026-10-03). Cerradas: TASK-001, 010, 012, 013 y 015 (subir y ver fotos funciona; el humano lo aprobó). TASK-011 (login) está en in_review con review y wargaming PASS; el UAT queda en pausa porque el humano manejará el login con Firebase. Todo está pusheado a origin/main (929f7da). Decisiones: la marca MUESTRA queda pixelada como está, las miniaturas sin marca, los compradores sin cuenta y el envío con costo fijo. Entorno: JDK 21 en C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot (agregarlo al PATH si la terminal no lo ve); .env.local de demo ya creado; npm run emulators, npm run seed:admin y npm run dev. Puede haber procesos huérfanos de emuladores o vite (PIDs 46036, 44688, 38848, 34660).",
   "open_questions": [
@@ -89,10 +89,10 @@
     "auto_version_bump_on_milestone": false
   },
   "loop_state": {
-    "current_ticket": "TASK-014",
-    "phase": "review",
-    "iteration": 0,
-    "completed_this_run": 0,
+    "current_ticket": "TASK-016",
+    "phase": "update",
+    "iteration": 2,
+    "completed_this_run": 2,
     "run_started_at": "2026-10-11T00:00:00Z"
   }
 }
