@@ -10,7 +10,7 @@
     "Cerrar sesión devuelve al login y bloquea /admin/**",
     "Existe un script documentado para asignar el claim admin a una cuenta"
   ],
-  "status": "in_review",
+  "status": "done",
   "priority": "high",
   "labels": [
     "admin",
@@ -20,7 +20,10 @@
   "depends_on": [
     "TASK-010"
   ],
-  "linked_commits": [],
+  "linked_commits": [
+    "e4812d4",
+    "a84d778"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -67,11 +70,36 @@
       "author": "orchestrator",
       "at": "2026-10-03T20:56:16.100Z",
       "body": "UAT en pausa por decisión del humano (2026-10-03): \"no te preocupes con el login ahora porque vamos a manejar eso con firebase mas bien preocupate de que subir fotos sirvan y que se puedan ver las fotos\". El ticket queda en in_review con review PASS y wargaming PASS; se cierra cuando el humano haga el UAT o redefina el login."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-12T01:22:09.938Z",
+      "body": "Veredicto UAT: PASS por aceptación explícita del humano (2026-10-11, \"Close it now\"), SIN ejecutar los pasos de UAT. El humano acepta el login tal como está para el prototipo; la evidencia de funcionamiento es la re-review PASS y el wargaming PASS en navegador (CU1–CU13). Se volverá a verificar cuando el humano configure Firebase Auth en producción."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:22:16.379Z",
+      "body": "ENTREGA TASK-011\n\n1. CASOS DE USO APROBADOS\nReferencia: comentario \"CASOS DE USO APROBADOS\" (humano, 2026-10-03, \"si\"), CU1–CU13. Todos cumplidos según la re-review y el wargaming; ningún caso cambió.\n\n2. RESULTADO\nEl fotógrafo entra en /admin/login con correo y contraseña; las rutas /admin están protegidas por el claim admin (guard por meta de ruta, router sensitive). Scripts set-admin y seed-admin. Commits e4812d4 y a84d778. Queda afuera: la configuración de Firebase Auth en producción, que el humano hará con su proyecto real.\n\n3. WARGAMING\nAtacado: CU1–CU13 en Chrome real contra emuladores (ver el comentario [WARGAMING]): bypass por mayúsculas, codificación y rutas anidadas, y credenciales inválidas. Sobrevivió todo. No sobrevivió: nada (R-1 resuelto en a84d778). Veredicto: PASS.\n\n4. UAT\nVeredicto: PASS por aceptación explícita del humano (2026-10-11), sin ejecutar los pasos (ver el comentario uat). El humano lo revisará cuando configure Firebase Auth en producción."
     }
   ],
   "created_at": "2026-10-03T18:51:35.654Z",
-  "updated_at": "2026-10-03T20:56:16.100Z",
+  "updated_at": "2026-10-12T01:22:16.379Z",
   "jira_key": null,
   "verification_tier": "tests-after",
-  "requires_uat": true
+  "requires_uat": true,
+  "linked_commits_verification": {
+    "at": "2026-10-12T01:22:16.379Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "e4812d4",
+        "state": "verified"
+      },
+      {
+        "sha": "a84d778",
+        "state": "verified"
+      }
+    ]
+  }
 }

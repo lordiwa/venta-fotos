@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-04T03:23:59.032Z",
+  "generated_at": "2026-10-12T01:43:06.594Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -16,7 +16,7 @@
     {
       "key": "TASK-011",
       "title": "Login del fotógrafo y rutas de administración protegidas",
-      "status": "in_review",
+      "status": "done",
       "priority": "high"
     },
     {
@@ -34,7 +34,7 @@
     {
       "key": "TASK-014",
       "title": "Catálogo de productos y configuración de entrega (admin)",
-      "status": "todo",
+      "status": "done",
       "priority": "high"
     },
     {

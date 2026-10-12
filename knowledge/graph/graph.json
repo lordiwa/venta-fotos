@@ -14,6 +14,12 @@
       "label": "Base de la app: Firebase SDK, router, modelo de datos y reglas de seguridad"
     },
     {
+      "id": "task-011",
+      "type": "task",
+      "ref": "tasks/TASK-011.json",
+      "label": "Login del fotógrafo y rutas de administración protegidas"
+    },
+    {
       "id": "task-012",
       "type": "task",
       "ref": "tasks/TASK-012.json",
@@ -24,6 +30,12 @@
       "type": "task",
       "ref": "tasks/TASK-013.json",
       "label": "Subida en lote de fotos con vista previa con marca de agua"
+    },
+    {
+      "id": "task-014",
+      "type": "task",
+      "ref": "tasks/TASK-014.json",
+      "label": "Catálogo de productos y configuración de entrega (admin)"
     },
     {
       "id": "task-015",

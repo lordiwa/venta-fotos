@@ -23,9 +23,20 @@
   ],
   "linked_commits": [],
   "linked_prs": [],
-  "comments": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:26:25.879Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: que un comprador sin cuenta arme un carrito de fotos con tamaño o digital y cantidad.\n2. Actor: comprador anónimo (visitante de la galería pública).\n3. Problema: la galería (TASK-015) muestra fotos pero no hay forma de elegir ni acumular compras.\n4. Caminos: principal (agregar desde el lightbox, ver carrito, cambiar cantidad, quitar); alternativos (misma foto+producto suma, digital fijo en 1, recarga de página); fallo (producto desactivado o con otro precio, foto que ya no es pública, catálogo vacío).\n5. Fuera de alcance: pago, datos de contacto y entrega (TASK-017). El total es estimado; el servidor recalcula al pagar.\n6. Datos: carrito en localStorage {eventId, photoId, productId, quantity}; precios y nombres siempre del catálogo vigente (listActiveProducts de TASK-014).\n\nCASOS DE USO PROPUESTOS (pendientes de aprobación del humano)\nCU1. En la vista ampliada de una foto el comprador elige \"10x15\" y cantidad 2 y pulsa \"Agregar al carrito\" → aparece la confirmación y el indicador del carrito en la cabecera muestra 2.\nCU2. Agrega de nuevo la misma foto con \"10x15\" y cantidad 1 → una sola línea con cantidad 3 (no se duplica).\nCU3. Elige \"Archivo digital\" → el selector de cantidad queda fijo en 1; agregarlo otra vez no lo sube a 2.\nCU4. En /carrito ve cada línea con miniatura, producto, precio unitario, cantidad y subtotal, y el total estimado; cambiar una cantidad recalcula subtotal y total al instante.\nCU5. Quitar una línea la elimina y actualiza el total; con el carrito vacío ve \"Tu carrito está vacío\" y un enlace a la galería.\nCU6. Recargar la página o cerrar y reabrir la pestaña conserva el carrito.\nCU7. Si un producto cambió de precio desde que se agregó → la línea avisa \"El precio cambió\" y se usa el precio actual.\nCU8. Si un producto se desactivó → la línea avisa \"Este producto ya no está disponible\", no suma al total y se puede quitar.\nCU9. Si la foto ya no es pública (oculta o evento despublicado) → la línea avisa \"Esta foto ya no está disponible\" y no suma al total.\nCU10. Cantidades inválidas (0, negativas, no numéricas, más de 99) no se aceptan; el valor vuelve al anterior válido.\nCU11. Si no hay productos activos → la foto muestra \"Por ahora no hay productos a la venta\" en lugar del selector."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:29:27.073Z",
+      "body": "CASOS DE USO APROBADOS por el humano el 2026-10-11 (\"yes\"): CU1–CU11 tal como figuran en el comentario \"CASOS DE USO PROPUESTOS\", sin cambios."
+    }
+  ],
   "created_at": "2026-10-03T18:51:35.969Z",
-  "updated_at": "2026-10-03T18:51:35.969Z",
+  "updated_at": "2026-10-12T01:29:27.073Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true

@@ -30,10 +30,20 @@
       "author": "orchestrator",
       "at": "2026-10-03T21:25:38.898Z",
       "body": "CONTRATO HEREDADO de TASK-012 (review R-2): todo documento de orders debe incluir eventIds con los eventId únicos de sus lines[]. El borrado protegido de eventos (TASK-012 CU7) consulta orders con eventIds array-contains; si falta el campo, se podría borrar un evento con pedidos pagados. Al definir los casos de uso del checkout hay que incluir este caso, con su test."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:29:45.589Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: que el comprador sin cuenta pague su carrito con PayPal y quede un pedido pagado en Firestore.\n2. Actor: comprador anónimo; PayPal (sandbox); Functions createOrder/captureOrder.\n3. Problema: el carrito (TASK-016) no tiene salida a pago.\n4. Caminos: principal (datos → entrega → PayPal → confirmación); alternativos (retiro vs envío, solo digital); fallo (datos inválidos, cancelación, pago rechazado, precio alterado en cliente, doble captura, carrito con líneas no disponibles).\n5. Fuera de alcance: correos (TASK-020), enlaces de descarga (TASK-019), panel de pedidos (TASK-018).\n6. Datos: orders según src/types.ts, incluido eventIds (contrato heredado de TASK-012). Credenciales PayPal como secretos de Functions.\n\nCASOS DE USO PROPUESTOS (pendientes de aprobación del humano)\nCU1. Desde /carrito, \"Ir a pagar\" lleva a /checkout con el resumen del carrito; con el carrito vacío vuelve a /carrito.\nCU2. El comprador ingresa nombre, correo y teléfono; nombre vacío, correo mal formado o teléfono con menos de 7 dígitos muestran un mensaje por campo y no dejan avanzar.\nCU3. Elige \"Retiro en persona\" → ve las instrucciones de retiro del fotógrafo y el total sin envío.\nCU4. Elige \"Envío a domicilio\" → debe escribir la dirección (obligatoria) y el total suma el costo fijo de envío. Si el carrito es solo digital, no se ofrece elegir entrega.\nCU5. Paga con PayPal (sandbox) → ve /pedido/<número> con número de pedido, líneas, total y entrega; el carrito queda vacío.\nCU6. En Firestore queda un pedido con status \"pagado\", lines (con nombre y precio del momento), eventIds únicos de sus líneas, buyer, delivery, total y paypalOrderId.\nCU7. El total cobrado lo calcula createOrder desde el catálogo y settings/store; un precio o cantidad alterados en el cliente no cambian lo cobrado. Líneas con producto inactivo o foto no pública se rechazan con un mensaje y no se cobra.\nCU8. captureOrder verifica que el monto capturado coincide con el calculado; si no coincide, no se crea pedido pagado.\nCU9. Si el comprador cancela en PayPal o el pago es rechazado → vuelve al checkout con un mensaje, no hay pedido pagado y el carrito se conserva.\nCU10. Capturar dos veces la misma orden de PayPal (doble clic, reintento) crea un único pedido.\nCU11. Las credenciales de PayPal no aparecen en el código del cliente ni en el repo (secretos de Functions; el cliente solo usa el client-id público)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:31:20.616Z",
+      "body": "DECISIÓN del humano (2026-10-11): pago simulado + sandbox real. Se construye el flujo real de PayPal (createOrder/captureOrder con Orders v2) y además un botón \"Simular pago\" que SOLO funciona con los emuladores (FUNCTIONS_EMULATOR=true en el servidor e import.meta.env.DEV en el cliente). Pasa por la misma lógica de recálculo y creación de pedido, con paypalOrderId \"SIMULADO-<id>\". Agrega:\nCU12. Con los emuladores, \"Simular pago\" completa el pedido igual que CU5/CU6. En producción el botón no existe y la Function rechaza el modo simulado."
     }
   ],
   "created_at": "2026-10-03T18:51:36.021Z",
-  "updated_at": "2026-10-03T21:25:38.898Z",
+  "updated_at": "2026-10-12T01:31:20.616Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true

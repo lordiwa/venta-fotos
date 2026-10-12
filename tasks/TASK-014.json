@@ -10,7 +10,7 @@
     "Precios deben ser números positivos; valores inválidos se rechazan con un mensaje",
     "Un producto desactivado deja de ofrecerse en la tienda pero los pedidos existentes lo conservan"
   ],
-  "status": "todo",
+  "status": "done",
   "priority": "high",
   "labels": [
     "admin",
@@ -20,12 +20,106 @@
   "depends_on": [
     "TASK-011"
   ],
-  "linked_commits": [],
+  "linked_commits": [
+    "143197d",
+    "29511dc",
+    "dff4017",
+    "93eac56"
+  ],
   "linked_prs": [],
-  "comments": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:22:40.022Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: que el fotógrafo defina qué se puede comprar de cada foto y a qué precio, y cómo se entrega.\n2. Actor: el fotógrafo (admin). Indirectamente el comprador, que ve solo los productos activos (lo consume TASK-016).\n3. Problema: no existe pantalla para cargar productos ni la configuración de envío/retiro; el modelo (products/{id}, settings/store) y las reglas ya existen desde TASK-010.\n4. Caminos: principal (crear/editar productos, guardar configuración); alternativos (desactivar/reactivar, digital desactivado); fallo (precio inválido, nombre vacío, error de red al guardar).\n5. Fuera de alcance: mostrar productos al comprador (TASK-016), pedidos (TASK-017), monedas múltiples.\n6. Datos: products {name, kind print|digital, price>0, active}; settings/store {shippingCost>=0, pickupInfo}. Un único producto digital."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:22:40.076Z",
+      "body": "CASOS DE USO PROPUESTOS (pendientes de aprobación del humano)\nCU1. En /admin/productos el fotógrafo agrega un tamaño de impresión \"10x15\" a 5.00 → aparece en la lista como activo.\nCU2. Edita el precio de \"10x15\" a 6.00 → la lista muestra 6.00 y al recargar la página persiste.\nCU3. Desactiva \"10x15\" → queda marcado inactivo en la lista (no se borra); al reactivarlo vuelve a activo.\nCU4. Precio vacío, 0, negativo o no numérico → no se guarda y se muestra \"El precio debe ser un número mayor que 0\".\nCU5. Nombre vacío → no se guarda y se muestra \"El nombre es obligatorio\".\nCU6. Configura el archivo digital con precio 3.00 → se guarda; puede desactivarlo y reactivarlo igual que una impresión. Hay a lo sumo un producto digital.\nCU7. En /admin/configuracion guarda costo de envío 4.50 → persiste al recargar. Envío 0 se acepta (gratis); negativo o no numérico se rechaza con mensaje.\nCU8. Guarda el texto de retiro en persona (\"Estudio, lun–vie 9–18\") → persiste al recargar.\nCU9. Un producto desactivado no aparece en la consulta pública de productos activos (la que usará la tienda). Los pedidos guardan nombre y precio en cada línea (OrderLine), así que desactivar o editar no altera pedidos existentes.\nCU10. Si falla la red al guardar → mensaje de error y los datos del formulario no se pierden.\nCU11. Un visitante no admin no puede escribir productos ni settings (reglas; ya probado en TASK-010, se mantiene verde)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:25:55.470Z",
+      "body": "CASOS DE USO APROBADOS por el humano el 2026-10-11 (\"yes\"): CU1–CU11 tal como figuran en el comentario \"CASOS DE USO PROPUESTOS\", sin cambios."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-12T01:28:36.142Z",
+      "body": "Hand-off: commit 143197d (local). Nuevos: productsLogic.ts(+test), productsApi.ts, settingsApi.ts, views/AdminProducts.vue, views/AdminSettings.vue; editados router.ts y AdminHome.vue. build OK; npm test 29/29; test:rules 13/13 (reglas sin cambios: validProduct ya cumple CU4/CU6). Producto digital con id fijo \"digital\". Producto sin \"active\" cuenta como inactivo. Unit tests: CU4, CU5, validación de CU7. Sin test automático: CU1–3, 6, 8, 9 (listActiveProducts where active==true), 10. Sin verificación en navegador."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T01:32:09.417Z",
+      "body": "Review 143197d: REQUEST-CHANGES.\n[FINDING-HIGH: R-1] AdminSettings.vue:17 / productsLogic.ts:41 — si settings/store existe sin shippingCost/pickupInfo (TASK-013 lo crea solo con watermarkText; el fixture de reglas siembra {shippingCost:3}), formatMoney(undefined) lanza y la página queda en \"No se pudo cargar\" para siempre; sin pickupInfo, guardar lanza y muestra un falso error de red. Bloquea CU7/CU8. Arreglo: valores por defecto al cargar más un test de regresión.\n[FINDING-HIGH: R-2] requires_uat: true sin comentario uat; 7 de 11 CU solo se verifican en el navegador.\nMEDIUM: el form digital no tiene guard de saving; si load() falla después de un guardado exitoso, se oculta toda la vista; todos los catch se presentan como error de red (incluido permission-denied); no hay evidencia red-green.\nLOW: los tests de CU7 usan toBeTruthy en vez del mensaje exacto; orderBy('name') ordena de forma lexicográfica; parseMoney no explica el formato; carrera de toggle entre pestañas.\nVerificado: npm test 29/29, vue-tsc OK, reglas sin cambios, merge preserva watermarkText, la consulta de activos no necesita índice compuesto, parseMoney es robusto."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-12T01:34:14.232Z",
+      "body": "Ronda de arreglos: commit 29511dc. R-1: StoreSettings.shippingCost/pickupInfo opcionales, settingsToForm con valores por defecto, test de regresión. MEDIUM: guard de saving en el form digital, error de carga inline que conserva la lista, saveErrorMessage distingue permission-denied, tests de CU7 con el mensaje exacto, orden de nombres numérico (localeCompare numeric). build OK; npm test 32/32; test:rules 13/13. Red-green: 4 roturas plantadas en productsLogic.ts, cada una rompió su test, revertidas."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T01:35:26.301Z",
+      "body": "Re-review de 29511dc: PASS. [FINDING-RESOLVED: R-1] settingsToForm aplica valores por defecto (productsLogic.ts:45), AdminSettings.vue lo usa y tiene test de regresión con {}, solo {watermarkText} y {shippingCost:3}. Los MEDIUM de la primera ronda están resueltos y el LOW de orden también. npm test 32/32; vue-tsc OK; reglas sin cambios. R-2 (UAT) queda abierto hasta que el orquestador registre el comentario uat. LOW: 7 specs para 6 AC (los extra los pidió la review, cada uno con su enunciado de daño); estilo de toggle()."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:38:45.541Z",
+      "body": "[WARGAMING] Atacado en Chrome real (vite :5180 y emuladores Auth/Firestore/Storage, commit 29511dc) contra CU1–CU11, con caminos de fallo.\nSobrevivió:\n- R-1: settings/store con solo watermarkText → la página carga con campos vacíos (antes se rompía).\n- CU7: -2 y \"abc\" se rechazan con el mensaje; 4,50 se guarda; 0 se acepta; persiste al recargar; watermarkText se conserva en Firestore.\n- CU8: el texto de retiro persiste al recargar.\n- CU5: nombre vacío rechazado.\n- CU4: '', 0, -1 y abc rechazados y no se crea el producto.\n- CU1: 10x15, 20x25 y 9x13 creados activos, con orden numérico.\n- CU6: digital 3,00 guardado; desactivar y activar funcionan.\n- CU2: 10x15 pasa de 5,00 a 6,00 y persiste al recargar.\n- CU3: desactivar → \"Inactivo\" sin borrar; reactivar → \"Activo\".\n- CU9: la consulta pública anónima active==true devuelve solo los activos (excluye el 10x15 inactivo y el digital inactivo).\n- CU11: escritura anónima a products y settings → 403.\nNo sobrevivió:\n[FINDING-HIGH: W-1] CU10: con la red cortada (fetch/XHR bloqueados), al guardar el botón queda en \"Guardando…\" para siempre y nunca aparece un mensaje de error. Firestore encola la escritura y la promesa no rechaza. Los datos del form se conservan, y al volver la red la escritura llega sola (13x18 se creó). Un timeout que habilite reintentar causaría duplicados (addDoc encolado + reintento). Arreglo pedido: aviso de sin conexión sin duplicados.\nE2E afectados: ninguno (el proyecto no tiene capa e2e)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:41:03.172Z",
+      "body": "[WARGAMING] Re-ataque de CU10 en Chrome real sobre dff4017. Cortando la red en el alta de 15x21:\n- a los 7,5 s aparece \"Sin conexión. Los cambios se guardarán automáticamente al volver la conexión.\";\n- el botón queda deshabilitado y un segundo clic no hace nada;\n- el form conserva 15x21 / 8.\nAl restaurar la red, 15x21 queda creado UNA sola vez y el aviso desaparece.\n[FINDING-RESOLVED: W-1]\nLímite aceptado (no bloquea): si el admin recarga la página mientras la escritura está en cola y vuelve a cargar el mismo producto, podría quedar duplicado. Requeriría estado persistente; es de bajo impacto (un tamaño repetido se desactiva desde la lista)."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T01:41:47.966Z",
+      "body": "Re-review de dff4017: PASS. W-1 corregido: sin cuelgue sin aviso, sin camino a duplicados (id de cliente fijado por form), sin fugas de timer. npm test 33/33, vue-tsc OK, reglas sin impacto.\nMEDIUM: OFFLINE_NOTICE promete de más; sin persistentLocalCache, la escritura en cola se pierde si se cierra la pestaña. Conviene reformularlo.\nLOW: un aviso compartido entre operaciones; inputs editables mientras hay escritura en cola; imports de vi. 8 specs para 6 AC: los dos extra son locks de regresión de R-1 y W-1, justificados."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-12T01:42:58.110Z",
+      "body": "UAT de TASK-014 sobre 93eac56, Chrome real con emuladores. Veredicto: PASS. El orquestador lo verificó a pedido del humano (uat_delegated_to_orchestrator).\n1. Agrega, edita, activa/desactiva tamaños con nombre y precio → PASS (10x15/20x25/9x13 creados; 10x15 de 5,00 a 6,00 persiste; desactivar/reactivar sin borrar).\n2. Precio del archivo digital, desactivable → PASS (3,00 guardado; desactivar/activar).\n3. Costo fijo de envío → PASS (4,50 persiste al recargar; 0 aceptado).\n4. Instrucciones de retiro → PASS (persisten al recargar).\n5. Precios inválidos rechazados con mensaje → PASS ('', 0, -1 y abc en el precio; -2 y abc en el envío).\n6. Producto desactivado deja de ofrecerse y los pedidos conservan el suyo → PASS (la consulta pública anónima excluye los inactivos; OrderLine guarda nombre y precio).\nExtra: sin red aparece el aviso honesto, inputs y botón quedan deshabilitados y 18x24 se guarda una sola vez al reconectar."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:43:06.176Z",
+      "body": "[FINDING-RESOLVED: R-2] El comentario uat quedó registrado con los 6 AC en PASS (verificación en navegador sobre 93eac56)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T01:43:06.594Z",
+      "body": "ENTREGA TASK-014\n\n1. CASOS DE USO APROBADOS\nReferencia: comentario \"CASOS DE USO PROPUESTOS\", aprobado por el humano el 2026-10-11 (\"yes\"), CU1–CU11. Todos cumplidos; ningún caso cambió.\n\n2. RESULTADO\nEl fotógrafo gestiona en /admin/productos los tamaños de impresión (alta, edición, activar/desactivar, orden numérico) y el archivo digital (id fijo \"digital\"). En /admin/configuracion define el costo de envío y las instrucciones de retiro. listActiveProducts() queda lista para la tienda (TASK-016). Las escrituras sin red muestran un aviso honesto y no duplican. Commits 143197d, 29511dc, dff4017 y 93eac56. Afuera a propósito: caché persistente offline (la escritura en cola requiere la pestaña abierta, y el aviso lo dice).\n\n3. WARGAMING\nAtacado: CU1–CU11 en Chrome real con caminos de fallo (precios inválidos, nombre vacío, settings incompleto, escritura anónima y red cortada). Sobrevivió todo salvo W-1 (cuelgue sin aviso sin red), que fue corregido y re-atacado: [FINDING-RESOLVED: W-1]. R-1 de la review también está resuelto. E2E afectados: ninguno (no hay capa e2e). Veredicto: PASS.\n\n4. UAT\nVeredicto: PASS en los 6 AC, verificado por el orquestador a pedido del humano (ver el comentario uat)."
+    }
+  ],
   "created_at": "2026-10-03T18:51:35.870Z",
-  "updated_at": "2026-10-03T18:51:35.870Z",
+  "updated_at": "2026-10-12T01:43:06.594Z",
   "jira_key": null,
   "verification_tier": "tests-after",
-  "requires_uat": true
+  "requires_uat": true,
+  "linked_commits_verification": {
+    "at": "2026-10-12T01:43:06.594Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "143197d",
+        "state": "verified"
+      },
+      {
+        "sha": "29511dc",
+        "state": "verified"
+      },
+      {
+        "sha": "dff4017",
+        "state": "verified"
+      },
+      {
+        "sha": "93eac56",
+        "state": "verified"
+      }
+    ]
+  }
 }
