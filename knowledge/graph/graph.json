@@ -48,6 +48,12 @@
       "type": "task",
       "ref": "tasks/TASK-016.json",
       "label": "Carrito de compras"
+    },
+    {
+      "id": "task-017",
+      "type": "task",
+      "ref": "tasks/TASK-017.json",
+      "label": "Checkout con PayPal, datos de contacto y elección de entrega"
     }
   ],
   "edges": []

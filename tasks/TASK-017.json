@@ -11,7 +11,7 @@
     "Capturar dos veces la misma orden no crea pedidos duplicados",
     "Las credenciales de PayPal no aparecen en el código del cliente ni en el repositorio"
   ],
-  "status": "todo",
+  "status": "done",
   "priority": "critical",
   "labels": [
     "storefront",
@@ -23,7 +23,11 @@
   "depends_on": [
     "TASK-016"
   ],
-  "linked_commits": [],
+  "linked_commits": [
+    "ee255d1",
+    "c7c1d80",
+    "64e18ac"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -45,11 +49,75 @@
       "author": "orchestrator",
       "at": "2026-10-12T02:05:05.298Z",
       "body": "CONTRATO HEREDADO de TASK-016 (wargaming): el carrito del cliente puede traer cantidades alteradas (el digital ×51, por ejemplo). createOrder debe validar en el servidor: digital = 1 por foto, impresiones entre 1 y 99, productos activos y fotos públicas. Precios y nombres salen del catálogo. Nunca se usan priceAtAdd ni productName del cliente."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T03:24:01.382Z",
+      "body": "CASOS DE USO APROBADOS por el humano el 2026-10-11 (\"yes\"): CU1–CU11 del comentario \"CASOS DE USO PROPUESTOS\", más CU12 (pago simulado solo en emuladores) de la DECISIÓN del mismo día, sin cambios. Incluye los contratos heredados: eventIds (de TASK-012) y validación de cantidades en el servidor (de TASK-016)."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-12T03:34:43.506Z",
+      "body": "Hand-off: commit ee255d1 (local).\n- Servidor: functions/src/checkout.ts (lógica pura en centavos), paypal.ts (Orders v2 por fetch), orders.ts (catálogo y transacción), index.ts (createOrder y captureOrder; se quitó el placeholder).\n- Cliente: checkoutLogic.ts, checkoutApi.ts, CheckoutView.vue, OrderView.vue y rutas /checkout y /pedido/:number.\n- Reglas: bloque checkouts sin lectura ni escritura.\n- Resultados: build OK; npm test 56/56; test:functions 13/13; build:functions OK; test:rules no corrido (el orquestador lo corrió: 14/14).\n- Red-green: 7 roturas plantadas.\n- Pendientes declarados: con monto no coincidente después de capturar no queda registro para conciliar; la confirmación solo se ve completa en el navegador que pagó; no hay webhooks."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T03:35:58.725Z",
+      "body": "[WARGAMING] Primera pasada en Chrome real (emuladores, ee255d1, comprador anónimo).\nSobrevivió:\n- CU1: el carrito lleva a /checkout con el resumen.\n- CU2: nombre vacío, correo inválido y teléfono de 3 dígitos muestran mensaje por campo y no se avanza.\n- CU3: retiro muestra las instrucciones; total 15,00.\n- CU4: envío exige dirección (\"Escribe la dirección de envío.\") y suma 4,50 → 19,50.\n- Sin VITE_PAYPAL_CLIENT_ID → \"Pago con PayPal no configurado\".\n- El fallo conserva el carrito.\nNo sobrevivió:\n[FINDING-HIGH: W-1] CU5/CU6/CU12: \"Simular pago\" falla siempre con \"No pudimos procesar el pago\". Log: createOrder failed TypeError: Cannot read properties of undefined (reading 'serverTimestamp') at saveCheckout (functions/lib/orders.js:68). Probable causa: FieldValue vía el namespace admin.firestore en firebase-admin 13; los tests con fake no lo detectan. Ningún pedido puede crearse.\n[FINDING-HIGH: W-2] CU10 (lado cliente): un doble clic en \"Simular pago\" disparó dos createOrder concurrentes (el log muestra dos ejecuciones); el botón no se bloquea de forma síncrona."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T03:39:52.869Z",
+      "body": "Review de ee255d1: REQUEST-CHANGES.\n[FINDING-HIGH: R-1] index.ts:28-33,63-65 y CheckoutView.vue:46-58: una captura ya ejecutada en PayPal puede terminar con el dinero cobrado y sin rastro. Los casos son:\n- monto o moneda no coincidente, o captura PENDING: el CheckoutError no se loguea ni se escribe en checkouts;\n- la transacción falla después de capturar: no queda nada durable;\n- el cliente descarta el paypalOrderId y permite crear otro → doble cobro.\nArreglo: registrar la captura en checkouts/{id} justo después de capturar y loguear los errores posteriores; mensaje al comprador que cite el id de PayPal sin invitar a reintentar; conservar el id pendiente y reintentar captureOrder antes de montar botones; decidir explícitamente qué pasa con PENDING.\n[FINDING-HIGH: R-2] requires_uat: true sin comentario uat.\nMEDIUM:\n- Order sin \"number\" en types.ts.\n- El gate de CU12 en el servidor sin test (extraer assertSimulationAllowed).\n- Checklist de hand-off incompleto.\n- Al test del número de pedido le falta el enunciado de daño.\n- createOrder sin auth ni throttle; checkouts sin TTL.\nLOW:\n- number sin control de unicidad.\n- 422 sin actions.restart.\n- validId acepta \".\" y \"..\".\n- PAYMENT.md desactualizado.\n- paypal.Buttons undefined sin mensaje.\nVerificado: npm test 56/56; test:functions 13/13; vue-tsc OK. Cálculo en centavos correcto, frontera de confianza sólida, transacción idempotente correcta, gate simulado en ambas Functions, secretos fuera del repo, reglas cerradas."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T03:48:11.268Z",
+      "body": "Re-review de c7c1d80: PASS. [FINDING-RESOLVED: R-1] La captura se registra en checkouts antes de verificar. El reintento usa el mismo id (PayPal-Request-Id / ORDER_ALREADY_CAPTURED). PENDING y monto distinto quedan con estado y bloquean un nuevo pago. No queda camino de doble cobro.\nMEDIUM M-7: el id pendiente no se limpia en onCancel/onError. Al volver aparece \"rechazado\" falso, y podría capturar un pedido aprobado viejo con el snapshot anterior y vaciar el carrito nuevo.\nMEDIUM M-8: checkouts no es legible ni por el admin; los registros pendientes o no coincidentes solo se ven en la consola. Pasa como seguimiento a TASK-018.\nLOW: capturedAtMs vs serverTimestamp; log \"cobro sin pedido\" exagerado en DECLINED; classifyCaptureError por defecto es retry.\nnpm test 57/57; test:functions 15/15; vue-tsc y tsc de functions OK."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T03:53:12.207Z",
+      "body": "[WARGAMING] Segunda pasada en Chrome real y emuladores sobre c7c1d80 y 64e18ac, contra CU1–CU12.\nSobrevivió:\n- Integración (emulador, Functions reales): createOrder simulado + doble captureOrder → 1 pedido pagado, con eventIds y total 13.\n- CU5/CU6/CU10/CU12: compra simulada con envío y triple clic en \"Simular pago\" → exactamente un pedido 68KYFHEA en estado pagado, con eventIds [\"CIq6ntKNrb6hdbbhJSbR\"], number, buyer y total.\n- La confirmación /pedido/<número> se muestra y el carrito queda vacío.\n- Regresión con retiro: 13x18×3 + digital = 25,50 en el cliente y el servidor; no queda id pendiente en el camino simulado.\n- CU1: carrito vacío → /checkout redirige a /carrito.\n- CU7, ataques directos a createOrder:\n  - digital ×5 → 400;\n  - cantidad 150 → 400;\n  - producto inactivo → 400;\n  - foto inexistente → 400;\n  - precio inyectado en todos los campos (0,01) → se cobra 6,00, el precio del catálogo.\n- Capturar un SIMULADO inexistente → 404.\n- CU9 (lado servidor): producto desactivado durante el checkout → mensaje, no hay pedido y el carrito se conserva.\n[FINDING-RESOLVED: W-1] createOrder ya no falla (FieldValue desde firebase-admin/firestore); la integración y el navegador lo confirman.\n[FINDING-RESOLVED: W-2] El doble y el triple clic producen una sola llamada efectiva y un solo pedido.\nNo verificado (requiere credenciales sandbox del humano): el popup real de PayPal, es decir la cancelación desde el popup (CU9 en el cliente) y el pago real (CU5 con PayPal). La lógica está cubierta por la review y los tests.\nLOW: los mensajes de error muestran el sufijo técnico \"[400]\".\nE2E afectados: ninguno (no hay capa e2e)."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-12T03:53:12.296Z",
+      "body": "UAT de TASK-017 sobre 64e18ac, Chrome real con emuladores y pago simulado. Veredicto: PASS. El orquestador lo verificó a pedido del humano (uat_delegated_to_orchestrator).\n1. El checkout pide nombre, correo y teléfono validados y la elección retiro/envío; con envío pide dirección y suma el costo → PASS (mensajes por campo; 15,00 → 19,50 con envío de 4,50).\n2. El total lo calcula el servidor; un precio alterado no cambia lo cobrado → PASS (con 0,01 inyectado se cobra 6,00).\n3. Tras el pago queda un pedido pagado con líneas, contacto, entrega, id e eventIds, y el carrito se vacía → PASS (68KYFHEA y UAS7EQWJ verificados en Firestore).\n4. Página de confirmación con número → PASS (/pedido/68KYFHEA, /pedido/UAS7EQWJ).\n5. Si se cancela o falla, no hay pedido y el carrito se conserva → PASS en el camino de fallo del servidor (producto desactivado). La cancelación en el popup real de PayPal no se probó por falta de credenciales sandbox.\n6. Capturar dos veces no duplica → PASS (integración: doble captura = 1 pedido; triple clic = 1 pedido).\n7. Credenciales fuera del cliente y del repo → PASS (defineSecret; el cliente solo usa VITE_PAYPAL_CLIENT_ID; .secret.local y .env* en gitignore).\nPendiente para el humano: cargar las credenciales sandbox y probar una compra real con PayPal, incluida la cancelación."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T03:53:12.365Z",
+      "body": "[FINDING-RESOLVED: R-2] El comentario uat quedó registrado con los 7 AC en PASS (con la salvedad explícita sobre el popup real de PayPal)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T03:53:23.065Z",
+      "body": "ENTREGA TASK-017\n\n1. CASOS DE USO APROBADOS\nReferencia: comentarios \"CASOS DE USO PROPUESTOS\" y \"DECISIÓN\" (CU12), aprobados por el humano el 2026-10-11 (\"yes\"), CU1–CU12.\n- Cumplidos: CU1–CU8 y CU10–CU12.\n- CU9: cumplido en el servidor y el cliente con el pago simulado; la cancelación en el popup real de PayPal queda sin verificar por falta de credenciales sandbox (no cambió el caso, solo la evidencia).\n- CU8 refinado: las capturas PENDING o con monto distinto quedan registradas en checkouts (sigue sin crearse pedido pagado).\n\n2. RESULTADO\nEl comprador anónimo paga el carrito: datos validados, retiro o envío con costo fijo, y PayPal (Orders v2) o \"Simular pago\" en emuladores. createOrder recalcula todo en el servidor desde el catálogo; captureOrder registra la captura, la verifica y crea el pedido pagado de forma idempotente, con eventIds y number. Confirmación en /pedido/<número>. Commits ee255d1, c7c1d80 y 64e18ac. Afuera a propósito: webhooks, correos (TASK-020), descargas (TASK-019), visibilidad de checkouts en el panel (seguimiento a TASK-018) y throttle/App Check.\n\n3. WARGAMING\nAtacado en Chrome real y en integración con Functions reales.\nCaminos principal y alternativos: compra con envío y con retiro, solo digital.\nCaminos de fallo: datos inválidos, carrito vacío, precio inyectado, cantidades alteradas, producto inactivo, foto inexistente, captura de id falso, doble y triple clic, doble captura.\nNo sobrevivió en la primera pasada: W-1 (crash de createOrder) y W-2 (doble clic), ambos resueltos y re-atacados. R-1 de la review (cobro sin rastro) también resuelto.\nE2E afectados: ninguno. Veredicto: PASS.\n\n4. UAT\nVeredicto: PASS en los 7 AC, verificado por el orquestador a pedido del humano (ver el comentario uat). Pendiente para el humano: una compra real en sandbox de PayPal."
     }
   ],
   "created_at": "2026-10-03T18:51:36.021Z",
-  "updated_at": "2026-10-12T02:05:05.298Z",
+  "updated_at": "2026-10-12T03:53:23.065Z",
   "jira_key": null,
   "verification_tier": "tests-after",
-  "requires_uat": true
+  "requires_uat": true,
+  "linked_commits_verification": {
+    "at": "2026-10-12T03:53:23.065Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "ee255d1",
+        "state": "verified"
+      },
+      {
+        "sha": "c7c1d80",
+        "state": "verified"
+      },
+      {
+        "sha": "64e18ac",
+        "state": "verified"
+      }
+    ]
+  }
 }
