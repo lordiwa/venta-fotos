@@ -5,7 +5,13 @@ import { listEvents } from '../eventsApi'
 import { advanceOrder, getPhoto, listOrders } from '../ordersApi'
 import { filterOrders, nextStatus, STATUS_LABEL, STATUSES, type OrderFilters, type OrderRow } from '../ordersLogic'
 import { formatMoney } from '../productsLogic'
-import type { Event } from '../types'
+import { Alert, Badge, Button, Field, OrderNumber } from '../ui'
+import type { Event, OrderStatus } from '../types'
+
+// Tono del badge por estado (sistema Estudio).
+const STATUS_TONE: Record<OrderStatus, 'amber' | 'info' | 'teal' | 'violet' | 'success'> = {
+  pagado: 'amber', impreso: 'info', listo_retiro: 'teal', enviado: 'violet', entregado: 'success',
+}
 
 const orders = ref<OrderRow[]>([])
 const events = ref<Event[]>([])
@@ -72,74 +78,122 @@ async function advance(o: OrderRow) {
 </script>
 
 <template>
-  <h1>Pedidos</h1>
-  <p><RouterLink to="/admin">Volver</RouterLink> · <RouterLink to="/admin/impresion">Lista de impresión</RouterLink></p>
-  <p v-if="loading">Cargando…</p>
-  <p v-else-if="loadError" role="alert">No se pudieron cargar los pedidos. <button type="button" @click="load">Reintentar</button></p>
-  <template v-else>
-    <div class="filters">
-      <label>Evento
-        <select v-model="filters.eventId" aria-label="Evento">
-          <option value="">Todos</option>
-          <option v-for="e in events" :key="e.id" :value="e.id">{{ e.name }}</option>
-        </select>
-      </label>
-      <label>Estado
-        <select v-model="filters.status" aria-label="Estado">
-          <option value="">Todos</option>
-          <option v-for="s in STATUSES" :key="s" :value="s">{{ STATUS_LABEL[s] }}</option>
-        </select>
-      </label>
-      <label>Entrega
-        <select v-model="filters.method" aria-label="Entrega">
-          <option value="">Todas</option>
-          <option value="retiro">Retiro en persona</option>
-          <option value="envio">Envío a domicilio</option>
-        </select>
-      </label>
+  <div class="page">
+    <div class="head">
+      <h1 class="display-md">Pedidos</h1>
+      <Button icon="impresion" to="/admin/impresion">Lista de impresión</Button>
     </div>
-    <p v-if="capped" role="status">Mostrando los últimos 200 pedidos.</p>
-    <p v-if="!shown.length">No hay pedidos.</p>
-    <table v-else>
-      <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Entrega</th><th>Estado</th><th /></tr></thead>
-      <tbody>
-        <tr v-for="o in shown" :key="o.id" :class="{ sel: o.id === openId }">
-          <td>{{ o.number }}</td>
-          <td>{{ dateText(o.createdAt) }}</td>
-          <td>{{ o.buyer.name }}</td>
-          <td>{{ formatMoney(o.total) }}</td>
-          <td>{{ o.delivery.method === 'envio' ? 'Envío' : 'Retiro' }}</td>
-          <td>{{ STATUS_LABEL[o.status] }}</td>
-          <td><button type="button" @click="show(o)">Ver detalle</button></td>
-        </tr>
-      </tbody>
-    </table>
+    <p v-if="loading" class="note">Cargando…</p>
+    <Alert v-else-if="loadError" tone="danger">
+      No se pudieron cargar los pedidos.
+      <template #action><Button type="button" @click="load">Reintentar</Button></template>
+    </Alert>
+    <template v-else>
+      <div class="filters">
+        <Field label="Evento">
+          <template #default="{ id, inputClass }">
+            <select :id="id" v-model="filters.eventId" :class="inputClass" aria-label="Evento">
+              <option value="">Todos</option>
+              <option v-for="e in events" :key="e.id" :value="e.id">{{ e.name }}</option>
+            </select>
+          </template>
+        </Field>
+        <Field label="Estado">
+          <template #default="{ id, inputClass }">
+            <select :id="id" v-model="filters.status" :class="inputClass" aria-label="Estado">
+              <option value="">Todos</option>
+              <option v-for="s in STATUSES" :key="s" :value="s">{{ STATUS_LABEL[s] }}</option>
+            </select>
+          </template>
+        </Field>
+        <Field label="Entrega">
+          <template #default="{ id, inputClass }">
+            <select :id="id" v-model="filters.method" :class="inputClass" aria-label="Entrega">
+              <option value="">Todas</option>
+              <option value="retiro">Retiro en persona</option>
+              <option value="envio">Envío a domicilio</option>
+            </select>
+          </template>
+        </Field>
+      </div>
+      <p v-if="capped" role="status" class="mono-sm note">Mostrando los últimos 200 pedidos.</p>
+      <p v-if="!shown.length" class="note">No hay pedidos.</p>
+      <div v-else class="split">
+        <div class="es-table-wrap table">
+          <table class="es-table">
+            <thead><tr><th scope="col">Número</th><th scope="col">Fecha</th><th scope="col">Cliente</th><th scope="col">Total</th><th scope="col">Entrega</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+            <tbody>
+              <tr v-for="o in shown" :key="o.id" :class="{ sel: o.id === openId }">
+                <td class="mono-md num">{{ o.number }}</td>
+                <td class="body-sm muted nowrap">{{ dateText(o.createdAt) }}</td>
+                <td class="client">{{ o.buyer.name }}</td>
+                <td class="mono-md money">{{ formatMoney(o.total) }}</td>
+                <td class="body-sm muted">{{ o.delivery.method === 'envio' ? 'Envío' : 'Retiro' }}</td>
+                <td><Badge :tone="STATUS_TONE[o.status]">{{ STATUS_LABEL[o.status] }}</Badge></td>
+                <td class="act"><Button type="button" @click="show(o)">Ver detalle</Button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-    <section v-if="open" class="detail" aria-label="Detalle del pedido">
-      <h2>Pedido {{ open.number }}</h2>
-      <ul class="lines">
-        <li v-for="(l, i) in open.lines" :key="i">
-          <div class="thumb"><PhotoThumb :path="thumbs[`${l.eventId}/${l.photoId}`]" /></div>
-          <span>{{ l.productName }} × {{ l.quantity }} <small>({{ eventName(l.eventId) }})</small></span>
-        </li>
-      </ul>
-      <p><strong>Contacto:</strong> {{ open.buyer.name }} · {{ open.buyer.email }}<template v-if="open.buyer.phone"> · {{ open.buyer.phone }}</template></p>
-      <p v-if="open.delivery.method === 'envio'"><strong>Dirección:</strong> {{ open.delivery.address }}</p>
-      <p><strong>Estado:</strong> {{ STATUS_LABEL[open.status] }}</p>
-      <button v-if="nextStatus(open)" type="button" :disabled="busy" @click="advance(open)">Marcar como {{ STATUS_LABEL[nextStatus(open)!] }}</button>
-      <p v-if="actionError" role="alert" class="warn">{{ actionError }}</p>
-    </section>
-  </template>
+        <section v-if="open" class="detail" aria-label="Detalle del pedido">
+          <div class="detail-head">
+            <OrderNumber size="sm" caption="Pedido">{{ open.number }}</OrderNumber>
+            <Badge :tone="STATUS_TONE[open.status]">{{ STATUS_LABEL[open.status] }}</Badge>
+          </div>
+          <ul class="lines">
+            <li v-for="(l, i) in open.lines" :key="i">
+              <div class="thumb"><PhotoThumb :path="thumbs[`${l.eventId}/${l.photoId}`]" /></div>
+              <span class="line-txt">
+                <span class="line-name">{{ l.productName }} × {{ l.quantity }}</span>
+                <small class="caption muted">{{ eventName(l.eventId) }}</small>
+              </span>
+            </li>
+          </ul>
+          <dl>
+            <div><dt class="table-head">Contacto</dt><dd>{{ open.buyer.name }}<br><span class="muted">{{ open.buyer.email }}<template v-if="open.buyer.phone"> · {{ open.buyer.phone }}</template></span></dd></div>
+            <div v-if="open.delivery.method === 'envio'"><dt class="table-head">Dirección</dt><dd>{{ open.delivery.address }}</dd></div>
+            <div><dt class="table-head">Entrega</dt><dd>{{ open.delivery.method === 'envio' ? 'Envío a domicilio' : 'Retiro en persona' }}</dd></div>
+            <div><dt class="table-head">Total</dt><dd class="mono-md">{{ formatMoney(open.total) }}</dd></div>
+          </dl>
+          <div v-if="nextStatus(open) || actionError" class="foot">
+            <Button v-if="nextStatus(open)" type="button" variant="primary" size="lg" :disabled="busy" @click="advance(open)">Marcar como {{ STATUS_LABEL[nextStatus(open)!] }}</Button>
+            <Alert v-if="actionError" tone="danger">{{ actionError }}</Alert>
+          </div>
+        </section>
+      </div>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-.filters { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: 0.3rem 0.6rem; border-bottom: 1px solid #e3e5ea; }
-tr.sel { background: #f4f5f8; }
-.detail { margin-top: 1.5rem; border: 1px solid #e3e5ea; border-radius: 8px; padding: 1rem; }
-.lines { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
-.lines li { display: flex; gap: 1rem; align-items: center; }
-.thumb { width: 4rem; }
-.warn { color: #b42318; }
+.page { display: flex; flex-direction: column; gap: var(--space-6); }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+h1 { margin: 0; color: var(--ink); }
+.note, .muted { color: var(--ink-muted); }
+.note { margin: 0; }
+.filters { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.filters > * { flex: 1 1 200px; max-width: 280px; min-width: 0; }
+.split { display: flex; flex-wrap: wrap; gap: var(--space-5); align-items: flex-start; }
+.table { flex: 999 1 560px; min-width: 0; }
+.num { letter-spacing: 0.06em; font-size: 14px; }
+.client { font-weight: 500; }
+.money { font-size: 14px; }
+.nowrap { white-space: nowrap; }
+.act { text-align: right; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.detail { flex: 1 1 320px; max-width: 400px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); box-shadow: var(--shadow-panel); }
+.detail-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.lines li { display: flex; align-items: center; gap: var(--space-3); }
+.thumb { flex: 0 0 64px; width: 64px; height: 48px; overflow: hidden; border-radius: 4px; background: var(--surface-sunken); }
+.thumb :deep(img), .thumb :deep(.ph) { height: 100%; aspect-ratio: auto; }
+.line-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.line-name { font-weight: 500; }
+dl { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); font-size: 14px; }
+dl > div { display: flex; flex-direction: column; gap: 2px; }
+dt { text-transform: uppercase; color: var(--ink-muted); }
+dd { margin: 0; overflow-wrap: anywhere; }
+.foot { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+@media (max-width: 720px) { .detail { max-width: none; flex-basis: 100%; padding: var(--space-5); } }
 </style>

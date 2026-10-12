@@ -7,6 +7,7 @@ import { deleteEvent, getEvent, setCover, setPublished } from '../eventsApi'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import PhotoUploader from '../components/PhotoUploader.vue'
 import { deletePhoto, setPhotoVisible } from '../photosApi'
+import { Alert, Badge, Button, Card, Icon } from '../ui'
 import type { Event, Photo } from '../types'
 
 const route = useRoute()
@@ -17,6 +18,8 @@ const photos = ref<Photo[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 let unsub: (() => void) | undefined
+
+const coverPath = computed(() => photos.value.find((p) => p.id === event.value?.coverPhotoId && p.status === 'ready')?.thumbPath)
 
 async function load() {
   try {
@@ -76,67 +79,96 @@ async function remove() {
 </script>
 
 <template>
-  <p v-if="loading">Cargando…</p>
-  <p v-else-if="!event">Evento no encontrado. <RouterLink to="/admin/eventos">Volver</RouterLink></p>
-  <template v-else>
-    <RouterLink to="/admin/eventos">← Eventos</RouterLink>
-    <div class="head">
-      <h1>{{ event.name }}</h1>
-      <span class="badge" :class="{ pub: event.published }">{{ event.published ? 'Publicado' : 'Borrador' }}</span>
-    </div>
-    <p class="meta">
-      {{ event.date.toDate().toLocaleDateString('es') }}<template v-if="event.place"> · {{ event.place }}</template>
-    </p>
-    <p v-if="event.description">{{ event.description }}</p>
-    <div class="actions">
-      <button @click="togglePublished">{{ event.published ? 'Despublicar' : 'Publicar' }}</button>
-      <RouterLink class="btn2" :to="`/admin/eventos/${id}/editar`">Editar</RouterLink>
-      <button class="danger" @click="remove">Eliminar</button>
-    </div>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
-
-    <h2>Subir fotos</h2>
-    <PhotoUploader :event-id="id" />
-
-    <h2>Fotos ({{ photos.length }})</h2>
-    <p v-if="!photos.length">Este evento aún no tiene fotos.</p>
-    <ul class="grid">
-      <li v-for="p in photos" :key="p.id" :class="{ cover: event.coverPhotoId === p.id, hidden: !p.visible }">
-        <PhotoThumb v-if="p.status === 'ready'" :path="p.thumbPath" />
-        <div v-else class="state" :class="p.status">
-          {{ p.status === 'error' ? 'Error al procesar' : 'Procesando…' }}
+  <div class="page">
+    <p v-if="loading" class="note">Cargando…</p>
+    <p v-else-if="!event" class="note">Evento no encontrado. <RouterLink to="/admin/eventos">Volver</RouterLink></p>
+    <template v-else>
+      <RouterLink class="back" to="/admin/eventos"><Icon name="flecha-izquierda" :size="16" />Eventos</RouterLink>
+      <section class="hero">
+        <div v-if="coverPath" class="hero-img" aria-hidden="true"><PhotoThumb :path="coverPath" /></div>
+        <div class="veil" aria-hidden="true" />
+        <div class="hero-body">
+          <div class="hero-info">
+            <div class="hero-title">
+              <h1 class="display-lg">{{ event.name }}</h1>
+              <Badge :status="event.published ? 'publicado' : 'borrador'" />
+            </div>
+            <span class="mono-sm hero-meta">
+              {{ event.date.toDate().toLocaleDateString('es') }}<template v-if="event.place"> · {{ event.place }}</template>
+            </span>
+            <p v-if="event.description" class="body-sm hero-desc">{{ event.description }}</p>
+          </div>
+          <div class="actions">
+            <Button @click="togglePublished">{{ event.published ? 'Despublicar' : 'Publicar' }}</Button>
+            <Button :to="`/admin/eventos/${id}/editar`">Editar</Button>
+            <Button variant="danger" @click="remove">Eliminar</Button>
+          </div>
         </div>
-        <div class="btns">
-          <button v-if="p.status === 'ready'" :disabled="event.coverPhotoId === p.id" @click="chooseCover(p.id)">
-            {{ event.coverPhotoId === p.id ? 'Es la portada' : 'Usar de portada' }}
-          </button>
-          <button @click="toggleVisible(p)">{{ p.visible ? 'Ocultar' : 'Mostrar' }}</button>
-          <button class="danger" @click="removePhoto(p)">Eliminar</button>
-        </div>
-        <small v-if="!p.visible" class="tag">Oculta</small>
-      </li>
-    </ul>
-  </template>
+      </section>
+      <Alert v-if="error" tone="danger">{{ error }}</Alert>
+
+      <Card title="Subir fotos">
+        <PhotoUploader :event-id="id" />
+      </Card>
+
+      <Card title="Fotos" aria-label="Fotos del evento">
+        <template #aside><span class="mono-sm count">{{ photos.length }} {{ photos.length === 1 ? 'foto' : 'fotos' }}</span></template>
+        <p v-if="!photos.length" class="note">Este evento aún no tiene fotos.</p>
+        <ul class="grid">
+          <li v-for="p in photos" :key="p.id" :class="{ hidden: !p.visible }">
+            <div class="tile" :class="{ cover: event.coverPhotoId === p.id }">
+              <PhotoThumb v-if="p.status === 'ready'" :path="p.thumbPath" />
+              <div v-else class="state" :class="p.status">
+                {{ p.status === 'error' ? 'Error al procesar' : 'Procesando…' }}
+              </div>
+              <span v-if="event.coverPhotoId === p.id" class="tag tag-cover">Portada</span>
+              <span v-if="!p.visible" class="tag tag-hidden">Oculta</span>
+            </div>
+            <div class="btns">
+              <Button v-if="p.status === 'ready'" :disabled="event.coverPhotoId === p.id" @click="chooseCover(p.id)">
+                {{ event.coverPhotoId === p.id ? 'Es la portada' : 'Usar de portada' }}
+              </Button>
+              <Button @click="toggleVisible(p)">{{ p.visible ? 'Ocultar' : 'Mostrar' }}</Button>
+              <Button variant="danger" @click="removePhoto(p)">Eliminar</Button>
+            </div>
+          </li>
+        </ul>
+      </Card>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-.head { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.meta { color: #6b7280; }
-.badge { padding: 0.15rem 0.6rem; border-radius: 99px; background: #eef0f4; font-size: 0.8rem; }
-.badge.pub { background: #d9f2e1; color: #11632b; }
-.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 1rem 0; }
-button, .btn2 { padding: 0.6rem 1rem; border: 1px solid #1f2430; border-radius: 6px; background: #fff; color: #1f2430; font: inherit; cursor: pointer; text-decoration: none; }
-button.danger { border-color: #b42318; color: #b42318; }
-.btns { display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.25rem; }
-.btns button { flex: 1 1 auto; padding: 0.3rem 0.4rem; font-size: 0.75rem; }
-.state { aspect-ratio: 1; display: grid; place-items: center; background: #eef0f4; color: #6b7280; font-size: 0.85rem; text-align: center; padding: 0.5rem; }
-.state.error { background: #fde8e6; color: #b42318; }
-.grid li { position: relative; }
-.grid li.hidden img, .grid li.hidden .ph { opacity: 0.4; }
-.tag { position: absolute; top: 0.25rem; left: 0.25rem; background: #1f2430; color: #fff; padding: 0 0.4rem; border-radius: 4px; }
-button:disabled { opacity: 0.6; cursor: default; }
-.grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.75rem; }
-.grid li { border: 2px solid transparent; border-radius: 8px; overflow: hidden; }
-.grid li.cover { border-color: #11632b; }
-.error { color: #b42318; }
+.page { display: flex; flex-direction: column; gap: var(--space-7); }
+.note { margin: 0; color: var(--ink-muted); }
+.back { display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start; min-height: 44px; text-decoration: none; color: var(--ink-muted); font-size: 14px; font-weight: 500; }
+.hero { position: relative; display: flex; align-items: flex-end; min-height: 260px; overflow: hidden; border-radius: var(--radius-xl); background: var(--rail); color: var(--on-rail); }
+.hero-img { position: absolute; inset: 0; }
+.hero-img :deep(img), .hero-img :deep(.ph) { height: 100%; aspect-ratio: auto; }
+.veil { position: absolute; inset: 0; background: linear-gradient(180deg, #15140f0d 0%, #15140fd9 100%); }
+.hero-body { position: relative; width: 100%; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-5); padding: var(--space-8); }
+.hero-info { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.hero-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+h1 { margin: 0; font-size: 44px; color: var(--on-rail); overflow-wrap: anywhere; }
+.hero-meta, .hero-desc { color: var(--on-rail-muted); }
+.hero-desc { margin: 0; max-width: 60ch; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.count { color: var(--ink-muted); }
+.grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: var(--space-4); }
+.grid li { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.tile { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--surface-sunken); }
+.tile.cover { outline: 3px solid var(--amber); outline-offset: 2px; }
+.tile :deep(img), .tile :deep(.ph) { height: 100%; aspect-ratio: auto; }
+.grid li.hidden .tile :deep(img) { filter: grayscale(1); opacity: 0.6; }
+.state { height: 100%; display: grid; place-items: center; padding: var(--space-2); box-sizing: border-box; color: var(--ink-muted); font: 13px var(--font-mono); text-align: center; }
+.state.error { background: var(--danger-soft); color: var(--danger); }
+.tag { position: absolute; top: 10px; left: 10px; padding: 4px 10px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; }
+.tag-cover { background: var(--amber); color: var(--on-amber); }
+.tag-hidden { background: var(--ink); color: var(--on-ink); }
+.tag-cover + .tag-hidden { top: 42px; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 720px) {
+  .hero-body { padding: var(--space-5); }
+  h1 { font-size: 30px; }
+}
 </style>

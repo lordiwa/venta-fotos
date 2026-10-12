@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { login } from '../auth'
+import { Alert, Button, Field, Wordmark } from '../ui'
 import { NO_ACCESS_ERROR, authErrorMessage, safeRedirect, validateEmail } from '../authLogic'
 
 const route = useRoute()
@@ -33,32 +34,44 @@ async function submit() {
 </script>
 
 <template>
-  <main class="login">
-    <form novalidate @submit.prevent="submit">
-      <h1>Acceso del fotógrafo</h1>
-      <label>
-        Correo
-        <input v-model="email" type="email" autocomplete="username" :aria-invalid="!!emailError" />
-        <small v-if="emailError" class="field-error">{{ emailError }}</small>
-      </label>
-      <label>
-        Contraseña
-        <input v-model="password" type="password" autocomplete="current-password" />
-      </label>
-      <p v-if="error" class="error" role="alert">{{ error }}</p>
-      <button type="submit" :disabled="loading">{{ loading ? 'Entrando…' : 'Entrar' }}</button>
-    </form>
-  </main>
+  <div class="login">
+    <section class="hero" aria-hidden="true">
+      <Wordmark on-rail />
+      <div class="hero-copy">
+        <span class="es-eyebrow hero-eyebrow">Panel del fotógrafo</span>
+        <span class="display-lg hero-title">Tus eventos, tus fotos, tus pedidos.</span>
+      </div>
+    </section>
+    <main class="pane">
+      <form novalidate @submit.prevent="submit">
+        <div class="intro">
+          <h1 class="display-md">Acceso del fotógrafo</h1>
+          <p class="body-sm">Entra con el correo y la contraseña de tu cuenta.</p>
+        </div>
+        <Field v-model="email" label="Correo" type="email" autocomplete="username" :error="emailError ?? undefined" />
+        <Field v-model="password" label="Contraseña" type="password" autocomplete="current-password" />
+        <Alert v-if="error" tone="danger">{{ error }}</Alert>
+        <Button type="submit" variant="primary" size="lg" :disabled="loading">{{ loading ? 'Entrando…' : 'Entrar' }}</Button>
+      </form>
+    </main>
+  </div>
 </template>
 
 <style scoped>
-.login { min-height: 100vh; display: grid; place-items: center; padding: 1rem; }
-form { width: 100%; max-width: 22rem; display: flex; flex-direction: column; gap: 1rem; }
-h1 { font-size: 1.25rem; margin: 0; }
-label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; }
-input { padding: 0.6rem; font-size: 1rem; border: 1px solid #c9ccd4; border-radius: 6px; }
-input[aria-invalid='true'] { border-color: #b42318; }
-button { padding: 0.7rem; font-size: 1rem; border: 0; border-radius: 6px; background: #1f2430; color: #fff; cursor: pointer; }
-button:disabled { opacity: 0.6; cursor: progress; }
-.error, .field-error { color: #b42318; margin: 0; font-size: 0.9rem; }
+.login { min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--surface); color: var(--ink); }
+.hero { flex: 1 1 420px; min-width: 0; box-sizing: border-box; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-8); padding: var(--space-10); background: linear-gradient(160deg, #2a2418 0%, var(--rail) 70%); color: var(--on-rail); }
+.hero-copy { display: flex; flex-direction: column; gap: var(--space-3); }
+.hero-eyebrow { color: var(--amber); }
+.hero-title { font-size: 44px; max-width: 14ch; text-wrap: balance; color: var(--on-rail); }
+.pane { flex: 1 1 420px; min-width: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: var(--space-12) var(--space-10); }
+form { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; max-width: 380px; }
+.intro { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-2); }
+h1 { margin: 0; font-size: 34px; }
+.intro p { margin: 0; color: var(--ink-muted); }
+@media (max-width: 720px) {
+  .hero { min-height: 0; padding: var(--space-6) var(--space-4); }
+  .hero-title { font-size: 28px; }
+  .pane { padding: var(--space-8) var(--space-4); }
+  h1 { font-size: 28px; }
+}
 </style>

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { createPrint, newProductId, listProducts, saveDigital, setProductActive, updateProduct } from '../productsApi'
 import { formatMoney, OFFLINE_NOTICE, PERMISSION_MESSAGE, saveErrorMessage, validateProductForm, withOfflineNotice, type ProductErrors } from '../productsLogic'
+import { Alert, Badge, Button, Card, Field } from '../ui'
 import type { Product } from '../types'
 
 const products = ref<Product[]>([])
@@ -103,58 +104,87 @@ async function toggle(p: Product) {
 </script>
 
 <template>
-  <h1>Productos</h1>
-  <p v-if="loading">Cargando…</p>
-  <template v-else>
-    <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
-    <p v-if="toggleError" class="error" role="alert">{{ toggleError }}</p>
-    <p v-if="offline" role="status">{{ offline }}</p>
+  <div class="page">
+    <h1 class="display-md">Productos</h1>
+    <p v-if="loading" class="note">Cargando…</p>
+    <template v-else>
+      <Alert v-if="loadError" tone="danger">{{ loadError }}</Alert>
+      <Alert v-if="toggleError" tone="danger">{{ toggleError }}</Alert>
+      <Alert v-if="offline">{{ offline }}</Alert>
 
-    <h2>Copias impresas</h2>
-    <p v-if="!prints.length">Aún no hay tamaños. Agrega el primero.</p>
-    <ul v-else class="list">
-      <li v-for="p in prints" :key="p.id">
-        <span><strong>{{ p.name }}</strong> · {{ formatMoney(p.price) }}</span>
-        <span class="meta">
-          <span class="badge" :class="{ on: isActive(p) }">{{ isActive(p) ? 'Activo' : 'Inactivo' }}</span>
-          <button type="button" @click="startEdit(p)">Editar</button>
-          <button type="button" @click="toggle(p)">{{ isActive(p) ? 'Desactivar' : 'Activar' }}</button>
-        </span>
-      </li>
-    </ul>
+      <div class="cols">
+        <Card title="Copias impresas">
+          <p v-if="!prints.length" class="note">Aún no hay tamaños. Agrega el primero.</p>
+          <ul v-else class="list">
+            <li v-for="p in prints" :key="p.id">
+              <span class="name"><strong class="display-xs">{{ p.name }}</strong><span class="mono-sm">{{ formatMoney(p.price) }}</span></span>
+              <Badge :status="isActive(p) ? 'activo' : 'inactivo'" />
+              <span class="btns">
+                <Button type="button" @click="startEdit(p)">Editar</Button>
+                <Button type="button" @click="toggle(p)">{{ isActive(p) ? 'Desactivar' : 'Activar' }}</Button>
+              </span>
+            </li>
+          </ul>
 
-    <form novalidate @submit.prevent="submit">
-      <h3>{{ editingId ? 'Editar tamaño' : 'Nuevo tamaño' }}</h3>
-      <label>Nombre <input :disabled="saving" v-model="form.name" placeholder="10x15" /></label>
-      <p v-if="errors.name" class="error" role="alert">{{ errors.name }}</p>
-      <label>Precio <input :disabled="saving" v-model="form.price" inputmode="decimal" placeholder="5.00" /></label>
-      <p v-if="errors.price" class="error" role="alert">{{ errors.price }}</p>
-      <p v-if="saveError" class="error" role="alert">{{ saveError }}</p>
-      <button type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
-      <button v-if="editingId" type="button" @click="cancel">Cancelar</button>
-    </form>
+          <Card as="form" sunken novalidate aria-label="Tamaño de copia" @submit.prevent="submit">
+            <h3>{{ editingId ? 'Editar tamaño' : 'Nuevo tamaño' }}</h3>
+            <div class="fields">
+              <Field label="Nombre" placeholder="10x15" :error="errors.name">
+                <template #default="{ id, describedby, invalid, inputClass }">
+                  <input :id="id" v-model="form.name" :class="inputClass" :disabled="saving" placeholder="10x15" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
+                </template>
+              </Field>
+              <Field label="Precio" mono placeholder="5.00" :error="errors.price">
+                <template #default="{ id, describedby, invalid, inputClass }">
+                  <input :id="id" v-model="form.price" :class="inputClass" :disabled="saving" inputmode="decimal" placeholder="5.00" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
+                </template>
+              </Field>
+            </div>
+            <Alert v-if="saveError" tone="danger">{{ saveError }}</Alert>
+            <div class="btns">
+              <Button type="submit" variant="primary" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</Button>
+              <Button v-if="editingId" type="button" @click="cancel">Cancelar</Button>
+            </div>
+          </Card>
+        </Card>
 
-    <h2>Archivo digital</h2>
-    <p v-if="digital">
-      <strong>{{ digital.name }}</strong> · {{ formatMoney(digital.price) }}
-      <span class="badge" :class="{ on: isActive(digital) }">{{ isActive(digital) ? 'Activo' : 'Inactivo' }}</span>
-      <button type="button" @click="toggle(digital)">{{ isActive(digital) ? 'Desactivar' : 'Activar' }}</button>
-    </p>
-    <form novalidate @submit.prevent="submitDigital">
-      <label>{{ digital ? 'Nuevo precio' : 'Precio' }} <input :disabled="digitalSaving" v-model="digitalPrice" inputmode="decimal" placeholder="3.00" /></label>
-      <p v-if="digitalError" class="error" role="alert">{{ digitalError }}</p>
-      <p v-if="digitalSaveError" class="error" role="alert">{{ digitalSaveError }}</p>
-      <button type="submit" :disabled="digitalSaving">{{ digitalSaving ? 'Guardando…' : 'Guardar' }}</button>
-    </form>
-  </template>
+        <Card title="Archivo digital">
+          <template v-if="digital" #aside><Badge :status="isActive(digital) ? 'activo' : 'inactivo'" /></template>
+          <p class="body-sm note">Descarga en alta resolución sin marca de agua. Un solo precio para todas las fotos.</p>
+          <div v-if="digital" class="current">
+            <span class="display-md price">{{ formatMoney(digital.price) }}</span>
+            <span class="mono-sm note">{{ digital.name }}</span>
+          </div>
+          <Card as="form" sunken novalidate aria-label="Precio del archivo digital" @submit.prevent="submitDigital">
+            <Field :label="digital ? 'Nuevo precio' : 'Precio'" :error="digitalError ?? undefined" mono>
+              <template #default="{ id, describedby, invalid, inputClass }">
+                <input :id="id" v-model="digitalPrice" :class="inputClass" :disabled="digitalSaving" inputmode="decimal" placeholder="3.00" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
+              </template>
+            </Field>
+            <Alert v-if="digitalSaveError" tone="danger">{{ digitalSaveError }}</Alert>
+            <div class="btns">
+              <Button type="submit" variant="primary" :disabled="digitalSaving">{{ digitalSaving ? 'Guardando…' : 'Guardar' }}</Button>
+              <Button v-if="digital" type="button" @click="toggle(digital)">{{ isActive(digital) ? 'Desactivar' : 'Activar' }}</Button>
+            </div>
+          </Card>
+        </Card>
+      </div>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-.list { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
-.list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; border: 1px solid #e3e5ea; border-radius: 8px; padding: 0.6rem 1rem; }
-.meta { display: flex; gap: 0.5rem; align-items: center; }
-.badge { padding: 0.15rem 0.6rem; border-radius: 99px; background: #eef0f4; font-size: 0.8rem; }
-.badge.on { background: #d9f2e1; color: #11632b; }
-form { display: grid; gap: 0.5rem; max-width: 22rem; margin: 1rem 0; }
-.error { color: #b42318; margin: 0; }
+.page { display: flex; flex-direction: column; gap: var(--space-7); }
+h1 { margin: 0; color: var(--ink); }
+h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.note { margin: 0; color: var(--ink-muted); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: var(--space-5); align-items: start; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.name { flex: 1 1 120px; display: flex; flex-direction: column; gap: 2px; }
+.name .mono-sm { color: var(--ink-muted); }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: var(--space-3); }
+.btns { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.current { display: flex; align-items: baseline; gap: var(--space-2); }
+.price { font-size: 34px; }
 </style>

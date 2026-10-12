@@ -2,6 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import { newPhotoId, uploadOriginal } from '../photosApi'
 import { requeueFailed, runQueue, validateFile, type UploadItem } from '../uploadLogic'
+import { Button, Dropzone } from '../ui'
 
 const props = defineProps<{ eventId: string }>()
 type Item = UploadItem & { file: File }
@@ -37,11 +38,6 @@ function add(files: FileList | File[]) {
   void start()
 }
 
-function onPick(e: Event) {
-  const input = e.target as HTMLInputElement
-  if (input.files) add(input.files)
-  input.value = ''
-}
 function onDrop(e: DragEvent) {
   dragging.value = false
   if (e.dataTransfer?.files) add(e.dataTransfer.files)
@@ -56,35 +52,33 @@ function clearDone() {
 </script>
 
 <template>
-  <section>
-    <label
+  <section class="uploader">
+    <div
       class="drop"
       :class="{ over: dragging }"
       @dragover.prevent="dragging = true"
       @dragleave="dragging = false"
       @drop.prevent="onDrop"
     >
-      <strong>Arrastra fotos aquí o toca para elegirlas</strong>
-      <small>JPEG o PNG, hasta 50 MB cada una</small>
-      <input type="file" multiple accept="image/jpeg,image/png" @change="onPick" />
-    </label>
+      <Dropzone @files="add" />
+    </div>
     <ul v-if="rejected.length" class="errors" role="alert">
       <li v-for="m in rejected" :key="m">{{ m }}</li>
     </ul>
     <div v-if="items.length" class="queue">
       <div class="bar">
-        <span>{{ items.length }} archivo(s)<template v-if="failed"> · {{ failed }} con error</template></span>
-        <span>
-          <button v-if="failed" :disabled="running" @click="retry">Reintentar fallidas</button>
-          <button @click="clearDone">Limpiar subidas</button>
+        <span class="sum">{{ items.length }} archivo(s)<template v-if="failed"> · <span class="bad">{{ failed }} con error</span></template></span>
+        <span class="btns">
+          <Button v-if="failed" :disabled="running" @click="retry">Reintentar fallidas</Button>
+          <Button @click="clearDone">Limpiar subidas</Button>
         </span>
       </div>
       <ul>
         <li v-for="it in items" :key="it.key" :class="it.status">
-          <span class="name">{{ it.file.name }}</span>
+          <span class="name mono-md">{{ it.file.name }}</span>
           <progress :value="it.progress" max="1" />
-          <span class="state">{{ label[it.status] }}</span>
-          <span v-if="it.error" class="err">{{ it.error }}</span>
+          <span class="state mono-sm">{{ label[it.status] }}</span>
+          <span v-if="it.error" class="err caption">{{ it.error }}</span>
         </li>
       </ul>
     </div>
@@ -92,16 +86,19 @@ function clearDone() {
 </template>
 
 <style scoped>
-.drop { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 1.5rem 1rem; border: 2px dashed #c9ccd4; border-radius: 10px; text-align: center; cursor: pointer; }
-.drop.over { border-color: #1f2430; background: #f5f6f8; }
-.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.errors { color: #b42318; font-size: 0.9rem; }
-.queue ul { list-style: none; padding: 0; margin: 0.5rem 0; display: grid; gap: 0.25rem; }
-.queue li { display: grid; grid-template-columns: minmax(0, 1fr) 7rem auto; gap: 0.5rem; align-items: center; font-size: 0.85rem; }
-.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.err { grid-column: 1 / -1; color: #b42318; }
-li.failed .state { color: #b42318; }
-li.uploaded .state { color: #11632b; }
-.bar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.9rem; }
-button { padding: 0.4rem 0.8rem; border: 1px solid #1f2430; border-radius: 6px; background: #fff; font: inherit; cursor: pointer; margin-left: 0.4rem; }
+.uploader { display: flex; flex-direction: column; gap: var(--space-4); }
+.drop.over :deep(.es-dropzone) { border-color: var(--amber); background: var(--surface-selected); }
+.errors { margin: 0; padding: 12px 14px 12px 30px; border-radius: var(--radius-md); background: var(--danger-soft); color: var(--danger); font-size: 14px; }
+.queue { display: flex; flex-direction: column; gap: var(--space-3); }
+.queue ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.queue li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); font-size: 14px; }
+.name { flex: 1 1 160px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+progress { flex: 2 1 200px; min-width: 0; height: 6px; accent-color: var(--amber); }
+.state { color: var(--ink-muted); }
+.err { flex: 1 0 100%; color: var(--danger); }
+li.failed .state, .bad { color: var(--danger); }
+li.uploaded .state { color: var(--success); }
+.bar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); align-items: center; font-size: 14px; }
+.sum { color: var(--ink-muted); }
+.btns { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 </style>

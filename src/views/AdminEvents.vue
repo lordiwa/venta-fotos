@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import PhotoThumb from '../components/PhotoThumb.vue'
 import { listEvents } from '../eventsApi'
+import { getPhoto } from '../ordersApi'
+import { Alert, Badge, Button } from '../ui'
 import type { Event } from '../types'
 
 const events = ref<(Event & { photoCount: number })[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+const covers = ref<Record<string, string | undefined>>({})
 
 onMounted(async () => {
   try {
@@ -15,40 +19,53 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  // Las portadas se completan despues de mostrar la lista; sin portada queda el recuadro vacio.
+  await Promise.all(events.value.filter((e) => e.coverPhotoId).map(async (e) => {
+    try { covers.value[e.id] = (await getPhoto(e.id, e.coverPhotoId!))?.thumbPath } catch { /* sin portada */ }
+  }))
 })
 </script>
 
 <template>
-  <div class="head">
-    <h1>Eventos</h1>
-    <RouterLink class="btn" to="/admin/eventos/nuevo">Nuevo evento</RouterLink>
+  <div class="page">
+    <div class="head">
+      <h1 class="display-md">Eventos</h1>
+      <Button variant="primary" icon="mas" to="/admin/eventos/nuevo">Nuevo evento</Button>
+    </div>
+    <p v-if="loading" class="note">Cargando…</p>
+    <Alert v-else-if="error" tone="danger">{{ error }}</Alert>
+    <p v-else-if="!events.length" class="note">Aún no hay eventos. Crea el primero.</p>
+    <ul v-else class="list">
+      <li v-for="e in events" :key="e.id" class="row">
+        <RouterLink class="main" :to="`/admin/eventos/${e.id}`">
+          <span class="cover"><PhotoThumb v-if="covers[e.id]" :path="covers[e.id]" /></span>
+          <span class="info">
+            <strong class="display-xs">{{ e.name }}</strong>
+            <span class="mono-sm">{{ e.date.toDate().toLocaleDateString('es') }}<template v-if="e.place"> · {{ e.place }}</template></span>
+          </span>
+        </RouterLink>
+        <span class="mono-sm count">{{ e.photoCount }} {{ e.photoCount === 1 ? 'foto' : 'fotos' }}</span>
+        <Badge :status="e.published ? 'publicado' : 'borrador'" />
+        <Button icon="siguiente" icon-only variant="ghost" :to="`/admin/eventos/${e.id}`" :label="`Abrir ${e.name}`" />
+      </li>
+    </ul>
   </div>
-  <p v-if="loading">Cargando…</p>
-  <p v-else-if="error" class="error" role="alert">{{ error }}</p>
-  <p v-else-if="!events.length">Aún no hay eventos. Crea el primero.</p>
-  <ul v-else class="list">
-    <li v-for="e in events" :key="e.id">
-      <RouterLink :to="`/admin/eventos/${e.id}`">
-        <strong>{{ e.name }}</strong>
-        <span>{{ e.date.toDate().toLocaleDateString('es') }}<template v-if="e.place"> · {{ e.place }}</template></span>
-      </RouterLink>
-      <span class="meta">
-        <span class="badge" :class="{ pub: e.published }">{{ e.published ? 'Publicado' : 'Borrador' }}</span>
-        {{ e.photoCount }} {{ e.photoCount === 1 ? 'foto' : 'fotos' }}
-      </span>
-    </li>
-  </ul>
 </template>
 
 <style scoped>
-.head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.btn { background: #1f2430; color: #fff; padding: 0.6rem 1rem; border-radius: 6px; text-decoration: none; }
-.list { list-style: none; padding: 0; margin: 1rem 0; display: grid; gap: 0.5rem; }
-.list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; border: 1px solid #e3e5ea; border-radius: 8px; padding: 0.75rem 1rem; }
-.list a { display: flex; flex-direction: column; text-decoration: none; }
-.list a span { color: #6b7280; font-size: 0.9rem; }
-.meta { display: flex; gap: 0.75rem; align-items: center; font-size: 0.9rem; }
-.badge { padding: 0.15rem 0.6rem; border-radius: 99px; background: #eef0f4; font-size: 0.8rem; }
-.badge.pub { background: #d9f2e1; color: #11632b; }
-.error { color: #b42318; }
+.page { display: flex; flex-direction: column; gap: var(--space-7); }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+h1 { margin: 0; color: var(--ink); }
+.note { margin: 0; color: var(--ink-muted); }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); overflow: hidden; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--surface-sunken); }
+.main { display: flex; align-items: center; gap: var(--space-4); flex: 1 1 280px; min-width: 0; text-decoration: none; color: var(--ink); }
+.cover { flex: 0 0 auto; width: 88px; height: 62px; overflow: hidden; border-radius: var(--radius-sm); background: var(--surface-sunken); }
+.cover :deep(img), .cover :deep(.ph) { height: 100%; aspect-ratio: auto; }
+.info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.info .mono-sm, .count { color: var(--ink-muted); }
+.count { min-width: 64px; }
+@media (max-width: 720px) { .row { padding: var(--space-3) var(--space-4); } }
 </style>
