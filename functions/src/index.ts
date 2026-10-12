@@ -72,7 +72,9 @@ export const captureOrder = onCall(callOpts, async (request) => {
           throw new CheckoutError("failed-precondition", `Recibimos tu pago pero no pudimos confirmar el pedido. Guarda este código: ${id}.`, true);
         }
       } catch (e) {
-        logger.error("captureOrder: cobro sin pedido", { paypalOrderId: id, error: String(e) });
+        const notCaptured = e instanceof CheckoutError && !e.final; // DECLINED/FAILED: no hubo cobro
+        if (notCaptured) logger.warn("captureOrder: captura no completada", { paypalOrderId: id, reason: e.message });
+        else logger.error("captureOrder: cobro sin pedido", { paypalOrderId: id, error: String(e) });
         throw e;
       }
     }

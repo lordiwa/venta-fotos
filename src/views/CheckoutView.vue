@@ -46,7 +46,7 @@ function ready(): boolean {
   return Object.keys(errors.value).length === 0
 }
 
-async function finish(paypalOrderId: string) {
+async function finish(paypalOrderId: string, recovered = false) {
   busy.value = true
   try {
     const summary = await captureOrder(paypalOrderId)
@@ -56,7 +56,9 @@ async function finish(paypalOrderId: string) {
     await router.push({ name: 'order', params: { number: summary.number } })
   } catch (e) {
     const outcome = classifyCaptureError(e)
-    message.value = errorMessage(e) // CU9: sin pedido pagado, el carrito se conserva
+    message.value = recovered && outcome === 'definitive'
+      ? 'No pudimos recuperar tu pago anterior. Si PayPal te cobró, contáctanos con tu comprobante.'
+      : errorMessage(e) // CU9: sin pedido pagado, el carrito se conserva
     if (outcome === 'retry') {
       retryId.value = paypalOrderId // se reintenta sobre el mismo id; no se crea otra orden
       message.value = 'No pudimos confirmar tu pago. Reintenta la confirmación; no pagues de nuevo.'
@@ -73,9 +75,7 @@ async function finish(paypalOrderId: string) {
 const retryCapture = () => { if (retryId.value && !busy.value) { const id = retryId.value; retryId.value = null; void finish(id) } }
 
 async function start(simulated: boolean): Promise<string> {
-  const id = await createOrder({ lines: cart.lines, form, simulated })
-  savePending(id)
-  return id
+  return createOrder({ lines: cart.lines, form, simulated })
 }
 
 async function simulate() {
@@ -93,11 +93,11 @@ async function mountButtons() {
     await paypal.Buttons({
       onClick: (_data, actions) => { if (!ready()) return actions.reject(); busy.value = true; return actions.resolve() },
       createOrder: async () => {
-        try { return await start(false) } catch (e) { message.value = errorMessage(e); busy.value = false; throw e }
+        try { return await start(false) } catch (e) { clearPending(); message.value = errorMessage(e); busy.value = false; throw e }
       },
-      onApprove: async (data) => { await finish(data.orderID) },
-      onCancel: () => { busy.value = false; message.value = 'Cancelaste el pago. Tu carrito sigue igual; puedes intentarlo de nuevo.' },
-      onError: () => { busy.value = false; message.value ||= 'No pudimos completar el pago con PayPal. Intenta de nuevo.' },
+      onApprove: async (data) => { savePending(data.orderID); await finish(data.orderID) }, // pendiente solo una vez aprobada en PayPal
+      onCancel: () => { clearPending(); busy.value = false; message.value = 'Cancelaste el pago. Tu carrito sigue igual; puedes intentarlo de nuevo.' },
+      onError: () => { clearPending(); busy.value = false; message.value ||= 'No pudimos completar el pago con PayPal. Intenta de nuevo.' },
     }).render(paypalContainer.value)
   } catch {
     message.value = 'No pudimos cargar PayPal. Recarga la página.'
@@ -117,7 +117,7 @@ onMounted(async () => {
   await nextTick()
   await mountButtons()
   const pending = loadPending() // un pago anterior quedo sin confirmar: reintentar la captura del mismo id
-  if (pending) { message.value = 'Confirmando tu pago anterior…'; await finish(pending) }
+  if (pending) { message.value = 'Confirmando tu pago anterior…'; await finish(pending, true) }
 })
 </script>
 
