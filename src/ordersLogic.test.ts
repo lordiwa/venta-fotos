@@ -1,6 +1,6 @@
 // Prevents: despachar mal los pedidos (saltar estados, imprimir lo digital, mezclar filtros) y que la copia del servidor se desvie de la del cliente.
 import { describe, it, expect } from 'vitest'
-import { filterOrders, nextStatus, printList, type OrderRow } from './ordersLogic'
+import { downloadName, filterOrders, nextStatus, printList, type OrderRow } from './ordersLogic'
 import { isAdmin, nextStatus as serverNext, planAdvance } from '../functions/src/orderStatus'
 import type { OrderStatus } from './types'
 
@@ -58,5 +58,11 @@ describe('ordersLogic', () => {
   it('CU8: solo admin === true booleano autoriza advanceOrder', () => {
     expect(isAdmin({ token: { admin: true } })).toBe(true)
     for (const auth of [undefined, null, {}, { token: {} }, { token: { admin: 'true' } }, { token: { admin: 1 } }, { token: { admin: false } }]) expect(isAdmin(auth)).toBe(false)
+  })
+  // Prevents: descargar un original sin extension (el SO no lo abre) o con caracteres que rompen el nombre.
+  it('downloadName agrega .jpg si falta la extension y limpia caracteres invalidos', () => {
+    expect(downloadName('e1', 'IMG_1.png')).toBe('e1-IMG_1.png')
+    expect(downloadName('e1', 'p1')).toBe('e1-p1.jpg')
+    expect(downloadName('e1', 'a/b:c')).toBe('e1-a_b_c.jpg')
   })
 })

@@ -58,6 +58,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Contadores de intentos fallidos de /descargas (TASK-019): solo las Functions.
+    match /downloadAttempts/{id} {
+      allow read, write: if false;
+    }
+
     // Todo lo demas (incluidas las antiguas users / purchases / photos raiz): denegado.
     match /{document=**} {
       allow read, write: if false;

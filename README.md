@@ -31,4 +31,11 @@ El checkout usa Cloud Functions `createOrder`/`captureOrder` (PayPal Orders v2, 
 - **Producción**: el parámetro `PAYPAL_BASE_URL` es sandbox (`https://api-m.sandbox.paypal.com`) por defecto; para cobrar de verdad se define `https://api-m.paypal.com` y se usan credenciales live. La moneda es la constante `CURRENCY` (`USD`) de `functions/src/checkout.ts` (y `src/checkoutLogic.ts`).
 - **Pago simulado**: con `npm run dev` y los emuladores aparece el botón "Simular pago" (solo `import.meta.env.DEV`); la Function solo lo acepta con `FUNCTIONS_EMULATOR=true`. Usa el mismo recálculo y creación de pedido, con `paypalOrderId` `SIMULADO-<id>`.
 
+### Descarga del archivo digital
+
+La Function `getDownloadLinks` (número de pedido + correo, sin cuenta) devuelve URLs firmadas v4 al original sin marca de agua, solo de las líneas digitales de un pedido pagado. Vigencia: parámetro `DOWNLOAD_TTL_DAYS` (por defecto 7; solo 1 a 7, tope de las URLs firmadas v4; otro valor usa 7). Tras 10 intentos fallidos por hora (por IP y por número) responde "Demasiados intentos" (contadores en `downloadAttempts`, solo Functions).
+
+- **Producción**: firmar necesita que la cuenta de servicio de la Function tenga el rol `Service Account Token Creator` sobre sí misma (permiso `iam.serviceAccounts.signBlob`).
+- **Emuladores**: no hay credenciales para firmar; la Function entrega una URL con token de descarga del emulador. **El vencimiento no se aplica en el emulador** (en producción lo aplica Cloud Storage); la interfaz sí oculta los enlaces vencidos según `expiresAt`.
+
 Definición del proyecto: `PROJECT.md`. Backlog: `tasks/`.

@@ -148,6 +148,14 @@ describe('Firestore', () => {
     await assertFails(getDoc(doc(anon().firestore(), 'orders/o1')))
     await assertFails(getDocs(collection(anon().firestore(), 'orders')))
   })
+  it('TASK-019 downloadAttempts cerrada a todos - evita borrar los contadores para seguir adivinando pedidos', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'downloadAttempts/a'), { count: 10 }) })
+    for (const ctx of [anon(), user(), admin()]) {
+      await assertFails(getDoc(doc(ctx.firestore(), 'downloadAttempts/a')))
+      await assertFails(setDoc(doc(ctx.firestore(), 'downloadAttempts/a'), { count: 0 }))
+      await assertFails(deleteDoc(doc(ctx.firestore(), 'downloadAttempts/a')))
+    }
+  })
   it('UC14 colecciones no declaradas denegadas - evita reabrir users/purchases del modelo viejo', async () => {
     const db = admin().firestore()
     await assertFails(getDoc(doc(db, 'users/u1')))

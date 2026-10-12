@@ -32,6 +32,7 @@ export const routes: RouteRecordRaw[] = [
       },
       { path: 'carrito', name: 'cart', component: () => import('./views/CartView.vue') },
       { path: 'checkout', name: 'checkout', component: () => import('./views/CheckoutView.vue') },
+      { path: 'descargas', name: 'downloads', component: () => import('./views/DescargasView.vue') },
       { path: 'pedido/:number', name: 'order', component: () => import('./views/OrderView.vue') },
       { path: ':pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue') },
     ],

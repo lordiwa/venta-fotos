@@ -63,3 +63,9 @@ export function printList(orders: OrderRow[]): PrintGroup[] {
   }
   return [...groups.values()].sort((a, b) => a.productName.localeCompare(b.productName))
 }
+
+/** Nombre de archivo para el original descargado: evento-nombre, siempre con extension (el nombre guardado puede no traerla). */
+export const downloadName = (eventId: string, name: string): string => {
+  const base = `${eventId}-${name}`.replace(/[\\/:*?"<>|]/g, '_')
+  return /\.[A-Za-z0-9]{2,5}$/.test(base) ? base : `${base}.jpg`
+}

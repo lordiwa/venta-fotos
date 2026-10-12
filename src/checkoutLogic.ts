@@ -30,7 +30,9 @@ export const toOrderLines = (lines: CartLine[]) => lines.map(({ eventId, photoId
 /** Resumen que devuelve captureOrder; se guarda en sessionStorage para la pagina de confirmacion (los pedidos no son publicos). */
 export interface OrderSummary {
   number: string
-  lines: { productName: string; unitPrice: number; quantity: number }[]
+  /** Correo del comprador: junto con el numero permite pedir los enlaces de descarga (TASK-019). Falta en resumenes guardados antes de TASK-019. */
+  email?: string
+  lines: { productId?: string; productName: string; unitPrice: number; quantity: number }[]
   total: number
   delivery: Delivery
 }

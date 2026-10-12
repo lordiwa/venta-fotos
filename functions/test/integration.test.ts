@@ -61,7 +61,7 @@ describe("pipeline de fotos (emuladores)", () => {
 
 describe("checkout simulado (emuladores)", () => {
   const call = async (name: string, data: unknown) => {
-    const res = await fetch(`http://127.0.0.1:5001/demo-venta-fotos/us-central1/${name}`, {
+    const res = await fetch(`http://127.0.0.1:5101/demo-venta-fotos/us-central1/${name}`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }),
     });
     return (await res.json()) as { result?: any; error?: { message: string } };
@@ -90,5 +90,42 @@ describe("checkout simulado (emuladores)", () => {
     const orders = await db.collection("orders").where("paypalOrderId", "==", id).get();
     expect(orders.size).toBe(1);
     expect(orders.docs[0].data()).toMatchObject({ status: "pagado", eventIds: ["evc"], total: 13 });
+  }, 60000);
+});
+
+describe("descargas digitales (emuladores)", () => {
+  const call = async (name: string, data: unknown) => {
+    const res = await fetch(`http://127.0.0.1:5101/demo-venta-fotos/us-central1/${name}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }),
+    });
+    return (await res.json()) as { result?: any; error?: { status: string; message: string } };
+  };
+
+  // Previene: entregar el original a quien no es el comprador, o no entregarlo al comprador (CU4/CU5/CU6/CU8).
+  it("CU8 pedido simulado con digital -> enlaces con numero+correo; correo o numero erroneos -> mismo error; impresion sola -> sin archivos", async () => {
+    const db = admin.firestore();
+    const bucket = admin.storage().bucket();
+    await db.doc("events/evd").set({ name: "E", date: admin.firestore.Timestamp.now(), published: true });
+    await db.doc("events/evd/photos/p1").set({ visible: true, status: "ready", name: "p1.jpg", originalPath: "originals/evd/p1.jpg" });
+    await bucket.file("originals/evd/p1.jpg").save(Buffer.from("original"), { contentType: "image/jpeg" });
+    await db.doc("products/digital").set({ name: "Digital", kind: "digital", price: 10, active: true });
+    await db.doc("products/a4d").set({ name: "A4", kind: "print", price: 5, active: true });
+    const buyer = { name: "Ana", email: "Ana@Mail.com", phone: "1234567" };
+    const order = async (productId: string) => {
+      const c = await call("createOrder", { simulated: true, lines: [{ eventId: "evd", photoId: "p1", productId, quantity: 1 }], buyer, delivery: { method: "retiro" } });
+      return (await call("captureOrder", { paypalOrderId: c.result.paypalOrderId })).result.number as string;
+    };
+    const digital = await order("digital");
+    const ok = await call("getDownloadLinks", { number: digital.toLowerCase(), email: " ana@mail.COM " });
+    expect(ok.result.files).toHaveLength(1);
+    expect(ok.result.files[0].expiresAt).toBeGreaterThan(Date.now());
+    const dl = await fetch(ok.result.files[0].url);
+    expect(await dl.text()).toBe("original");
+    const badEmail = await call("getDownloadLinks", { number: digital, email: "otro@mail.com" });
+    const badNumber = await call("getDownloadLinks", { number: "ZZZZZZZZ", email: "ana@mail.com" });
+    expect(badEmail.error).toMatchObject({ status: "NOT_FOUND" });
+    expect(badNumber.error).toEqual(badEmail.error);
+    const printOnly = await call("getDownloadLinks", { number: await order("a4d"), email: "ana@mail.com" });
+    expect(printOnly.result.files).toEqual([]);
   }, 60000);
 });

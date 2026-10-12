@@ -25,6 +25,7 @@ describe('router', () => {
     const o = router.resolve('/pedido/ABCD2345')
     expect(o.name).toBe('order')
     expect(o.params.number).toBe('ABCD2345')
+    expect(router.resolve('/descargas').name).toBe('downloads')
   })
 
   // Prevents: link compartido a una foto que no resuelve (o que monta otra vista) en vez de la galeria del evento.

@@ -4,7 +4,7 @@ import { buildOrderDoc, buildSnapshot, CartInputLine, CatalogProduct, CheckoutSn
 
 type Db = Firestore;
 
-export interface OrderSummary { number: string; lines: unknown[]; total: number; delivery: unknown }
+export interface OrderSummary { number: string; email: string; lines: unknown[]; total: number; delivery: unknown }
 
 /** Recalcula el pedido desde el catalogo y settings/store (nada del cliente salvo ids, cantidades, contacto y direccion). */
 export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: unknown; delivery?: unknown }): Promise<CheckoutSnapshot> {
@@ -37,7 +37,7 @@ export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: u
 export const saveCheckout = (db: Db, paypalOrderId: string, snap: CheckoutSnapshot) =>
   db.doc(`checkouts/${paypalOrderId}`).set({ ...snap, status: "creado", createdAt: FieldValue.serverTimestamp() });
 
-const summarize = (d: FirebaseFirestore.DocumentData): OrderSummary => ({ number: d.number, lines: d.lines, total: d.total, delivery: d.delivery });
+const summarize = (d: FirebaseFirestore.DocumentData): OrderSummary => ({ number: d.number, email: d.buyer?.email, lines: d.lines, total: d.total, delivery: d.delivery });
 
 /** CU10: el pedido tiene como id el de PayPal y se crea en una transaccion; una segunda captura devuelve el mismo. */
 export async function finalizeOrder(db: Db, paypalOrderId: string, snap: CheckoutSnapshot): Promise<OrderSummary> {

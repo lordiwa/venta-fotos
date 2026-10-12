@@ -2,11 +2,13 @@ import * as admin from "firebase-admin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { randomUUID } from "crypto";
 import { logger } from "firebase-functions";
-import { defineSecret, defineString } from "firebase-functions/params";
+import { defineInt, defineSecret, defineString } from "firebase-functions/params";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { assertSimulationAllowed, CheckoutError, CheckoutSnapshot, classifyCapture, extractCapture } from "./checkout";
+import { getDownloadLinks as buildDownloadLinks } from "./downloads";
+import { ttlDays } from "./downloadsLogic";
 import { AdvanceError, isAdmin, planAdvance } from "./orderStatus";
 import { computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
 import { capturePaypalOrder, createPaypalOrder } from "./paypal";
@@ -87,6 +89,18 @@ export const captureOrder = onCall(callOpts, async (request) => {
   } catch (e) {
     throw toHttpsError(e, "captureOrder");
   }
+});
+
+// ---- TASK-019: descarga del archivo digital ----
+
+/** Dias de vigencia del enlace (1..7, tope de las URLs firmadas v4). Cambiar con el parametro DOWNLOAD_TTL_DAYS. */
+const DOWNLOAD_TTL_DAYS = defineInt("DOWNLOAD_TTL_DAYS", { default: 7 });
+
+/** Con numero de pedido + correo devuelve enlaces nuevos al original de sus fotos digitales. Sin cuenta; con limite de intentos. */
+export const getDownloadLinks = onCall(async (request) => {
+  const fwd = request.rawRequest?.headers?.["x-forwarded-for"];
+  const ip = (typeof fwd === "string" ? fwd.split(",")[0].trim() : request.rawRequest?.ip) || "unknown";
+  return buildDownloadLinks(admin.firestore(), request.data ?? {}, ip, ttlDays(DOWNLOAD_TTL_DAYS.value()));
 });
 
 // ---- TASK-018: avance de estado de pedidos (solo admin) ----

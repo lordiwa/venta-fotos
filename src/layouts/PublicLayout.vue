@@ -10,7 +10,7 @@ const cart = useCartStore()
       <RouterLink to="/carrito" class="cart" aria-label="Carrito">Carrito <span class="badge" data-testid="cart-badge">{{ cart.count }}</span></RouterLink>
     </header>
     <main class="content"><RouterView /></main>
-    <footer class="bar small">Venta de Fotos</footer>
+    <footer class="bar small">Venta de Fotos · <RouterLink to="/descargas">Mis descargas</RouterLink></footer>
   </div>
 </template>
 

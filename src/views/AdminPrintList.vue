@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { downloadOriginal, getPhoto, listPaidOrders } from '../ordersApi'
-import { printList, type OrderRow } from '../ordersLogic'
+import { downloadName, printList, type OrderRow } from '../ordersLogic'
 
 const orders = ref<OrderRow[]>([])
 const loading = ref(true)
@@ -42,7 +42,7 @@ async function download(eventId: string, photoId: string) {
   try {
     const photo = await getPhoto(eventId, photoId)
     if (!photo) throw new Error('foto borrada')
-    await downloadOriginal(photo.originalPath, `${eventId}-${photo.name ?? photoId}`)
+    await downloadOriginal(photo.originalPath, downloadName(eventId, photo.name ?? photoId))
   } catch {
     downloadError.value = 'No se pudo obtener el original de esa foto.'
   } finally {

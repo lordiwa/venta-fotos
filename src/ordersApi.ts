@@ -39,5 +39,5 @@ export async function downloadOriginal(originalPath: string, filename: string): 
   a.href = url
   a.download = filename
   a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 1000) // revocar al instante cancela la descarga en Firefox/Safari
 }
