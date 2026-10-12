@@ -25,7 +25,7 @@ let opener: HTMLElement | null = null
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Tab' && root.value) { // el foco no sale del dialogo
-    const f = Array.from(root.value.querySelectorAll<HTMLElement>('button:not(:disabled), select, input:not(:disabled)'))
+    const f = Array.from(root.value.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], select, input:not(:disabled)'))
     if (!f.length) return
     const first = f[0], last = f[f.length - 1], at = document.activeElement
     if (!root.value.contains(at)) { e.preventDefault(); first.focus() }
