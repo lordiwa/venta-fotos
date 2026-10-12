@@ -38,6 +38,7 @@ export function digitalPhotos(lines: { eventId: string; photoId: string; product
 /**
  * IP real del cliente para el limite de intentos. Se toma la ULTIMA entrada de X-Forwarded-For: es la que agrega
  * Google Front End con la IP que realmente se conecto; las anteriores las puede escribir el cliente (suplantables).
+ * Supone que ningun balanceador HTTPS externo precede a la funcion (con uno, la ultima entrada seria la IP del balanceador y todos compartirian un solo contador).
  * No se usa rawRequest.ip: sin "trust proxy" en Express devuelve la IP del proxy, no la del cliente.
  */
 export const clientIp = (xff: unknown, fallback?: string): string => {
@@ -49,7 +50,7 @@ export const clientIp = (xff: unknown, fallback?: string): string => {
 export function contentDisposition(name: string, path: string): string {
   const ext = /\.[A-Za-z0-9]{1,5}$/.exec(path)?.[0] ?? "";
   const full = ext && !name.toLowerCase().endsWith(ext.toLowerCase()) ? name + ext : name;
-  const ascii = full.replace(/[^ -~]|["\%;]/g, "_");
+  const ascii = full.replace(/[^ -~]|["\\%;]/g, "_");
   const utf8 = encodeURIComponent(full).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   return `attachment; filename="${ascii}"; filename*=UTF-8''${utf8}`;
 }

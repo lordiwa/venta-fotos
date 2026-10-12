@@ -1,6 +1,6 @@
 // Prevents: dejar pasar un checkout sin contacto/direccion validos, mostrar un total sin envio, o mandar al servidor precios/nombres del cliente.
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { classifyCaptureError, loadSummary, saveSummary, toOrderLines, totalWithShipping, validateCheckoutForm, type CheckoutForm } from './checkoutLogic'
+import { classifyCaptureError, clearPending, loadPendingEmail, savePending, loadSummary, saveSummary, toOrderLines, totalWithShipping, validateCheckoutForm, type CheckoutForm } from './checkoutLogic'
 
 const ok: CheckoutForm = { name: 'Ana', email: 'a@b.co', phone: '123 4567', method: 'retiro', address: '' }
 
@@ -42,5 +42,15 @@ describe('checkoutLogic', () => {
     expect(classifyCaptureError({ code: 'functions/internal' })).toBe('retry')
     expect(classifyCaptureError(new TypeError('Failed to fetch'))).toBe('retry')
     expect(classifyCaptureError({ code: 'functions/failed-precondition' })).toBe('definitive')
+  })
+
+  // Prevents: perder el correo al recuperar un pago tras recargar (el comprador no veria sus descargas).
+  it('el correo viaja con el id pendiente y se limpia con el', () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('sessionStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) })
+    savePending('PP1', ' a@b.co ')
+    expect(loadPendingEmail()).toBe('a@b.co')
+    clearPending()
+    expect(loadPendingEmail()).toBe('')
   })
 })

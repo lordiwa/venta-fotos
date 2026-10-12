@@ -54,6 +54,7 @@ describe("downloadsLogic", () => {
     expect(contentDisposition("Niño \"A\"", "originals/e1/p1.jpg")).toBe(
       "attachment; filename=\"Ni_o _A_.jpg\"; filename*=UTF-8''Ni%C3%B1o%20%22A%22.jpg",
     );
+    expect(contentDisposition("a\\b", "originals/e1/p1.jpg")).toContain("filename=\"a_b.jpg\"");
     expect(contentDisposition("foto.png", "originals/e1/p1.png")).toContain("filename=\"foto.png\"");
   });
 });

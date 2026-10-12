@@ -7,7 +7,7 @@ import { getSettings } from '../settingsApi'
 import { reconcile } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { useCartStore } from '../stores/cart'
-import { classifyCaptureError, clearPending, CURRENCY, loadPending, savePending, saveSummary, totalWithShipping, validateCheckoutForm, type CheckoutForm } from '../checkoutLogic'
+import { classifyCaptureError, clearPending, CURRENCY, loadPending, loadPendingEmail, savePending, saveSummary, totalWithShipping, validateCheckoutForm, type CheckoutForm } from '../checkoutLogic'
 import { captureOrder, createOrder, errorMessage } from '../checkoutApi'
 import type { Product, StoreSettings } from '../types'
 
@@ -50,7 +50,9 @@ async function finish(paypalOrderId: string, recovered = false) {
   busy.value = true
   try {
     const summary = await captureOrder(paypalOrderId)
-    saveSummary({ ...summary, email: form.email.trim() })
+    // Recuperado tras recargar: el formulario esta vacio, el correo viene de lo guardado con el id pendiente.
+    const email = recovered ? loadPendingEmail() : form.email.trim()
+    saveSummary({ ...summary, ...(email ? { email } : {}) })
     clearPending()
     cart.clear()
     await router.push({ name: 'order', params: { number: summary.number } })
@@ -95,7 +97,7 @@ async function mountButtons() {
       createOrder: async () => {
         try { return await start(false) } catch (e) { clearPending(); message.value = errorMessage(e); busy.value = false; throw e }
       },
-      onApprove: async (data) => { savePending(data.orderID); await finish(data.orderID) }, // pendiente solo una vez aprobada en PayPal
+      onApprove: async (data) => { savePending(data.orderID, form.email); await finish(data.orderID) }, // pendiente solo una vez aprobada en PayPal
       onCancel: () => { clearPending(); busy.value = false; message.value = 'Cancelaste el pago. Tu carrito sigue igual; puedes intentarlo de nuevo.' },
       onError: () => { clearPending(); busy.value = false; message.value ||= 'No pudimos completar el pago con PayPal. Intenta de nuevo.' },
     }).render(paypalContainer.value)

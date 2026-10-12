@@ -53,8 +53,13 @@ export function loadSummary(number: string): OrderSummary | null {
 
 const PENDING_KEY = 'venta-fotos:pending-order'
 /** Orden de PayPal creada y aun no confirmada: si la captura falla por red, se reintenta sobre el MISMO id antes de crear otra. */
-export const savePending = (id: string) => { try { sessionStorage.setItem(PENDING_KEY, id) } catch { /* sin almacenamiento */ } }
-export const clearPending = () => { try { sessionStorage.removeItem(PENDING_KEY) } catch { /* sin almacenamiento */ } }
+const PENDING_EMAIL_KEY = 'venta-fotos:pending-email'
+/** El correo (recortado) se guarda junto al id para que, tras recargar, el resumen recuperado conserve el acceso a las descargas. */
+export const savePending = (id: string, email = '') => {
+  try { sessionStorage.setItem(PENDING_KEY, id); sessionStorage.setItem(PENDING_EMAIL_KEY, email.trim()) } catch { /* sin almacenamiento */ }
+}
+export const clearPending = () => { try { sessionStorage.removeItem(PENDING_KEY); sessionStorage.removeItem(PENDING_EMAIL_KEY) } catch { /* sin almacenamiento */ } }
+export const loadPendingEmail = (): string => { try { return sessionStorage.getItem(PENDING_EMAIL_KEY) ?? '' } catch { return '' } }
 export const loadPending = (): string | null => { try { return sessionStorage.getItem(PENDING_KEY) } catch { return null } }
 
 /**
