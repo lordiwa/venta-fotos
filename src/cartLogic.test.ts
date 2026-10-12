@@ -16,6 +16,10 @@ describe('cartLogic', () => {
   it('CU3: digital siempre cantidad 1, aunque se agregue de nuevo o con cantidad mayor', () => {
     const d = { ...ref, productId: 'dig' }
     expect(addToCart(addToCart([], d, 5, 'digital'), d, 1, 'digital')).toEqual([{ ...d, quantity: 1 }])
+    // almacenamiento manipulado: el subtotal tampoco multiplica lo digital
+    const r = reconcile([{ ...d, quantity: 5 }], [prod('dig', 3, 'digital')], {})
+    expect(r.lines[0].quantity).toBe(1)
+    expect(r.total).toBe(3)
   })
   it.each([0, -1, 100, 1.5, NaN, 'abc', '', '2x', null])('CU10: cantidad %j se revierte a la anterior', (v) => {
     expect(parseQuantity(v, 4)).toBe(4)
@@ -50,5 +54,8 @@ describe('cartLogic', () => {
     const good = { ...ref, quantity: 2 }
     const raw = JSON.stringify([good, { ...ref, quantity: 0 }, { ...ref, quantity: '2' }, null, 5, { eventId: 'x' }, good])
     expect(parseStoredCart(raw)).toEqual([{ ...ref, quantity: 4 }])
+    // ids con barra harian ambigua la clave de linea
+    expect(parseStoredCart(JSON.stringify([{ ...ref, photoId: 'a/b', quantity: 1 }, { ...ref, eventId: 'e1/p1', photoId: 'x', quantity: 1 }]))).toEqual([])
+    expect(parseStoredCart(JSON.stringify([{ ...good, productName: '10x15' }]))[0].productName).toBe('10x15')
   })
 })

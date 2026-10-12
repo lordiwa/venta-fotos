@@ -17,7 +17,7 @@ export const useCartStore = defineStore('cart', () => {
   }, { deep: true })
 
   function add(photo: { eventId: string; photoId: string }, product: Product, quantity: number) {
-    lines.value = addToCart(lines.value, { ...photo, productId: product.id, priceAtAdd: product.price }, quantity, product.kind)
+    lines.value = addToCart(lines.value, { ...photo, productId: product.id, priceAtAdd: product.price, productName: product.name }, quantity, product.kind)
   }
   const setQuantity = (key: string, input: unknown) => { lines.value = setLineQuantity(lines.value, key, input) }
   const remove = (key: string) => { lines.value = removeLine(lines.value, key) }

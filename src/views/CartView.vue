@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { listActiveProducts } from '../productsApi'
-import { getPublicPhoto } from '../publicApi'
+import { getPublicPhoto, getPublishedEvent } from '../publicApi'
 import { reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { useCartStore } from '../stores/cart'
@@ -21,11 +21,14 @@ async function load() {
   try {
     const lines = cart.lines
     const keys = [...new Set(lines.map((l) => `${l.eventId}/${l.photoId}`))]
+    // Un evento se consulta una sola vez aunque tenga muchas fotos en el carrito.
+    const eventIds = [...new Set(lines.map((l) => l.eventId))]
+    const published = new Map(await Promise.all(eventIds.map(async (id) => [id, !!(await getPublishedEvent(id))] as [string, boolean])))
     const [prods, found] = await Promise.all([
       listActiveProducts(),
       Promise.all(keys.map(async (k) => {
         const [eventId, photoId] = k.split('/')
-        return [k, await getPublicPhoto(eventId, photoId)] as [string, Photo | null]
+        return [k, published.get(eventId) ? await getPublicPhoto(eventId, photoId) : null] as [string, Photo | null]
       })),
     ])
     products.value = prods
@@ -52,18 +55,26 @@ function onQty(key: string, ev: Event) {
   <h1>Carrito</h1>
   <p v-if="!cart.lines.length">Tu carrito está vacío. <RouterLink to="/">Ver las fotos</RouterLink></p>
   <p v-else-if="loading">Cargando…</p>
-  <p v-else-if="error" role="alert">No pudimos actualizar tu carrito. <button type="button" @click="load">Reintentar</button></p>
+  <template v-else-if="error">
+    <p role="alert">No pudimos actualizar tu carrito. <button type="button" @click="load">Reintentar</button></p>
+    <ul class="lines">
+      <li v-for="l in cart.lines" :key="`${l.eventId}/${l.photoId}/${l.productId}`">
+        <span class="info">{{ l.productName ?? 'Producto' }} × {{ l.quantity }}</span>
+        <button type="button" @click="cart.remove(`${l.eventId}/${l.photoId}/${l.productId}`)">Quitar</button>
+      </li>
+    </ul>
+  </template>
   <template v-else>
     <ul class="lines">
       <li v-for="r in view.lines" :key="r.key" :class="{ off: !r.counted }">
         <div class="thumb"><PhotoThumb :path="thumbs[`${r.line.eventId}/${r.line.photoId}`]" /></div>
         <div class="info">
-          <strong>{{ r.product?.name ?? 'Producto' }}</strong>
+          <strong>{{ r.product?.name ?? r.line.productName ?? 'Producto' }}</strong>
           <span v-if="r.counted">{{ formatMoney(r.unitPrice) }} c/u</span>
           <span v-if="STATUS_MESSAGE[r.status]" class="warn" role="status">{{ STATUS_MESSAGE[r.status] }}</span>
         </div>
         <label v-if="r.counted && r.product?.kind !== 'digital'">Cantidad
-          <input :value="r.line.quantity" inputmode="numeric" aria-label="Cantidad" @change="onQty(r.key, $event)" />
+          <input :value="r.quantity" inputmode="numeric" aria-label="Cantidad" @change="onQty(r.key, $event)" />
         </label>
         <span v-else-if="r.counted">Cantidad: 1</span>
         <span class="sub">{{ r.counted ? formatMoney(r.subtotal) : '—' }}</span>

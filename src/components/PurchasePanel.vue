@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { listActiveProducts } from '../productsApi'
+import { getActiveCatalog } from '../productsApi'
 import { formatMoney } from '../productsLogic'
 import { parseQuantity } from '../cartLogic'
 import { useCartStore } from '../stores/cart'
@@ -20,19 +20,22 @@ let lastValid = 1
 async function load() {
   state.value = 'loading'
   try {
-    products.value = await listActiveProducts()
+    products.value = await getActiveCatalog(true)
     productId.value = products.value[0]?.id ?? ''
     state.value = 'ready'
   } catch {
     state.value = 'error'
   }
 }
-onMounted(load)
+onMounted(async () => {
+  // Cache: navegar entre fotos no recarga el catalogo ni parpadea.
+  try { products.value = await getActiveCatalog(); productId.value = products.value[0]?.id ?? ''; state.value = 'ready' } catch { state.value = 'error' }
+})
 watch(() => props.photoId, () => { confirmed.value = false; qty.value = '1'; lastValid = 1 })
 
 const selected = computed(() => products.value.find((p) => p.id === productId.value) ?? null)
 const isDigital = computed(() => selected.value?.kind === 'digital')
-watch(isDigital, (d) => { if (d) qty.value = '1' })
+watch(isDigital, (d) => { if (d) { qty.value = '1'; lastValid = 1 } })
 
 // CU10: un valor invalido vuelve al ultimo valido.
 function onQty() {

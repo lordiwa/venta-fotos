@@ -62,7 +62,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
     <img v-if="url" :src="url" :width="photo?.width" :height="photo?.height" alt="Foto del evento" />
     <p v-else-if="loading || (photo && !failed)">Cargando…</p>
     <p v-else>Foto no disponible</p>
-    <PurchasePanel v-if="photo && url" :event-id="photo.eventId" :photo-id="photo.id" />
+    <PurchasePanel v-if="photo" :event-id="photo.eventId" :photo-id="photo.id" />
   </div>
 </template>
 

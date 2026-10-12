@@ -11,6 +11,8 @@ export interface CartLine {
   quantity: number
   /** Precio unitario cuando se agrego: sirve para avisar "El precio cambió". */
   priceAtAdd: number
+  /** Solo para mostrar si el producto ya no existe; los precios salen siempre del catalogo. */
+  productName?: string
 }
 
 export const lineKey = (l: Pick<CartLine, 'eventId' | 'photoId' | 'productId'>) => `${l.eventId}/${l.photoId}/${l.productId}`
@@ -41,11 +43,13 @@ export function setLineQuantity(lines: CartLine[], key: string, input: unknown):
 export const removeLine = (lines: CartLine[], key: string): CartLine[] => lines.filter((l) => lineKey(l) !== key)
 export const cartCount = (lines: CartLine[]): number => lines.reduce((n, l) => n + l.quantity, 0)
 
+/** Ids no vacios y sin '/', que es el separador de lineKey (evita claves ambiguas). */
+const validId = (v: unknown): v is string => typeof v === 'string' && v !== '' && !v.includes('/')
+
 const isLine = (x: unknown): x is CartLine => {
   const l = x as Record<string, unknown> | null
   return !!l && typeof l === 'object'
-    && typeof l.eventId === 'string' && !!l.eventId && typeof l.photoId === 'string' && !!l.photoId
-    && typeof l.productId === 'string' && !!l.productId
+    && validId(l.eventId) && validId(l.photoId) && validId(l.productId)
     && typeof l.quantity === 'number' && Number.isInteger(l.quantity) && l.quantity >= 1 && l.quantity <= MAX_QTY
     && typeof l.priceAtAdd === 'number' && Number.isFinite(l.priceAtAdd) && l.priceAtAdd >= 0
 }
@@ -60,6 +64,7 @@ export function parseStoredCart(raw: string | null): CartLine[] {
   for (const x of data) {
     if (!isLine(x)) continue
     const line: CartLine = { eventId: x.eventId, photoId: x.photoId, productId: x.productId, quantity: x.quantity, priceAtAdd: x.priceAtAdd }
+    if (typeof x.productName === 'string') line.productName = x.productName.slice(0, 100)
     const k = lineKey(line)
     const prev = out.get(k)
     out.set(k, prev ? { ...prev, quantity: Math.min(MAX_QTY, prev.quantity + line.quantity) } : line)
@@ -77,6 +82,8 @@ export interface ReconciledLine {
   product: Product | null
   /** Precio vigente (el actual del catalogo); 0 si no hay producto. */
   unitPrice: number
+  /** Cantidad efectiva: lo digital cuenta siempre 1, aunque el almacenamiento diga otra cosa. */
+  quantity: number
   /** Importe de la linea; 0 si esta excluida del total. */
   subtotal: number
   counted: boolean
@@ -101,7 +108,8 @@ export function reconcile(lines: CartLine[], activeProducts: Product[], photos: 
     else if (product.price !== line.priceAtAdd) status = 'priceChanged'
     const counted = status === 'ok' || status === 'priceChanged'
     const unitPrice = product?.price ?? 0
-    return { line, key: lineKey(line), status, product, unitPrice, subtotal: counted ? round2(unitPrice * line.quantity) : 0, counted }
+    const quantity = product?.kind === 'digital' ? 1 : line.quantity
+    return { line, key: lineKey(line), status, product, unitPrice, quantity, subtotal: counted ? round2(unitPrice * quantity) : 0, counted }
   })
   return { lines: out, total: round2(out.reduce((s, l) => s + l.subtotal, 0)) }
 }

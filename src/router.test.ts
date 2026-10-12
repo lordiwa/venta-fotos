@@ -12,6 +12,12 @@ describe('router', () => {
     expect(router.resolve('/no-existe').matched[0].path).toBe('/')
   })
 
+  // Prevents: /carrito cayendo en la 404 del layout publico.
+  it('/carrito resuelve a cart bajo el layout publico', () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    expect(router.resolve('/carrito').name).toBe('cart')
+  })
+
   // Prevents: link compartido a una foto que no resuelve (o que monta otra vista) en vez de la galeria del evento.
   it('/eventos/:id y /eventos/:id/fotos/:photoId resuelven con sus params bajo el layout publico', () => {
     const router = createRouter({ history: createMemoryHistory(), routes })

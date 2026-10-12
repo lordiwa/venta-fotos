@@ -35,3 +35,14 @@ export async function saveDigital(f: ProductForm) {
   if ((await getDoc(ref)).exists()) await updateDoc(ref, { price })
   else await setDoc(ref, { name: DIGITAL_NAME, price, kind: 'digital', active: true })
 }
+
+let catalog: Promise<Product[]> | null = null
+/** Catalogo activo en cache de sesion (lo usa el selector de la foto, que se monta/desmonta al navegar). Un fallo no se cachea. */
+export function getActiveCatalog(refresh = false): Promise<Product[]> {
+  if (!catalog || refresh) {
+    const p = listActiveProducts().then(sortByName)
+    p.catch(() => { if (catalog === p) catalog = null })
+    catalog = p
+  }
+  return catalog
+}
