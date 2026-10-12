@@ -47,9 +47,9 @@ async function submit() {
   <p v-if="loading">Cargando…</p>
   <p v-else-if="loadError" class="error" role="alert">{{ loadError }}</p>
   <form v-else novalidate @submit.prevent="submit">
-    <label>Costo de envío <input v-model="form.shippingCost" inputmode="decimal" placeholder="4.50" /></label>
+    <label>Costo de envío <input :disabled="saving" v-model="form.shippingCost" inputmode="decimal" placeholder="4.50" /></label>
     <p v-if="errors.shippingCost" class="error" role="alert">{{ errors.shippingCost }}</p>
-    <label>Instrucciones de retiro <textarea v-model="form.pickupInfo" rows="3" /></label>
+    <label>Instrucciones de retiro <textarea :disabled="saving" v-model="form.pickupInfo" rows="3" /></label>
     <p v-if="saveError" class="error" role="alert">{{ saveError }}</p>
     <p v-if="offline" role="status">{{ offline }}</p>
     <p v-if="saved" role="status">Guardado.</p>

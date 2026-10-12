@@ -125,9 +125,9 @@ async function toggle(p: Product) {
 
     <form novalidate @submit.prevent="submit">
       <h3>{{ editingId ? 'Editar tamaño' : 'Nuevo tamaño' }}</h3>
-      <label>Nombre <input v-model="form.name" placeholder="10x15" /></label>
+      <label>Nombre <input :disabled="saving" v-model="form.name" placeholder="10x15" /></label>
       <p v-if="errors.name" class="error" role="alert">{{ errors.name }}</p>
-      <label>Precio <input v-model="form.price" inputmode="decimal" placeholder="5.00" /></label>
+      <label>Precio <input :disabled="saving" v-model="form.price" inputmode="decimal" placeholder="5.00" /></label>
       <p v-if="errors.price" class="error" role="alert">{{ errors.price }}</p>
       <p v-if="saveError" class="error" role="alert">{{ saveError }}</p>
       <button type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
@@ -141,7 +141,7 @@ async function toggle(p: Product) {
       <button type="button" @click="toggle(digital)">{{ isActive(digital) ? 'Desactivar' : 'Activar' }}</button>
     </p>
     <form novalidate @submit.prevent="submitDigital">
-      <label>{{ digital ? 'Nuevo precio' : 'Precio' }} <input v-model="digitalPrice" inputmode="decimal" placeholder="3.00" /></label>
+      <label>{{ digital ? 'Nuevo precio' : 'Precio' }} <input :disabled="digitalSaving" v-model="digitalPrice" inputmode="decimal" placeholder="3.00" /></label>
       <p v-if="digitalError" class="error" role="alert">{{ digitalError }}</p>
       <p v-if="digitalSaveError" class="error" role="alert">{{ digitalSaveError }}</p>
       <button type="submit" :disabled="digitalSaving">{{ digitalSaving ? 'Guardando…' : 'Guardar' }}</button>

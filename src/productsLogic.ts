@@ -46,7 +46,7 @@ export function settingsToForm(s: { shippingCost?: number; pickupInfo?: string }
   return { shippingCost: s?.shippingCost == null ? '' : formatMoney(s.shippingCost), pickupInfo: s?.pickupInfo ?? '' }
 }
 
-export const OFFLINE_NOTICE = 'Sin conexión. Los cambios se guardarán automáticamente al volver la conexión.'
+export const OFFLINE_NOTICE = 'Sin conexión. Mantén esta pestaña abierta: los cambios se guardarán al volver la conexión.'
 export const OFFLINE_MS = 6000
 
 /**

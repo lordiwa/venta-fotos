@@ -1,6 +1,5 @@
 // Prevents: guardar precios/costos invalidos (vacio, 0, negativo, texto) que romperian el total de un pedido.
-import { describe, it, expect } from 'vitest'
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
 
 describe('productsLogic', () => {
