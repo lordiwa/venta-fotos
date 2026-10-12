@@ -50,7 +50,7 @@ async function finish(paypalOrderId: string, recovered = false) {
   busy.value = true
   try {
     const summary = await captureOrder(paypalOrderId)
-    saveSummary(summary)
+    saveSummary({ ...summary, email: form.email.trim() })
     clearPending()
     cart.clear()
     await router.push({ name: 'order', params: { number: summary.number } })
