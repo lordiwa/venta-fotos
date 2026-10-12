@@ -44,7 +44,7 @@
     "CLAUDE_PROJECT_NAME": "venta-fotos"
   },
   "worktree": {
-    "baseRef": "main"
+    "baseRef": "fresh"
   },
   "statusLine": {
     "type": "command",
