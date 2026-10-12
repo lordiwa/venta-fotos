@@ -9,7 +9,7 @@
     "Con número de pedido y correo correctos se puede generar un enlace nuevo; con datos incorrectos no",
     "No se puede obtener el original de una foto que no está en un pedido pagado"
   ],
-  "status": "in_review",
+  "status": "done",
   "priority": "medium",
   "labels": [
     "storefront",
@@ -20,7 +20,14 @@
   "depends_on": [
     "TASK-017"
   ],
-  "linked_commits": [],
+  "linked_commits": [
+    "8c64cff",
+    "6b5f8e5",
+    "da9d5a7",
+    "5ae2f4b",
+    "fcb22ee",
+    "5903de3"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -47,11 +54,62 @@
       "author": "reviewer",
       "at": "2026-10-12T04:17:38.416Z",
       "body": "Review de 8c64cff: REQUEST-CHANGES.\n[FINDING-HIGH: R-1] requires_uat: true sin comentario uat. El vencimiento real (AC3) y la firma v4 solo se verifican desplegados.\nMEDIUM:\n- M-1: index.ts:101-102, el limitador por IP usa la entrada IZQUIERDA de XFF, falsificable. Hay que usar la que agrega GFE (la derecha) y testearlo. El límite por número es la defensa real.\n- M-2: captureOrder devuelve buyer.email en el resumen; quien tenga el paypalOrderId obtiene número + correo (la credencial de descarga). Mantener el correo solo del lado del cliente.\n- M-3: checklist de hand-off.\n- M-4: 10 specs para 5 AC sin justificar.\n- M-5: el test de reglas de downloadAttempts y el caso de integración CU8 nunca se corrieron.\nLOW:\n- DIGITAL_ID duplicado.\n- responseDisposition sin filename* UTF-8 ni extensión.\n- Bucket de IP \"unknown\" compartido.\n- Cada fallo cuesta 2 transacciones.\n- \"now\" de DownloadList solo se refresca al hacer clic.\nVerificado: npm test 67/67; test:functions 19/19; vue-tsc OK. El control de acceso es sólido; no hay oráculo entre número y correo; la rama de emulador no es alcanzable en producción."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-12T04:29:26.243Z",
+      "body": "Hand-off de la ronda de fix (sin push): 6b5f8e5 (M-1/W-1: clientIp toma la ÚLTIMA entrada de XFF, la que agrega GFE; fallback rawRequest.ip; no se usa rawRequest.ip directo porque sin trust proxy da la IP del proxy), da9d5a7 (M-2: captureOrder ya no devuelve email; el cliente lo guarda desde el formulario), 5ae2f4b (stripStatusSuffix quita \" [NNN]\" en checkoutApi.errorMessage y downloadsApi.downloadErrorMessage; el sufijo lo agrega el SDK @firebase/functions), fcb22ee (DIGITAL_ID único en functions vía orderStatus.ts; contentDisposition RFC 6266 con filename* UTF-8 y extensión), 5903de3 (MEDIUM-1 de la re-review: el correo se guarda con el id pendiente y sobrevive a la recuperación tras recargar; email vacío se omite; fallback ASCII neutraliza \"\\\"; nota del supuesto \"sin balanceador externo\" en clientIp).\nPre-hand-off: camino no especificado revisado (los otros llamadores de finish usan el formulario lleno); red-green plantado para XFF spoof, pending email y backslash; no plantado para disposition ni suffix. functions/lib NO recompilado (el emulador corre el código viejo hasta build:functions). Paridad: DIGITAL_ID uno por paquete, test de paridad intacto. Specs nuevos: 4, cada uno ata un hallazgo nombrado (W-1, LOW RFC 6266, LOW [NNN], MEDIUM-1); total 14 para 5 AC, justificado por esos hallazgos (M-4). Nota: 6b5f8e5 aislado no compila (clientIp llega en fcb22ee); HEAD consistente.\nTests: npm test 69/69, test:functions 21/21, vue-tsc -b y tsc --noEmit limpios. test:rules e integración quedan para la verificación final."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T04:29:26.286Z",
+      "body": "Re-review (contexto fresco) de 6b5f8e5..fcb22ee: APPROVE del código. Resueltos M-1/W-1, M-2, LOW [NNN], LOW DIGITAL_ID, LOW Content-Disposition. Nuevos: MEDIUM-1 (la recuperación tras recargar perdía el correo y ocultaba las descargas), MEDIUM-2 (faltaba checklist del hand-off), LOW-1 (supuesto sin balanceador), LOW-2 (barra invertida en fallback ASCII), LOW-3 (email '' en el resumen). Todos atendidos en 5903de3 y en el hand-off anterior; el orquestador verificó el diff de 5903de3. Abierto: R-1 (falta el comentario uat), que es la condición de cierre. Persisten LOWs fuera de alcance: bucket \"unknown\" compartido, dos transacciones por fallo, `now` de DownloadList solo se refresca al hacer clic."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-12T15:22:51.819Z",
+      "body": "UAT TASK-019, hecho por el orquestador a pedido del humano. Fecha: 2026-10-12. Entorno: emuladores locales, Chrome en localhost:5180 y functions recompilado en 5903de3.\nAC1 PASS. /pedido/TYYXUQRC con el resumen guardado con correo muestra \"Tus archivos digitales\" con 2 enlaces, uno por línea digital. El caso de pago recuperado tras recargar (MEDIUM-1) queda cubierto por el test de checkoutLogic (pending email) y por la lectura del código de finish.\nAC2 PASS. El enlace responde 200 image/jpeg y sirve el original (28191 bytes), sin marca de agua. Es lo mismo que confirmó el wargaming.\nAC3 PASS en UI. Se muestra \"Disponible hasta el 19/10/2026\" (hoy + 7 días). Pendiente de deploy: el vencimiento real de la URL firmada, la firma v4 y la cabecera Content-Disposition (filename* UTF-8). El emulador de Storage no aplica nada de eso; responseDisposition queda cubierto por un test unitario.\nAC4 PASS. En /descargas, TYYXUQRC con otro@example.test devuelve \"No encontramos un pedido con esos datos\", sin el sufijo [404]. Con carla.ruiz@example.test (en otra capitalización que la guardada) se generan 2 enlaces nuevos.\nAC5 PASS. Sin cambios desde el wargaming (CU de foto fuera de pedido pagado). El límite por IP ahora usa la entrada de XFF que agrega GFE (test unitario con XFF falsificado).\n[FINDING-RESOLVED: R-1]"
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T15:23:01.054Z",
+      "body": "ENTREGA TASK-019\n\n1. CASOS DE USO APROBADOS\nReferencia: comentario \"CASOS DE USO PROPUESTOS\", aprobado por el humano (CU1–CU8). Todos se cumplen y ningún caso cambió.\n\n2. RESULTADO\nEl comprador de fotos digitales recibe en la confirmación un enlace firmado por foto, válido 7 días (DOWNLOAD_TTL_DAYS). En /descargas regenera los enlaces con número de pedido y correo; los intentos fallidos se limitan por IP real (entrada de XFF agregada por GFE) en downloadAttempts. Commits: 8c64cff (feature), 6b5f8e5, da9d5a7, 5ae2f4b, fcb22ee y 5903de3 (fixes de review y re-review). Afuera a propósito: el vencimiento real de la URL, la firma v4 y Content-Disposition solo se verifican desplegados; el supuesto de que no hay balanceador externo está documentado en clientIp.\n\n3. WARGAMING\nSe atacaron en Chrome real CU1–CU8 (ver el comentario [WARGAMING]).\nCaminos alternativos: pedido mixto (digital + impresión), solo digital, regeneración desde /descargas y correo con otra capitalización.\nCaminos de fallo: correo o número incorrecto, foto fuera de pedido pagado, exceso de intentos (429) y XFF falsificado.\nW-1 (XFF spoofing) se corrigió en 6b5f8e5 y quedó fijado con un test. Veredicto: PASS.\n\n4. UAT\nPASS en los 5 AC, verificado por el orquestador a pedido del humano (ver el comentario uat). AC3 queda PASS en UI; lo pendiente de deploy está declarado."
     }
   ],
   "created_at": "2026-10-03T18:51:36.158Z",
-  "updated_at": "2026-10-12T04:17:38.416Z",
+  "updated_at": "2026-10-12T15:23:01.054Z",
   "jira_key": null,
   "verification_tier": "tests-after",
-  "requires_uat": true
+  "requires_uat": true,
+  "linked_commits_verification": {
+    "at": "2026-10-12T15:23:01.054Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "8c64cff",
+        "state": "verified"
+      },
+      {
+        "sha": "6b5f8e5",
+        "state": "verified"
+      },
+      {
+        "sha": "da9d5a7",
+        "state": "verified"
+      },
+      {
+        "sha": "5ae2f4b",
+        "state": "verified"
+      },
+      {
+        "sha": "fcb22ee",
+        "state": "verified"
+      },
+      {
+        "sha": "5903de3",
+        "state": "verified"
+      }
+    ]
+  }
 }

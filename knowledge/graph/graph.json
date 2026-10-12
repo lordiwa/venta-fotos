@@ -60,6 +60,12 @@
       "type": "task",
       "ref": "tasks/TASK-018.json",
       "label": "Panel de pedidos y lista de impresión (admin)"
+    },
+    {
+      "id": "task-019",
+      "type": "task",
+      "ref": "tasks/TASK-019.json",
+      "label": "Descarga del archivo digital con enlace firmado"
     }
   ],
   "edges": []
