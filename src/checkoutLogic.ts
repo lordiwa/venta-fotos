@@ -30,12 +30,15 @@ export const toOrderLines = (lines: CartLine[]) => lines.map(({ eventId, photoId
 /** Resumen que devuelve captureOrder; se guarda en sessionStorage para la pagina de confirmacion (los pedidos no son publicos). */
 export interface OrderSummary {
   number: string
-  /** Correo del comprador: junto con el numero permite pedir los enlaces de descarga (TASK-019). Falta en resumenes guardados antes de TASK-019. */
+  /** Correo del comprador (lo agrega el cliente desde el formulario; captureOrder no lo devuelve): con el numero permite pedir los enlaces de descarga (TASK-019). */
   email?: string
   lines: { productId?: string; productName: string; unitPrice: number; quantity: number }[]
   total: number
   delivery: Delivery
 }
+
+/** Quita el sufijo tecnico de codigo HTTP ("[404]") que algunos mensajes de error traen al final. */
+export const stripStatusSuffix = (m: string): string => m.replace(/\s*\[\d{3}\]\s*$/, '')
 
 const summaryKey = (number: string) => `venta-fotos:order:${number}`
 export const saveSummary = (s: OrderSummary) => { try { sessionStorage.setItem(summaryKey(s.number), JSON.stringify(s)) } catch { /* sin almacenamiento */ } }

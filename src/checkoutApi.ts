@@ -1,7 +1,7 @@
 import { httpsCallable } from 'firebase/functions'
 import { functions } from './firebase'
 import type { CartLine } from './cartLogic'
-import { toOrderLines, type CheckoutForm, type OrderSummary } from './checkoutLogic'
+import { stripStatusSuffix, toOrderLines, type CheckoutForm, type OrderSummary } from './checkoutLogic'
 
 export interface OrderRequest { lines: CartLine[]; form: CheckoutForm; simulated?: boolean }
 
@@ -24,5 +24,5 @@ export async function captureOrder(paypalOrderId: string): Promise<OrderSummary>
 /** Mensaje para el comprador: el de la Function si es de negocio; uno generico si fue un fallo interno o de red. */
 export function errorMessage(e: unknown): string {
   const err = e as { code?: string; message?: string }
-  return err.code && err.code !== 'functions/internal' && err.code !== 'functions/unavailable' && err.message ? err.message : 'No pudimos procesar el pago. Intenta de nuevo.'
+  return err.code && err.code !== 'functions/internal' && err.code !== 'functions/unavailable' && err.message ? stripStatusSuffix(err.message) : 'No pudimos procesar el pago. Intenta de nuevo.'
 }
