@@ -7,7 +7,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { assertSimulationAllowed, CheckoutError, CheckoutSnapshot, classifyCapture, extractCapture } from "./checkout";
-import { AdvanceError, planAdvance } from "./orderStatus";
+import { AdvanceError, isAdmin, planAdvance } from "./orderStatus";
 import { computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
 import { capturePaypalOrder, createPaypalOrder } from "./paypal";
 import { deletePhotoFiles, processOriginal } from "./process";
@@ -93,7 +93,7 @@ export const captureOrder = onCall(callOpts, async (request) => {
 
 /** Avanza el pedido al siguiente estado valido. `from` es el estado que veia el admin; si cambio, se rechaza. */
 export const advanceOrder = onCall(async (request) => {
-  if (request.auth?.token?.admin !== true) throw new HttpsError("permission-denied", "Solo el administrador puede cambiar el estado de un pedido.");
+  if (!isAdmin(request.auth)) throw new HttpsError("permission-denied", "Solo el administrador puede cambiar el estado de un pedido.");
   const { orderId, from } = request.data ?? {};
   if (typeof orderId !== "string" || !orderId || orderId.includes("/")) throw new HttpsError("invalid-argument", "Falta el pedido.");
   const db = admin.firestore();

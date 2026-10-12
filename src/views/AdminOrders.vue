@@ -5,7 +5,6 @@ import { listEvents } from '../eventsApi'
 import { advanceOrder, getPhoto, listOrders } from '../ordersApi'
 import { filterOrders, nextStatus, STATUS_LABEL, STATUSES, type OrderFilters, type OrderRow } from '../ordersLogic'
 import { formatMoney } from '../productsLogic'
-import { errorMessage } from '../checkoutApi'
 import type { Event } from '../types'
 
 const orders = ref<OrderRow[]>([])
@@ -17,6 +16,13 @@ const openId = ref<string | null>(null)
 const thumbs = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
 const actionError = ref('')
+const capped = ref(false)
+const FALLBACK = 'No se pudo cambiar el estado. Intenta de nuevo.'
+// Solo se muestran los mensajes de negocio de la Function; un fallo de red o interno usa el generico.
+const failure = (e: unknown) => {
+  const x = e as { code?: string; message?: string }
+  return x.code && !['functions/internal', 'functions/unavailable', 'functions/unknown'].includes(x.code) && x.message ? x.message : FALLBACK
+}
 
 const shown = computed(() => filterOrders(orders.value, filters.value))
 const open = computed(() => orders.value.find((o) => o.id === openId.value) ?? null)
@@ -27,7 +33,10 @@ async function load() {
   loading.value = true
   loadError.value = false
   try {
-    ;[orders.value, events.value] = await Promise.all([listOrders(), listEvents()])
+    const [res, evs] = await Promise.all([listOrders(), listEvents()])
+    orders.value = res.orders
+    capped.value = res.capped
+    events.value = evs
   } catch {
     loadError.value = true
   } finally {
@@ -39,12 +48,12 @@ onMounted(load)
 async function show(o: OrderRow) {
   openId.value = o.id
   actionError.value = ''
-  for (const l of o.lines) {
+  await Promise.all(o.lines.map(async (l) => {
     const k = `${l.eventId}/${l.photoId}`
-    if (k in thumbs.value) continue
+    if (k in thumbs.value) return
     thumbs.value[k] = undefined
     try { thumbs.value[k] = (await getPhoto(l.eventId, l.photoId))?.thumbPath } catch { /* sin miniatura */ }
-  }
+  }))
 }
 
 async function advance(o: OrderRow) {
@@ -54,7 +63,7 @@ async function advance(o: OrderRow) {
   try {
     o.status = await advanceOrder(o.id, o.status)
   } catch (e) {
-    actionError.value = errorMessage(e)
+    actionError.value = failure(e)
     await load()
   } finally {
     busy.value = false
@@ -89,6 +98,7 @@ async function advance(o: OrderRow) {
         </select>
       </label>
     </div>
+    <p v-if="capped" role="status">Mostrando los últimos 200 pedidos.</p>
     <p v-if="!shown.length">No hay pedidos.</p>
     <table v-else>
       <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Entrega</th><th>Estado</th><th /></tr></thead>
@@ -113,7 +123,7 @@ async function advance(o: OrderRow) {
           <span>{{ l.productName }} × {{ l.quantity }} <small>({{ eventName(l.eventId) }})</small></span>
         </li>
       </ul>
-      <p><strong>Contacto:</strong> {{ open.buyer.name }} · {{ open.buyer.email }} · {{ open.buyer.phone }}</p>
+      <p><strong>Contacto:</strong> {{ open.buyer.name }} · {{ open.buyer.email }}<template v-if="open.buyer.phone"> · {{ open.buyer.phone }}</template></p>
       <p v-if="open.delivery.method === 'envio'"><strong>Dirección:</strong> {{ open.delivery.address }}</p>
       <p><strong>Estado:</strong> {{ STATUS_LABEL[open.status] }}</p>
       <button v-if="nextStatus(open)" type="button" :disabled="busy" @click="advance(open)">Marcar como {{ STATUS_LABEL[nextStatus(open)!] }}</button>

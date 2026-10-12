@@ -26,3 +26,6 @@ export function planAdvance(o: OrderLike, from: unknown): OrderStatus {
   if (!next) throw new AdvanceError("El pedido ya está entregado.");
   return next;
 }
+
+/** Solo el claim admin === true (booleano estricto) autoriza; "true", 1 o la ausencia del claim no. */
+export const isAdmin = (auth: { token?: { admin?: unknown } } | null | undefined): boolean => auth?.token?.admin === true;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
-import { getPhoto, listOrders, originalUrl } from '../ordersApi'
+import { downloadOriginal, getPhoto, listPaidOrders } from '../ordersApi'
 import { printList, type OrderRow } from '../ordersLogic'
 
 const orders = ref<OrderRow[]>([])
@@ -9,6 +9,7 @@ const loading = ref(true)
 const loadError = ref(false)
 const thumbs = ref<Record<string, string | undefined>>({})
 const downloadError = ref('')
+const downloading = ref<string | null>(null)
 
 const groups = computed(() => printList(orders.value))
 
@@ -16,30 +17,36 @@ async function load() {
   loading.value = true
   loadError.value = false
   try {
-    orders.value = await listOrders()
-    for (const p of groups.value.flatMap((g) => g.photos)) {
-      const k = `${p.eventId}/${p.photoId}`
-      if (k in thumbs.value) continue
-      thumbs.value[k] = undefined
-      try { thumbs.value[k] = (await getPhoto(p.eventId, p.photoId))?.thumbPath } catch { /* sin miniatura */ }
-    }
+    orders.value = await listPaidOrders()
   } catch {
     loadError.value = true
+    return
   } finally {
     loading.value = false
   }
+  // Las miniaturas se completan despues de mostrar la lista.
+  await Promise.all(groups.value.flatMap((g) => g.photos).map(async (p) => {
+    const k = `${p.eventId}/${p.photoId}`
+    if (k in thumbs.value) return
+    thumbs.value[k] = undefined
+    try { thumbs.value[k] = (await getPhoto(p.eventId, p.photoId))?.thumbPath } catch { /* sin miniatura */ }
+  }))
 }
 onMounted(load)
 
-/** CU6: abre el original (privado; solo el admin lo lee). */
+/** CU6: baja el original (privado; solo el admin lo lee) sin dejar una URL publica. */
 async function download(eventId: string, photoId: string) {
+  if (downloading.value) return
+  downloading.value = `${eventId}/${photoId}`
   downloadError.value = ''
   try {
     const photo = await getPhoto(eventId, photoId)
     if (!photo) throw new Error('foto borrada')
-    window.open(await originalUrl(photo.originalPath), '_blank', 'noopener')
+    await downloadOriginal(photo.originalPath, `${eventId}-${photo.name ?? photoId}`)
   } catch {
     downloadError.value = 'No se pudo obtener el original de esa foto.'
+  } finally {
+    downloading.value = null
   }
 }
 </script>
@@ -58,7 +65,7 @@ async function download(eventId: string, photoId: string) {
         <li v-for="p in g.photos" :key="`${p.eventId}/${p.photoId}`">
           <div class="thumb"><PhotoThumb :path="thumbs[`${p.eventId}/${p.photoId}`]" /></div>
           <span>× {{ p.quantity }}</span>
-          <button type="button" @click="download(p.eventId, p.photoId)">Descargar original</button>
+          <button type="button" :disabled="downloading !== null" @click="download(p.eventId, p.photoId)">{{ downloading === `${p.eventId}/${p.photoId}` ? 'Descargando…' : 'Descargar original' }}</button>
         </li>
       </ul>
     </section>

@@ -1,7 +1,7 @@
 // Prevents: despachar mal los pedidos (saltar estados, imprimir lo digital, mezclar filtros) y que la copia del servidor se desvie de la del cliente.
 import { describe, it, expect } from 'vitest'
 import { filterOrders, nextStatus, printList, type OrderRow } from './ordersLogic'
-import { nextStatus as serverNext, planAdvance } from '../functions/src/orderStatus'
+import { isAdmin, nextStatus as serverNext, planAdvance } from '../functions/src/orderStatus'
 import type { OrderStatus } from './types'
 
 const line = (productId: string, quantity = 1, photoId = 'p1', eventId = 'e1') => ({ eventId, photoId, productId, productName: productId.toUpperCase(), unitPrice: 5, quantity })
@@ -53,5 +53,10 @@ describe('ordersLogic', () => {
     expect(planAdvance(order(), 'pagado')).toBe('impreso')
     expect(() => planAdvance(order({ status: 'impreso' }), 'pagado')).toThrow() // doble clic / pantalla vieja
     expect(() => planAdvance(order({ status: 'entregado' }), 'entregado')).toThrow()
+  })
+  // Prevents: que un comprador anonimo o una cuenta sin claim cambie estados de pedidos (p.ej. marcar "entregado" un pedido ajeno).
+  it('CU8: solo admin === true booleano autoriza advanceOrder', () => {
+    expect(isAdmin({ token: { admin: true } })).toBe(true)
+    for (const auth of [undefined, null, {}, { token: {} }, { token: { admin: 'true' } }, { token: { admin: 1 } }, { token: { admin: false } }]) expect(isAdmin(auth)).toBe(false)
   })
 })
