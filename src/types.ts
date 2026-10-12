@@ -74,7 +74,10 @@ export type Delivery =
   | { method: 'envio'; address: string; cost: number }
 
 export interface Order {
+  /** Id del documento = id de la orden de PayPal (idempotencia de captureOrder). */
   id: string
+  /** Numero de pedido corto y no secuencial (8 caracteres) que ve el comprador en /pedido/<number>. */
+  number: string
   lines: OrderLine[]
   /** Ids de evento de las lineas, sin repetir (desnormalizado al crear el pedido). Permite `eventIds array-contains <id>`; TASK-012 lo usa para bloquear la baja de eventos con pedidos. */
   eventIds: string[]

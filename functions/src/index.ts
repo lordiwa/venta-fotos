@@ -5,8 +5,8 @@ import { defineSecret, defineString } from "firebase-functions/params";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
-import { CheckoutError, CheckoutSnapshot, verifyCapture } from "./checkout";
-import { computeSnapshot, finalizeOrder, saveCheckout } from "./orders";
+import { assertSimulationAllowed, CheckoutError, CheckoutSnapshot, classifyCapture, extractCapture } from "./checkout";
+import { computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
 import { capturePaypalOrder, createPaypalOrder } from "./paypal";
 import { deletePhotoFiles, processOriginal } from "./process";
 
@@ -21,13 +21,11 @@ const PAYPAL_BASE_URL = defineString("PAYPAL_BASE_URL", { default: "https://api-
 const SIMULATED_PREFIX = "SIMULADO-";
 const callOpts = { secrets: [PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET] };
 
-/** El modo simulado solo existe con el emulador de Functions; en produccion se rechaza. */
-const inEmulator = () => process.env.FUNCTIONS_EMULATOR === "true";
 const paypalConfig = () => ({ baseUrl: PAYPAL_BASE_URL.value(), clientId: PAYPAL_CLIENT_ID.value(), clientSecret: PAYPAL_CLIENT_SECRET.value() });
 
 function toHttpsError(e: unknown, op: string): HttpsError {
   if (e instanceof HttpsError) return e;
-  if (e instanceof CheckoutError) return new HttpsError(e.code, e.message);
+  if (e instanceof CheckoutError) return new HttpsError(e.code, e.message, e.final ? { final: true } : undefined);
   logger.error(`${op} failed`, e);
   return new HttpsError("internal", "No pudimos procesar el pago. Intenta de nuevo.");
 }
@@ -36,7 +34,7 @@ function toHttpsError(e: unknown, op: string): HttpsError {
 export const createOrder = onCall(callOpts, async (request) => {
   try {
     const simulated = request.data?.simulated === true;
-    if (simulated && !inEmulator()) throw new HttpsError("permission-denied", "El pago simulado no está disponible.");
+    if (simulated) assertSimulationAllowed(process.env);
     const db = admin.firestore();
     const snap = await computeSnapshot(db, request.data ?? {});
     const paypalOrderId = simulated ? `${SIMULATED_PREFIX}${randomUUID().slice(0, 12)}` : await createPaypalOrder(paypalConfig(), snap);
@@ -58,11 +56,28 @@ export const captureOrder = onCall(callOpts, async (request) => {
     if (!checkout.exists) throw new HttpsError("not-found", "No encontramos esa orden de pago.");
     const snap = checkout.data() as CheckoutSnapshot;
     if (id.startsWith(SIMULATED_PREFIX)) {
-      if (!inEmulator()) throw new HttpsError("permission-denied", "El pago simulado no está disponible.");
+      assertSimulationAllowed(process.env);
     } else {
-      verifyCapture(await capturePaypalOrder(paypalConfig(), id), snap);
+      const res = await capturePaypalOrder(paypalConfig(), id);
+      // R-1: desde aqui PayPal pudo haber cobrado; se deja constancia ANTES de verificar y todo error se registra.
+      try {
+        await updateCheckout(db, id, { capture: { ...extractCapture(res), capturedAtMs: Date.now() } });
+        const outcome = classifyCapture(res, snap);
+        if (outcome === "captura_pendiente") {
+          await updateCheckout(db, id, { status: outcome });
+          throw new CheckoutError("failed-precondition", `Tu pago está en revisión en PayPal (id ${id}). Te contactaremos.`, true);
+        }
+        if (outcome === "captura_no_coincide") {
+          await updateCheckout(db, id, { status: outcome });
+          throw new CheckoutError("failed-precondition", `Recibimos tu pago pero no pudimos confirmar el pedido. Guarda este código: ${id}.`, true);
+        }
+      } catch (e) {
+        logger.error("captureOrder: cobro sin pedido", { paypalOrderId: id, error: String(e) });
+        throw e;
+      }
     }
     const order = await finalizeOrder(db, id, snap);
+    await updateCheckout(db, id, { status: "pagado", orderNumber: order.number }).catch((e) => logger.error("captureOrder: no se pudo marcar el checkout", e));
     logger.info("captureOrder", { paypalOrderId: id, number: order.number });
     return order;
   } catch (e) {

@@ -7,7 +7,7 @@ import { getSettings } from '../settingsApi'
 import { reconcile } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { useCartStore } from '../stores/cart'
-import { CURRENCY, saveSummary, totalWithShipping, validateCheckoutForm, type CheckoutForm } from '../checkoutLogic'
+import { classifyCaptureError, clearPending, CURRENCY, loadPending, savePending, saveSummary, totalWithShipping, validateCheckoutForm, type CheckoutForm } from '../checkoutLogic'
 import { captureOrder, createOrder, errorMessage } from '../checkoutApi'
 import type { Product, StoreSettings } from '../types'
 
@@ -24,6 +24,8 @@ const loadError = ref(false)
 const message = ref('')
 const busy = ref(false)
 const submitted = ref(false)
+const finalMessage = ref('') // cobro registrado sin pedido: no se vuelve a pagar
+const retryId = ref<string | null>(null) // captura pendiente de reintento
 const paypalContainer = ref<HTMLElement | null>(null)
 
 // Sin fotos que consultar: el servidor valida que cada foto siga publica y rechaza con mensaje.
@@ -39,6 +41,7 @@ const shown = computed(() => (submitted.value ? errors.value : {}))
 function ready(): boolean {
   submitted.value = true
   message.value = ''
+  if (busy.value || retryId.value) return false
   if (blocked.value) { message.value = 'Quita del carrito los productos que ya no están disponibles.'; return false }
   return Object.keys(errors.value).length === 0
 }
@@ -48,19 +51,37 @@ async function finish(paypalOrderId: string) {
   try {
     const summary = await captureOrder(paypalOrderId)
     saveSummary(summary)
+    clearPending()
     cart.clear()
     await router.push({ name: 'order', params: { number: summary.number } })
   } catch (e) {
+    const outcome = classifyCaptureError(e)
     message.value = errorMessage(e) // CU9: sin pedido pagado, el carrito se conserva
+    if (outcome === 'retry') {
+      retryId.value = paypalOrderId // se reintenta sobre el mismo id; no se crea otra orden
+      message.value = 'No pudimos confirmar tu pago. Reintenta la confirmación; no pagues de nuevo.'
+    } else {
+      clearPending()
+      retryId.value = null
+      if (outcome === 'final') finalMessage.value = message.value
+    }
   } finally {
     busy.value = false
   }
 }
 
+const retryCapture = () => { if (retryId.value && !busy.value) { const id = retryId.value; retryId.value = null; void finish(id) } }
+
+async function start(simulated: boolean): Promise<string> {
+  const id = await createOrder({ lines: cart.lines, form, simulated })
+  savePending(id)
+  return id
+}
+
 async function simulate() {
   if (!ready()) return
-  busy.value = true
-  try { await finish(await createOrder({ lines: cart.lines, form, simulated: true })) } catch (e) { message.value = errorMessage(e); busy.value = false }
+  busy.value = true // sincrono, antes de cualquier await: un doble clic no dispara dos createOrder
+  try { await finish(await start(true)) } catch (e) { message.value = errorMessage(e); busy.value = false }
 }
 
 async function mountButtons() {
@@ -68,15 +89,15 @@ async function mountButtons() {
   try {
     const paypal = await loadScript({ clientId, currency: CURRENCY })
     await nextTick()
-    if (!paypal?.Buttons || !paypalContainer.value) return
+    if (!paypal?.Buttons || !paypalContainer.value) { message.value = 'No pudimos cargar PayPal. Recarga la página.'; return }
     await paypal.Buttons({
-      onClick: (_data, actions) => (ready() ? actions.resolve() : actions.reject()),
+      onClick: (_data, actions) => { if (!ready()) return actions.reject(); busy.value = true; return actions.resolve() },
       createOrder: async () => {
-        try { return await createOrder({ lines: cart.lines, form }) } catch (e) { message.value = errorMessage(e); throw e }
+        try { return await start(false) } catch (e) { message.value = errorMessage(e); busy.value = false; throw e }
       },
       onApprove: async (data) => { await finish(data.orderID) },
-      onCancel: () => { message.value = 'Cancelaste el pago. Tu carrito sigue igual; puedes intentarlo de nuevo.' },
-      onError: () => { message.value ||= 'No pudimos completar el pago con PayPal. Intenta de nuevo.' },
+      onCancel: () => { busy.value = false; message.value = 'Cancelaste el pago. Tu carrito sigue igual; puedes intentarlo de nuevo.' },
+      onError: () => { busy.value = false; message.value ||= 'No pudimos completar el pago con PayPal. Intenta de nuevo.' },
     }).render(paypalContainer.value)
   } catch {
     message.value = 'No pudimos cargar PayPal. Recarga la página.'
@@ -92,7 +113,11 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-  if (!loadError.value) { await nextTick(); await mountButtons() }
+  if (loadError.value) return
+  await nextTick()
+  await mountButtons()
+  const pending = loadPending() // un pago anterior quedo sin confirmar: reintentar la captura del mismo id
+  if (pending) { message.value = 'Confirmando tu pago anterior…'; await finish(pending) }
 })
 </script>
 
@@ -136,9 +161,10 @@ onMounted(async () => {
 
     <p class="total"><strong>Total:</strong> {{ formatMoney(total) }} {{ CURRENCY }}</p>
     <p v-if="message" class="warn" role="alert">{{ message }}</p>
+    <button v-if="retryId" type="button" :disabled="busy" @click="retryCapture">Reintentar confirmación</button>
     <p v-if="!clientId">Pago con PayPal no configurado</p>
-    <div ref="paypalContainer" :aria-busy="busy" :class="{ off: busy }" />
-    <button v-if="canSimulate" type="button" :disabled="busy" @click="simulate">Simular pago</button>
+    <div v-show="!finalMessage" ref="paypalContainer" :aria-busy="busy" :class="{ off: busy }" />
+    <button v-if="canSimulate && !finalMessage" type="button" :disabled="busy" @click="simulate">Simular pago</button>
     <p><RouterLink to="/carrito">Volver al carrito</RouterLink></p>
   </template>
 </template>

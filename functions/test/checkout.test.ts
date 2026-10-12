@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildOrderDoc, buildSnapshot, centsToString, CheckoutError, newOrderNumber, parseBuyer, parseCartInput, verifyCapture,
+  assertSimulationAllowed, buildOrderDoc, buildSnapshot, centsToString, CheckoutError, classifyCapture, newOrderNumber, parseBuyer, parseCartInput,
   type BuildInput, type CatalogProduct,
 } from "../src/checkout";
 import { capturePaypalOrder, createPaypalOrder } from "../src/paypal";
-import { finalizeOrder } from "../src/orders";
+import { finalizeOrder, saveCheckout, updateCheckout } from "../src/orders";
 
 const A4: CatalogProduct = { name: "A4", kind: "print", price: 0.1, active: true };
 const DIG: CatalogProduct = { name: "Digital", kind: "digital", price: 10, active: true };
@@ -49,6 +49,7 @@ describe("buildSnapshot", () => {
       expect(code(() => parseCartInput([{ eventId: "e1", photoId: "p1", productId: "a4", quantity: q }]))).toBe("invalid-argument");
     }
     expect(code(() => parseCartInput([]))).toBe("invalid-argument");
+    for (const id of [".", "..", "__x__"]) expect(code(() => parseCartInput([{ eventId: id, photoId: "p1", productId: "a4", quantity: 1 }]))).toBe("invalid-argument");
     const l = { eventId: "e1", photoId: "p1", productId: "a4", quantity: 1 };
     expect(code(() => parseCartInput([l, l]))).toBe("invalid-argument");
   });
@@ -64,17 +65,27 @@ describe("parseBuyer", () => {
   });
 });
 
-describe("verifyCapture", () => {
+describe("classifyCapture", () => {
   const snap = { totalCents: 1234, currency: "USD" };
   const res = (value: string, currency = "USD", status = "COMPLETED") =>
-    ({ status, purchase_units: [{ payments: { captures: [{ status, amount: { value, currency_code: currency } }] } }] });
-  // Previene: registrar como pagado un pedido cuyo cobro real no coincide con lo calculado.
-  it("CU8 acepta monto/moneda iguales y rechaza diferencias o captura no completada", () => {
-    expect(code(() => verifyCapture(res("12.34"), snap))).toBe("none");
-    expect(code(() => verifyCapture(res("12.00"), snap))).toBe("failed-precondition");
-    expect(code(() => verifyCapture(res("12.34", "EUR"), snap))).toBe("failed-precondition");
-    expect(code(() => verifyCapture(res("12.34", "USD", "DECLINED"), snap))).toBe("failed-precondition");
+    ({ status, purchase_units: [{ payments: { captures: [{ id: "C1", status, amount: { value, currency_code: currency } }] } }] });
+  // Previene: registrar como pagado un pedido cuyo cobro real no coincide con lo calculado, o perder el rastro de un cobro retenido (PENDING).
+  it("CU8 pagado solo con monto/moneda iguales; distinto -> no_coincide; PENDING -> pendiente; sin captura -> error", () => {
+    expect(classifyCapture(res("12.34"), snap)).toBe("pagado");
+    expect(classifyCapture(res("12.00"), snap)).toBe("captura_no_coincide");
+    expect(classifyCapture(res("12.34", "EUR"), snap)).toBe("captura_no_coincide");
+    expect(classifyCapture(res("12.34", "USD", "PENDING"), snap)).toBe("captura_pendiente");
+    expect(code(() => classifyCapture(res("12.34", "USD", "DECLINED"), snap))).toBe("failed-precondition");
+    expect(code(() => classifyCapture({ status: "COMPLETED" }, snap))).toBe("failed-precondition");
     expect(centsToString(1234)).toBe("12.34");
+  });
+});
+
+describe("assertSimulationAllowed", () => {
+  // Previene: que en produccion cualquiera cree pedidos "pagados" sin pagar usando el modo simulado.
+  it("CU12 solo con FUNCTIONS_EMULATOR === 'true'", () => {
+    expect(code(() => assertSimulationAllowed({ FUNCTIONS_EMULATOR: "true" }))).toBe("none");
+    for (const v of [undefined, "false", "1", ""]) expect(code(() => assertSimulationAllowed({ FUNCTIONS_EMULATOR: v }))).toBe("failed-precondition");
   });
 });
 
@@ -92,6 +103,7 @@ describe("buildOrderDoc", () => {
     expect(doc).toMatchObject({ status: "pagado", paypalOrderId: "PP1", number: "ABCD2345", total: 0.3, buyer });
     expect(doc.lines).toHaveLength(3);
   });
+  // Previene: numeros de pedido que el comprador no puede dictar sin confundir 0/O o 1/I.
   it("numero de pedido: 8 caracteres sin ambiguos", () => {
     expect(newOrderNumber()).toMatch(/^[2-9A-HJKMNP-Z]{8}$/);
   });
@@ -101,7 +113,10 @@ describe("buildOrderDoc", () => {
 function fakeDb() {
   const store = new Map<string, Record<string, unknown>>();
   const db = {
-    doc: (path: string) => ({ path }),
+    doc: (path: string) => ({
+      path,
+      set: async (d: Record<string, unknown>, o?: { merge?: boolean }) => { store.set(path, o?.merge ? { ...store.get(path), ...d } : d); },
+    }),
     runTransaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({
       get: async (r: { path: string }) => ({ exists: store.has(r.path), data: () => store.get(r.path) }),
       set: (r: { path: string }, d: Record<string, unknown>) => { store.set(r.path, d); },
@@ -120,6 +135,16 @@ describe("finalizeOrder", () => {
     expect(store.size).toBe(1);
     expect(b.number).toBe(a.number);
     expect(store.get("orders/PP1")).toMatchObject({ status: "pagado", eventIds: ["e1"] });
+  });
+});
+
+describe("checkouts", () => {
+  // Previene: que createOrder reviente en el servidor (FieldValue mal importado) y ningun pago simulado/real pueda empezar; y perder buyer/total/estado de un cobro sin pedido.
+  it("saveCheckout/updateCheckout escriben snapshot con status, buyer y total, y conservan el snapshot al actualizar", async () => {
+    const { db, store } = fakeDb();
+    await saveCheckout(db, "PP1", buildSnapshot(base()));
+    await updateCheckout(db, "PP1", { status: "captura_pendiente" });
+    expect(store.get("checkouts/PP1")).toMatchObject({ status: "captura_pendiente", buyer, totalCents: 30 });
   });
 });
 

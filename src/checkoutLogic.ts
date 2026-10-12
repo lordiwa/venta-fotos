@@ -45,3 +45,20 @@ export function loadSummary(number: string): OrderSummary | null {
     return s && s.number === number && Array.isArray(s.lines) && typeof s.total === 'number' && s.delivery ? s : null
   } catch { return null }
 }
+
+const PENDING_KEY = 'venta-fotos:pending-order'
+/** Orden de PayPal creada y aun no confirmada: si la captura falla por red, se reintenta sobre el MISMO id antes de crear otra. */
+export const savePending = (id: string) => { try { sessionStorage.setItem(PENDING_KEY, id) } catch { /* sin almacenamiento */ } }
+export const clearPending = () => { try { sessionStorage.removeItem(PENDING_KEY) } catch { /* sin almacenamiento */ } }
+export const loadPending = (): string | null => { try { return sessionStorage.getItem(PENDING_KEY) } catch { return null } }
+
+/**
+ * Que hacer con un fallo de captureOrder: 'final' = el cobro quedo registrado sin pedido (no reintentar ni volver a pagar),
+ * 'retry' = fallo de red/interno (reintentar el mismo id), 'definitive' = rechazo claro (se puede volver a empezar).
+ */
+export function classifyCaptureError(e: unknown): 'final' | 'retry' | 'definitive' {
+  const err = e as { code?: string; details?: { final?: boolean } } | null
+  if (err?.details?.final === true) return 'final'
+  const retryable = !err?.code || ['functions/internal', 'functions/unavailable', 'functions/deadline-exceeded', 'functions/unknown'].includes(err.code)
+  return retryable ? 'retry' : 'definitive'
+}

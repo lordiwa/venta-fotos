@@ -8,7 +8,7 @@ export const MAX_LINES = 100;
 
 /** Error de negocio con mensaje apto para mostrar al comprador. */
 export class CheckoutError extends Error {
-  constructor(public code: "invalid-argument" | "failed-precondition", message: string) {
+  constructor(public code: "invalid-argument" | "failed-precondition", message: string, public final = false) {
     super(message);
   }
 }
@@ -34,7 +34,9 @@ export const toCents = (n: number): number => Math.round(n * 100);
 /** Importe en el formato de PayPal ("12.50"), desde centavos enteros. */
 export const centsToString = (c: number): string => (c / 100).toFixed(2);
 
-const validId = (v: unknown): v is string => typeof v === "string" && v !== "" && v.length <= 200 && !v.includes("/");
+// Ids de documento de Firestore: sin "/", ni "." / "..", ni "__x__" (reservados).
+const validId = (v: unknown): v is string =>
+  typeof v === "string" && v !== "" && v.length <= 200 && !v.includes("/") && v !== "." && v !== ".." && !/^__.*__$/.test(v);
 const text = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 /** Forma de las lineas que manda el cliente. Rechaza lo que no sea ids + cantidad entera 1..99, y lineas repetidas. */
@@ -118,16 +120,30 @@ export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
 /** Respuesta de PayPal a la captura (solo los campos que se leen). */
 export interface PaypalCaptureResponse {
   status?: string;
-  purchase_units?: { payments?: { captures?: { status?: string; amount?: { value?: string; currency_code?: string } }[] } }[];
+  purchase_units?: { payments?: { captures?: { id?: string; status?: string; amount?: { value?: string; currency_code?: string } }[] } }[];
 }
 
-/** CU8: la captura debe estar COMPLETED y su monto/moneda iguales a los calculados por el servidor. */
-export function verifyCapture(res: PaypalCaptureResponse, snap: Pick<CheckoutSnapshot, "totalCents" | "currency">): void {
+export interface CaptureInfo { captureId: string | null; status: string | null; value: string | null; currency: string | null }
+
+/** Datos de la captura de PayPal para dejar constancia en checkouts/{id}. */
+export function extractCapture(res: PaypalCaptureResponse): CaptureInfo {
   const cap = res.purchase_units?.[0]?.payments?.captures?.[0];
-  if (res.status !== "COMPLETED" || cap?.status !== "COMPLETED") throw new CheckoutError("failed-precondition", "El pago no se completó.");
-  if (cap.amount?.currency_code !== snap.currency || cap.amount?.value !== centsToString(snap.totalCents)) {
-    throw new CheckoutError("failed-precondition", "El monto cobrado no coincide con el del pedido.");
-  }
+  return { captureId: cap?.id ?? null, status: cap?.status ?? null, value: cap?.amount?.value ?? null, currency: cap?.amount?.currency_code ?? null };
+}
+
+export type CaptureOutcome = "pagado" | "captura_pendiente" | "captura_no_coincide";
+
+/** CU8: COMPLETED con monto/moneda iguales a los del servidor -> pagado; igual pero distinto monto -> no_coincide; PENDING -> pendiente (dinero retenido, sin pedido). Sin captura -> error (no se cobro nada). */
+export function classifyCapture(res: PaypalCaptureResponse, snap: Pick<CheckoutSnapshot, "totalCents" | "currency">): CaptureOutcome {
+  const c = extractCapture(res);
+  if (c.status === "PENDING") return "captura_pendiente";
+  if (res.status !== "COMPLETED" || c.status !== "COMPLETED") throw new CheckoutError("failed-precondition", "El pago no se completó.");
+  return c.currency === snap.currency && c.value === centsToString(snap.totalCents) ? "pagado" : "captura_no_coincide";
+}
+
+/** CU12: el pago simulado solo existe con el emulador de Functions; en produccion se rechaza. */
+export function assertSimulationAllowed(env: Record<string, string | undefined>): void {
+  if (env.FUNCTIONS_EMULATOR !== "true") throw new CheckoutError("failed-precondition", "El pago simulado no está disponible.");
 }
 
 // Base32 sin 0/O/1/I/L: facil de dictar por telefono.

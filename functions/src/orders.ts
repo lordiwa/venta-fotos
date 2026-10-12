@@ -1,8 +1,8 @@
 /** Acceso a Firestore del checkout (TASK-017): lectura del catalogo, snapshot pendiente y creacion idempotente del pedido. */
-import * as admin from "firebase-admin";
+import { FieldValue, Firestore } from "firebase-admin/firestore";
 import { buildOrderDoc, buildSnapshot, CartInputLine, CatalogProduct, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, StoreSettings } from "./checkout";
 
-type Db = admin.firestore.Firestore;
+type Db = Firestore;
 
 export interface OrderSummary { number: string; lines: unknown[]; total: number; delivery: unknown }
 
@@ -35,9 +35,9 @@ export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: u
 
 /** Guarda el snapshot calculado; captureOrder lo lee de aqui y no confia en el cliente. */
 export const saveCheckout = (db: Db, paypalOrderId: string, snap: CheckoutSnapshot) =>
-  db.doc(`checkouts/${paypalOrderId}`).set({ ...snap, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  db.doc(`checkouts/${paypalOrderId}`).set({ ...snap, status: "creado", createdAt: FieldValue.serverTimestamp() });
 
-const summarize = (d: admin.firestore.DocumentData): OrderSummary => ({ number: d.number, lines: d.lines, total: d.total, delivery: d.delivery });
+const summarize = (d: FirebaseFirestore.DocumentData): OrderSummary => ({ number: d.number, lines: d.lines, total: d.total, delivery: d.delivery });
 
 /** CU10: el pedido tiene como id el de PayPal y se crea en una transaccion; una segunda captura devuelve el mismo. */
 export async function finalizeOrder(db: Db, paypalOrderId: string, snap: CheckoutSnapshot): Promise<OrderSummary> {
@@ -46,7 +46,11 @@ export async function finalizeOrder(db: Db, paypalOrderId: string, snap: Checkou
     const existing = await tx.get(ref);
     if (existing.exists) return summarize(existing.data()!);
     const doc = buildOrderDoc(snap, paypalOrderId, newOrderNumber());
-    tx.set(ref, { ...doc, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    tx.set(ref, { ...doc, createdAt: FieldValue.serverTimestamp() });
     return summarize(doc);
   });
 }
+
+/** Estado del checkout (con captura de PayPal si la hubo) para que el fotografo pueda encontrar cobros sin pedido. Incluye buyer y total desde saveCheckout. */
+export const updateCheckout = (db: Db, paypalOrderId: string, patch: Record<string, unknown>) =>
+  db.doc(`checkouts/${paypalOrderId}`).set({ ...patch, updatedAt: FieldValue.serverTimestamp() }, { merge: true });

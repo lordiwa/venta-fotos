@@ -1,6 +1,6 @@
 // Prevents: dejar pasar un checkout sin contacto/direccion validos, mostrar un total sin envio, o mandar al servidor precios/nombres del cliente.
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { loadSummary, saveSummary, toOrderLines, totalWithShipping, validateCheckoutForm, type CheckoutForm } from './checkoutLogic'
+import { classifyCaptureError, loadSummary, saveSummary, toOrderLines, totalWithShipping, validateCheckoutForm, type CheckoutForm } from './checkoutLogic'
 
 const ok: CheckoutForm = { name: 'Ana', email: 'a@b.co', phone: '123 4567', method: 'retiro', address: '' }
 
@@ -35,5 +35,12 @@ describe('checkoutLogic', () => {
       m.set('venta-fotos:order:BAD', '{no json')
       expect(loadSummary('BAD')).toBeNull()
     })
+  })
+  // Prevents: reintentar o volver a cobrar cuando el dinero ya se tomo (final), o crear otra orden tras un corte de red (retry).
+  it('R-1: clasifica fallos de captura en final / retry / definitive', () => {
+    expect(classifyCaptureError({ code: 'functions/failed-precondition', details: { final: true } })).toBe('final')
+    expect(classifyCaptureError({ code: 'functions/internal' })).toBe('retry')
+    expect(classifyCaptureError(new TypeError('Failed to fetch'))).toBe('retry')
+    expect(classifyCaptureError({ code: 'functions/failed-precondition' })).toBe('definitive')
   })
 })

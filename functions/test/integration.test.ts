@@ -58,3 +58,37 @@ describe("pipeline de fotos (emuladores)", () => {
     });
   }, 120000);
 });
+
+describe("checkout simulado (emuladores)", () => {
+  const call = async (name: string, data: unknown) => {
+    const res = await fetch(`http://127.0.0.1:5001/demo-venta-fotos/us-central1/${name}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }),
+    });
+    return (await res.json()) as { result?: any; error?: { message: string } };
+  };
+
+  // Previene: que el pago simulado falle en el servidor real (p.ej. imports de admin) o duplique pedidos al capturar dos veces.
+  it("CU12/CU10 createOrder simulado -> captureOrder x2 crea un unico pedido pagado con eventIds", async () => {
+    const db = admin.firestore();
+    await db.doc("events/evc").set({ name: "E", date: admin.firestore.Timestamp.now(), published: true });
+    await db.doc("events/evc/photos/p1").set({ visible: true, status: "ready" });
+    await db.doc("products/a4c").set({ name: "A4", kind: "print", price: 5, active: true });
+    await db.doc("settings/store").set({ shippingCost: 3 }, { merge: true });
+    const created = await call("createOrder", {
+      simulated: true,
+      lines: [{ eventId: "evc", photoId: "p1", productId: "a4c", quantity: 2 }],
+      buyer: { name: "Ana", email: "a@b.co", phone: "1234567" },
+      delivery: { method: "envio", address: "Calle 1" },
+    });
+    expect(created.error).toBeUndefined();
+    const id = created.result.paypalOrderId as string;
+    expect(id).toMatch(/^SIMULADO-/);
+    const a = await call("captureOrder", { paypalOrderId: id });
+    const b = await call("captureOrder", { paypalOrderId: id });
+    expect(a.result.number).toBe(b.result.number);
+    expect(a.result.total).toBe(13);
+    const orders = await db.collection("orders").where("paypalOrderId", "==", id).get();
+    expect(orders.size).toBe(1);
+    expect(orders.docs[0].data()).toMatchObject({ status: "pagado", eventIds: ["evc"], total: 13 });
+  }, 60000);
+});
