@@ -106,8 +106,10 @@ describe("descargas digitales (emuladores)", () => {
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
     await db.doc("events/evd").set({ name: "E", date: admin.firestore.Timestamp.now(), published: true });
-    await db.doc("events/evd/photos/p1").set({ visible: true, status: "ready", name: "p1.jpg", originalPath: "originals/evd/p1.jpg" });
-    await bucket.file("originals/evd/p1.jpg").save(Buffer.from("original"), { contentType: "image/jpeg" });
+    // El original es un JPEG valido: subirlo dispara processPhoto, que crea el doc de la foto y lo deja "ready" (con bytes no validos lo dejaria en "error" y createOrder rechazaria la linea).
+    const original = await sharp({ create: { width: 64, height: 48, channels: 3, background: "#4080c0" } }).jpeg().toBuffer();
+    await bucket.file("originals/evd/p1.jpg").save(original, { contentType: "image/jpeg", metadata: { metadata: { originalName: "p1.jpg" } } });
+    await waitFor(async () => (await db.doc("events/evd/photos/p1").get()).get("status") === "ready" || undefined);
     await db.doc("products/digital").set({ name: "Digital", kind: "digital", price: 10, active: true });
     await db.doc("products/a4d").set({ name: "A4", kind: "print", price: 5, active: true });
     const buyer = { name: "Ana", email: "Ana@Mail.com", phone: "1234567" };
@@ -120,7 +122,7 @@ describe("descargas digitales (emuladores)", () => {
     expect(ok.result.files).toHaveLength(1);
     expect(ok.result.files[0].expiresAt).toBeGreaterThan(Date.now());
     const dl = await fetch(ok.result.files[0].url);
-    expect(await dl.text()).toBe("original");
+    expect(Buffer.from(await dl.arrayBuffer()).equals(original)).toBe(true);
     const badEmail = await call("getDownloadLinks", { number: digital, email: "otro@mail.com" });
     const badNumber = await call("getDownloadLinks", { number: "ZZZZZZZZ", email: "ana@mail.com" });
     expect(badEmail.error).toMatchObject({ status: "NOT_FOUND" });
