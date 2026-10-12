@@ -54,6 +54,12 @@
       "type": "task",
       "ref": "tasks/TASK-017.json",
       "label": "Checkout con PayPal, datos de contacto y elección de entrega"
+    },
+    {
+      "id": "task-018",
+      "type": "task",
+      "ref": "tasks/TASK-018.json",
+      "label": "Panel de pedidos y lista de impresión (admin)"
     }
   ],
   "edges": []

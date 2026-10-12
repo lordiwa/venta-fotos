@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-12T03:53:23.065Z",
+  "generated_at": "2026-10-12T04:08:51.126Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -58,7 +58,7 @@
     {
       "key": "TASK-018",
       "title": "Panel de pedidos y lista de impresión (admin)",
-      "status": "todo",
+      "status": "done",
       "priority": "high"
     },
     {

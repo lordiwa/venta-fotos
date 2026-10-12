@@ -10,7 +10,7 @@
     "Los pedidos de solo archivo digital no aparecen en la lista de impresión",
     "Solo el admin puede ver pedidos y cambiar estados"
   ],
-  "status": "todo",
+  "status": "done",
   "priority": "high",
   "labels": [
     "admin",
@@ -20,7 +20,11 @@
   "depends_on": [
     "TASK-017"
   ],
-  "linked_commits": [],
+  "linked_commits": [
+    "3b0f617",
+    "6956abd",
+    "87b9118"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -37,11 +41,70 @@
       "author": "orchestrator",
       "at": "2026-10-12T03:48:11.536Z",
       "body": "SEGUIMIENTO HEREDADO de TASK-017 (review M-8, fuera de los CU aprobados; se propondrá al humano como caso adicional): checkouts/{paypalOrderId} con status captura_pendiente o captura_no_coincide son cobros sin pedido. Hoy solo se ven en la consola de Firebase porque las reglas bloquean la lectura, incluso al admin. El panel de pedidos debería mostrarlos con datos de comprador, monto e id de PayPal, y una acción \"reintentar captura\"."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-12T04:00:17.544Z",
+      "body": "Hand-off: commit 3b0f617 (local).\n- Cliente: ordersLogic.ts (máquina de estados, filterOrders, printList), ordersApi.ts, AdminOrders.vue, AdminPrintList.vue y rutas /admin/pedidos y /admin/impresion.\n- Servidor: functions/src/orderStatus.ts con advanceOrder (callable, exige token.admin; transacción con chequeo de \"from\"; agrega statusHistory). Las reglas de orders siguen sin escritura.\n- Resultados: build OK; npm test 62/62 (5 nuevos con paridad cliente/servidor); test:functions 15/15.\n- Red-green: 7 roturas plantadas.\n- Solo UI: CU1, CU3, el botón de descarga de CU6 y el lado UI de CU8. El chequeo de admin en advanceOrder no tiene spec."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T04:03:45.495Z",
+      "body": "[WARGAMING] Atacado en Chrome real y emuladores (3b0f617) contra CU1–CU8, con caminos alternativos y de fallo.\nSobrevivió:\n- CU1: 5 pedidos, del más nuevo al más viejo, con número, fecha, cliente, total, entrega y estado.\n- CU2: Envío → 2; Envío+Carrera 10K → 1; Carrera 10K+Pagado → 4; Entregado → \"No hay pedidos.\".\n- CU3: el detalle de 68KYFHEA muestra líneas con evento, contacto y dirección; las miniaturas sirven 200 image/jpeg (con loading=lazy no cargan en una pestaña oculta; forzadas cargan 400px).\n- CU4 (envío): 68KYFHEA pasa Impreso → Enviado → Entregado con doble clic en cada paso. Hay exactamente 3 entradas en statusHistory y luego ningún botón.\n- CU4 (retiro): UAS7EQWJ pasa Impreso → Listo para retiro → Entregado.\n- CU5: el solo digital P2GKQZQD (con envío pedido, el servidor forzó retiro) pasa directo a Entregado.\n- CU6: la lista de impresión agrupa 10x15 ×1, 13x18 ×3 y A4 ×2 (fixture de integración). \"Descargar original\" da 200 image/jpeg desde originals/.\n- CU7: las líneas digitales no aparecen, y el pedido ya entregado dejó la lista.\n- CU8: advanceOrder anónimo → 403; usuario autenticado sin claim → 403 al avanzar y 403 al leer orders.\n- Pantalla vieja (from=impreso con pedido en pagado) → 400 \"El pedido ya cambió de estado. Recarga la lista.\"; pedido entregado → 400; id inexistente → 404.\nNo sobrevivió: nada.\nE2E afectados: ninguno (no hay capa e2e). Veredicto: PASS."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T04:04:30.031Z",
+      "body": "Review de 3b0f617: REQUEST-CHANGES solo por UAT.\n[FINDING-HIGH: U-1] requires_uat: true sin comentario uat.\nMEDIUM:\n- M-1: \"Descargar original\" usa getDownloadURL, cuyo token salta las reglas para siempre y contradice \"los originales nunca son públicos\"; además window.open tras un await lo bloquean los popups.\n- M-2: listOrders trunca a 200 sin aviso y la lista de impresión deriva de ese recorte.\n- M-3: el fallback de errorMessage es un mensaje de pago dentro del panel de pedidos.\n- M-4: el chequeo de admin de advanceOrder no tiene spec.\n- M-5: checklist de hand-off.\n- M-6: miniaturas N+1 secuenciales que bloquean \"Cargando…\".\nLOW: \" · \" cuando falta el teléfono; nota de paridad; mensaje de id inválido; statusHistory sin uso en el cliente.\nVerificado: npm test 62/62; test:functions 15/15; vue-tsc OK. La paridad cliente/servidor es real (20 casos). La máquina de estados no tiene saltos ni retrocesos. Reglas sin cambios; ningún camino permite a un no admin cambiar un pedido."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T04:07:48.213Z",
+      "body": "[WARGAMING] Re-ataque de CU6 sobre 87b9118 (fix M-1/M-2) en Chrome real.\n- El pedido nuevo YC67G9RR (20x25 ×2, retiro) aparece en la lista de impresión, que ahora sale de la consulta status=='pagado'.\n- \"Descargar original\" baja vía getBlob → blob:http://localhost:5180/… con download=\"CIq6ntKNrb6hdbbhJSbR-foto2.jpg\". No se genera ninguna URL de originals/ con token en la página.\n- Siguen en pie las verificaciones de la pasada anterior (CU1–CU8, pantalla vieja, 403 para anónimo y para usuario sin claim).\nNo sobrevivió: nada. Veredicto: PASS."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-12T04:07:48.261Z",
+      "body": "UAT de TASK-018 sobre 87b9118, Chrome real con emuladores. Veredicto: PASS. El orquestador lo verificó a pedido del humano (uat_delegated_to_orchestrator).\n1. Lista de pedidos con número, fecha, cliente, total, entrega y estado, con filtros por evento, estado y entrega → PASS (orden descendente; los filtros se combinan; vacío → \"No hay pedidos.\").\n2. El detalle muestra líneas con miniatura, producto y cantidad, más contacto y dirección → PASS (68KYFHEA).\n3. Avance de estado según el flujo, sin saltos → PASS (envío: Impreso→Enviado→Entregado; retiro: Impreso→Listo para retiro→Entregado; doble clic = un solo paso; pantalla vieja rechazada).\n4. La lista de impresión agrupa por tamaño y permite descargar el original → PASS (10x15 ×1, 20x25 ×2, A4 ×2; descarga por blob sin token).\n5. Los pedidos solo digitales no aparecen en la lista de impresión → PASS (P2GKQZQD fue directo a Entregado y no figura).\n6. Solo el admin ve pedidos y cambia estados → PASS (anónimo y usuario sin claim → 403 al avanzar y al leer)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T04:07:48.306Z",
+      "body": "[FINDING-RESOLVED: U-1] El comentario uat quedó registrado con los 6 AC en PASS (navegador, 87b9118)."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T04:08:50.724Z",
+      "body": "Re-review de 3b0f617..87b9118: PASS. Los MEDIUM M-1 a M-6 están resueltos (getBlob sin token; consulta de pagados sin tope; fallback propio; isAdmin con spec exhaustivo; cargas en paralelo). npm test 63/63; test:functions 15/15; vue-tsc OK.\nLOW: revokeObjectURL en el mismo tick (riesgo en Firefox/Safari); nombre de descarga sin extensión si photo.name no la tiene."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T04:08:51.126Z",
+      "body": "ENTREGA TASK-018\n\n1. CASOS DE USO APROBADOS\nReferencia: comentario \"CASOS DE USO PROPUESTOS\", aprobado por el humano el 2026-10-11 (\"yes\"), CU1–CU8. Todos cumplidos; ningún caso cambió.\n\n2. RESULTADO\nEl fotógrafo ve sus pedidos en /admin/pedidos (lista, filtros combinables y detalle) y los avanza con advanceOrder (Function solo para admin, transaccional, sin saltos ni retrocesos, con statusHistory). En /admin/impresion ve las copias pendientes agrupadas por tamaño y descarga el original con getBlob, sin URL pública. Commits 3b0f617, 6956abd y 87b9118. Afuera a propósito: la vista de cobros sin pedido (seguimiento de TASK-017, pendiente de la decisión del humano).\n\n3. WARGAMING\nAtacado en Chrome real: CU1–CU8.\nCaminos alternativos: retiro, envío, solo digital.\nCaminos de fallo: doble clic, pantalla vieja, pedido entregado, id inexistente, anónimo y usuario sin claim.\nSobrevivió todo. M-1 (originales con token) se corrigió en la review y se re-atacó: descarga por blob, cero URLs de originals/ en el DOM.\nE2E afectados: ninguno. Veredicto: PASS.\n\n4. UAT\nVeredicto: PASS en los 6 AC, verificado por el orquestador a pedido del humano (ver el comentario uat)."
     }
   ],
   "created_at": "2026-10-03T18:51:36.087Z",
-  "updated_at": "2026-10-12T03:48:11.536Z",
+  "updated_at": "2026-10-12T04:08:51.126Z",
   "jira_key": null,
   "verification_tier": "tests-after",
-  "requires_uat": true
+  "requires_uat": true,
+  "linked_commits_verification": {
+    "at": "2026-10-12T04:08:51.126Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "3b0f617",
+        "state": "verified"
+      },
+      {
+        "sha": "6956abd",
+        "state": "verified"
+      },
+      {
+        "sha": "87b9118",
+        "state": "verified"
+      }
+    ]
+  }
 }
