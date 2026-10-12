@@ -1,7 +1,7 @@
 /** Logica pura de las descargas digitales (TASK-019): propiedad del pedido, plazo del enlace y limite de intentos. Sin Firebase ni red. */
 
-/** Id fijo del producto digital (ver DIGITAL_ID en src/productsLogic.ts). */
-export const DIGITAL_ID = "digital";
+import { DIGITAL_ID } from "./orderStatus";
+
 /** Plazo por defecto del enlace. Los enlaces firmados v4 de Cloud Storage admiten como maximo 7 dias. */
 export const DEFAULT_TTL_DAYS = 7;
 export const MAX_TTL_DAYS = 7;
@@ -33,6 +33,25 @@ export function digitalPhotos(lines: { eventId: string; photoId: string; product
     out.push({ eventId: l.eventId, photoId: l.photoId });
   }
   return out;
+}
+
+/**
+ * IP real del cliente para el limite de intentos. Se toma la ULTIMA entrada de X-Forwarded-For: es la que agrega
+ * Google Front End con la IP que realmente se conecto; las anteriores las puede escribir el cliente (suplantables).
+ * No se usa rawRequest.ip: sin "trust proxy" en Express devuelve la IP del proxy, no la del cliente.
+ */
+export const clientIp = (xff: unknown, fallback?: string): string => {
+  const last = typeof xff === "string" ? xff.split(",").pop()?.trim() : "";
+  return last || fallback || "unknown";
+};
+
+/** Content-Disposition RFC 6266: `filename` ASCII de respaldo + `filename*` UTF-8 con porcentaje; el nombre lleva la extension del archivo. */
+export function contentDisposition(name: string, path: string): string {
+  const ext = /\.[A-Za-z0-9]{1,5}$/.exec(path)?.[0] ?? "";
+  const full = ext && !name.toLowerCase().endsWith(ext.toLowerCase()) ? name + ext : name;
+  const ascii = full.replace(/[^ -~]|["\%;]/g, "_");
+  const utf8 = encodeURIComponent(full).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${utf8}`;
 }
 
 /** Dias de vigencia validos: entero 1..7; cualquier otro valor usa el defecto. */

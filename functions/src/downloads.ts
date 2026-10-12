@@ -4,7 +4,7 @@ import * as admin from "firebase-admin";
 import { FieldValue, Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import {
-  addFailure, AttemptState, digitalPhotos, emailsMatch, expiresAtMs, isBlocked, isPaidStatus, normalizeNumber,
+  addFailure, AttemptState, contentDisposition, digitalPhotos, emailsMatch, expiresAtMs, isBlocked, isPaidStatus, normalizeNumber,
 } from "./downloadsLogic";
 
 export interface DownloadFile { eventId: string; photoId: string; name: string; url: string; expiresAt: number }
@@ -36,7 +36,7 @@ async function linkFor(bucket: ReturnType<admin.storage.Storage["bucket"]>, path
   }
   const [url] = await file.getSignedUrl({
     version: "v4", action: "read", expires,
-    responseDisposition: `attachment; filename="${filename.replace(/["\\\r\n]/g, "_")}"`,
+    responseDisposition: contentDisposition(filename, path),
   });
   return url;
 }

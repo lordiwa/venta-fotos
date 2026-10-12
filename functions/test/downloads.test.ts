@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  addFailure, digitalPhotos, emailsMatch, expiresAtMs, isBlocked, isPaidStatus, MAX_FAILURES, ttlDays, WINDOW_MS,
+  addFailure, clientIp, contentDisposition, digitalPhotos, emailsMatch, expiresAtMs, isBlocked, isPaidStatus, MAX_FAILURES, ttlDays, WINDOW_MS,
 } from "../src/downloadsLogic";
 
 const line = (productId: string, photoId = "p1", eventId = "e1") => ({ eventId, photoId, productId });
@@ -40,5 +40,20 @@ describe("downloadsLogic", () => {
     expect(isBlocked(s, 1000 + WINDOW_MS)).toBe(false);
     expect(addFailure(s, 1000 + WINDOW_MS)).toEqual({ count: 1, windowStart: 1000 + WINDOW_MS });
     expect(isBlocked(undefined, 5)).toBe(false);
+  });
+
+  // Previene: saltarse el limite por IP escribiendo un X-Forwarded-For falso (la clave de conteo no debe cambiar).
+  it("W-1 un X-Forwarded-For falso al inicio no cambia la IP usada para limitar", () => {
+    expect(clientIp("9.9.9.9, 203.0.113.7")).toBe("203.0.113.7");
+    expect(clientIp("1.1.1.1, 2.2.2.2, 203.0.113.7")).toBe(clientIp("203.0.113.7"));
+    expect(clientIp(undefined, "10.0.0.1")).toBe("10.0.0.1");
+  });
+
+  // Previene: descargar sin extension o con nombre roto (RFC 6266: filename* UTF-8 + respaldo ASCII).
+  it("el nombre de descarga lleva extension, filename* UTF-8 y respaldo ASCII", () => {
+    expect(contentDisposition("Niño \"A\"", "originals/e1/p1.jpg")).toBe(
+      "attachment; filename=\"Ni_o _A_.jpg\"; filename*=UTF-8''Ni%C3%B1o%20%22A%22.jpg",
+    );
+    expect(contentDisposition("foto.png", "originals/e1/p1.png")).toContain("filename=\"foto.png\"");
   });
 });
