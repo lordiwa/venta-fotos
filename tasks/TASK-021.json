@@ -10,7 +10,7 @@
     "Un pedido de prueba de punta a punta funciona en producción",
     "README explica desarrollo local con emuladores y despliegue"
   ],
-  "status": "todo",
+  "status": "in_progress",
   "priority": "medium",
   "labels": [
     "deploy",
@@ -24,9 +24,20 @@
   ],
   "linked_commits": [],
   "linked_prs": [],
-  "comments": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T17:30:32.979Z",
+      "body": "Decisiones del humano (2026-10-12): proyecto Firebase 'venta-fotos-estudio' (display 'Venta de Fotos') en la cuenta rmatovelle84@gmail.com; región southamerica-east1 para Firestore, Storage y Functions. Creados: proyecto y app web (1:508685694209:web:b588420978c5ac35e31700); config en .env.production.local (gitignored); .firebaserc default → venta-fotos-estudio. Pendiente en consola (humano): plan Blaze, habilitar Firestore API/crear DB, Storage, proveedor Email/Password. Pendiente en código: fijar región southamerica-east1 en functions (setGlobalOptions) y en el cliente (getFunctions(app, region))."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T17:41:18.729Z",
+      "body": "Infra: humano activó Blaze, Storage (southamerica-east1) y Auth email/password. Firestore se había creado en nam5 por consola; con aprobación del humano se borró (vacía) y se recreó (default) en southamerica-east1 (verificado con databases:get). Commit caa73a3: setGlobalOptions region southamerica-east1 en functions, FUNCTIONS_REGION en el cliente, URLs del test de integración actualizadas, .firebaserc → venta-fotos-estudio. Pendiente: correr test:functions:integration con emuladores detenidos; secretos PayPal live; deploy; cuenta admin real; README."
+    }
+  ],
   "created_at": "2026-10-03T18:51:36.286Z",
-  "updated_at": "2026-10-03T18:51:36.286Z",
+  "updated_at": "2026-10-12T17:41:18.729Z",
   "jira_key": null,
   "verification_tier": "uat-only",
   "requires_uat": true

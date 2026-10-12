@@ -1,0 +1,41 @@
+{
+  "key": "TASK-023",
+  "title": "Rediseño Estudio de la tienda (comprador)",
+  "description": "Aplicar el diseño Estudio a las vistas de la tienda usando los componentes de TASK-022. Referencias en docs/design/estudio/: Main.dc.html (HomeView: hero con eyebrow \"Fotografía de eventos\", \"Encuentra tu foto.\", evento destacado + grilla), Evento.dc.html (EventGallery con galería en mosaico), Foto.dc.html (PhotoLightbox + PurchasePanel con OptionCard y Stepper), Carrito.dc.html (CartView), Pagar.dc.html (CheckoutView), Confirmacion.dc.html (OrderView con OrderNumber), Descargas.dc.html (DescargasView + DownloadList). Las imágenes de muestra (/_blob/...) se reemplazan por las fotos reales; valores [ENTRE CORCHETES] son datos reales. Sin cambios de funcionalidad.",
+  "acceptance_criteria": [
+    "Cada vista de la tienda sigue el layout, jerarquía tipográfica, colores y componentes de su .dc.html de referencia",
+    "Todos los estados existentes (cargando, vacío, error, sin conexión, agotado, etc.) siguen visibles y usan Alert/Badge del sistema",
+    "El flujo completo inicio → evento → foto → carrito → pagar (Simular pago) → confirmación → descargas funciona igual que antes",
+    "Funciona a ancho de móvil (390px) sin scroll horizontal",
+    "typecheck, tests unitarios y build verdes"
+  ],
+  "status": "in_review",
+  "priority": "high",
+  "labels": [
+    "design-system",
+    "frontend"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-022"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "developer",
+      "at": "2026-10-12T17:03:42.390Z",
+      "body": "Hand-off: commit 8147c47. Rediseño de HomeView, EventGallery, CartView, CheckoutView, OrderView, DescargasView, NotFoundView, PhotoThumb (prop fill opcional), PhotoLightbox (props caption/tag; focus-trap ignora botones deshabilitados), PurchasePanel (OptionCard + Stepper), DownloadList. Desviaciones: heroes contenidos (no full-bleed) por el max-width del layout; hero de inicio con portada del evento más reciente o fondo rail; sin marca 'VISTA PREVIA' (ya está horneada); imagen del lightbox con contain; sin miniaturas en checkout/descargas porque la vista no tiene los datos. build y npm test (69) verdes. Sin verificación visual."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T17:09:09.697Z",
+      "body": "Review fresca de 8147c47: APPROVE con M-1. Verificado por lectura: carrito (Stepper → setQuantity), PurchasePanel, checkout (contenedor PayPal, Simular pago, recuperación de pago pendiente), lightbox (teclado/swipe/foco), data-testid conservados. M-1: focus-trap del lightbox no incluye a[href] (enlace 'Ver carrito' inalcanzable por Tab). LOW: portada renderizada dos veces en inicio. R-1 (proceso): falta UAT del flujo completo y 390px."
+    }
+  ],
+  "created_at": "2026-10-12T16:53:26.878Z",
+  "updated_at": "2026-10-12T17:09:09.697Z",
+  "jira_key": null,
+  "verification_tier": "uat-only",
+  "marker": "[EXPLICIT]"
+}

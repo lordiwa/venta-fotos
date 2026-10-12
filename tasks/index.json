@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-12T15:39:33.345Z",
+  "generated_at": "2026-10-12T17:41:18.729Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -76,8 +76,26 @@
     {
       "key": "TASK-021",
       "title": "Despliegue a producción en Firebase",
-      "status": "todo",
+      "status": "in_progress",
       "priority": "medium"
+    },
+    {
+      "key": "TASK-022",
+      "title": "Design system Estudio: tokens, fuentes, componentes base y layouts",
+      "status": "in_progress",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-023",
+      "title": "Rediseño Estudio de la tienda (comprador)",
+      "status": "in_review",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-024",
+      "title": "Rediseño Estudio del panel de administración",
+      "status": "in_review",
+      "priority": "high"
     }
   ]
 }

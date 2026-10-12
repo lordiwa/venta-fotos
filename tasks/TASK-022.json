@@ -1,0 +1,39 @@
+{
+  "key": "TASK-022",
+  "title": "Design system Estudio: tokens, fuentes, componentes base y layouts",
+  "description": "Portar el design system \"Estudio\" diseñado en Claude Design (https://claude.ai/artifact/FZYZksHRjVde2UEoVGGG9X) a Vue 3. Referencia copiada en docs/design/estudio/ (tokens.css, tokens.json, components/bundle.css, components/bundle.js con los componentes React de referencia, y los .dc.html de cada pantalla). Esta tarea es la base: tokens CSS (tema claro y oscuro por data-theme), fuentes (Bricolage Grotesque, Instrument Sans, DM Mono vía Google Fonts), clases tipográficas, y componentes Vue equivalentes a Wordmark, Icon, Button, Badge, Eyebrow, Field, Stepper, OptionCard, PhotoTile/galería, Card, Alert, OrderNumber, Dropzone, TopBar (tienda) y SideNav (admin), más PublicLayout y AdminLayout rediseñados. Sin cambios de funcionalidad.",
+  "acceptance_criteria": [
+    "src/styles/tokens.css reproduce los tokens de docs/design/estudio/ds/estudio/tokens.css (claro + [data-theme=dark]) y se importa desde main.ts; las fuentes se cargan en index.html",
+    "Existen componentes Vue en src/ui/ para Wordmark, Icon, Button (variantes primary/accent/secondary/danger/ghost, tamaños md/lg, icon-only), Badge (tonos), Eyebrow, Field, Stepper, OptionCard, PhotoTile, Card, Alert, OrderNumber, Dropzone, TopBar y SideNav, con el CSS de bundle.css",
+    "PublicLayout usa TopBar (logo, enlaces Eventos / Mis descargas, píldora del carrito con contador real) y el footer del diseño; AdminLayout usa SideNav (Panel, Eventos, Productos, Pedidos, Impresión, Configuración; Ver tienda, Cerrar sesión) que se apila en móvil",
+    "Controles tocables >= 44px y foco visible con el anillo --focus",
+    "npm run typecheck, los tests unitarios y el build siguen verdes; no cambia ninguna lógica"
+  ],
+  "status": "in_progress",
+  "priority": "high",
+  "labels": [
+    "design-system",
+    "frontend"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "developer",
+      "at": "2026-10-12T17:03:42.297Z",
+      "body": "Hand-off: commit a8648d7. Componentes en src/ui (index.ts exporta Wordmark, Icon, Button, Badge, Eyebrow, Field, Stepper, OptionCard, PhotoTile, Card, Alert, OrderNumber, Dropzone, TopBar, SideNav), tokens en src/styles (tokens.css claro + data-theme=dark, components.css desde bundle.css), fuentes en index.html, PublicLayout con TopBar y AdminLayout con SideNav. npm run build (vue-tsc) y npm test (69) verdes. Sin verificación visual en navegador."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T17:09:09.610Z",
+      "body": "Review fresca de a8648d7: APPROVE. build y npm test 69/69 verdes. tokens.css idéntico a la referencia. Sin regresiones funcionales. LOW: PhotoTile exportado sin uso (lo exige el AC); hex con alpha en components.css heredados de bundle.css. R-1 (proceso): cierre requiere UAT registrada; tickets uat-only sin verificación visual."
+    }
+  ],
+  "created_at": "2026-10-12T16:53:12.784Z",
+  "updated_at": "2026-10-12T17:09:09.610Z",
+  "jira_key": null,
+  "verification_tier": "uat-only",
+  "marker": "[EXPLICIT]"
+}

@@ -1,0 +1,41 @@
+{
+  "key": "TASK-024",
+  "title": "Rediseño Estudio del panel de administración",
+  "description": "Aplicar el diseño Estudio a las vistas de admin usando los componentes de TASK-022. Referencias en docs/design/estudio/: AdminLogin, AdminPanel (AdminHome), AdminEventos (AdminEvents + AdminEventForm), AdminEvento (AdminEventDetail + PhotoUploader con Dropzone), AdminProductos (AdminProducts), AdminPedidos (AdminOrders: tabla + panel de detalle con shadow-panel y badges por estado), AdminImpresion (AdminPrintList), AdminConfig (AdminSettings). Sin cambios de funcionalidad.",
+  "acceptance_criteria": [
+    "Cada vista de admin sigue el layout, tipografía, colores y componentes de su .dc.html de referencia, dentro del AdminLayout con SideNav",
+    "Los estados de pedido usan los badges del sistema: Pagado=amber, Impreso=info, Listo para retiro=teal, Enviado=violet, Entregado=success; Publicado/Activo=success, Borrador/Inactivo=neutral",
+    "Todos los estados existentes (cargando, vacío, error + Reintentar, validación, sin conexión, subida con progreso/error) siguen funcionando",
+    "Funciona a ancho de móvil sin scroll horizontal de página (la tabla de pedidos scrollea en su caja)",
+    "typecheck, tests unitarios y build verdes"
+  ],
+  "status": "in_review",
+  "priority": "high",
+  "labels": [
+    "design-system",
+    "frontend"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-022"
+  ],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "developer",
+      "at": "2026-10-12T17:03:42.451Z",
+      "body": "Hand-off: commit bc110be. Rediseño de AdminLogin, AdminHome, AdminEvents, AdminEventForm, AdminEventDetail, AdminProducts, AdminOrders, AdminPrintList, AdminSettings y PhotoUploader (Dropzone envuelto en un div que conserva drag&drop). Desviaciones: login con degradado rail sin foto; AdminEvents lee la portada de cada evento con getPhoto (una lectura extra por evento); se omitió la línea de secuencia de estados en pedidos; controles deshabilitables pasados por el slot de Field. build y npm test (69) verdes. Sin verificación visual."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-12T17:09:09.767Z",
+      "body": "Review fresca de bc110be: APPROVE. Sin regresiones: formularios conservan submit/disabled, estados de carga/vacío/error/offline, drag&drop del uploader, logout del SideNav, badges por estado según el AC. M-3: getPhoto por evento en AdminEvents (1+2N lecturas, permitido por reglas; aceptado por el orquestador). M-4: doble enlace por fila en AdminEvents. LOW: STATUS_TONE duplica Badge; Dropzone.disabled sin uso; placeholder ignorado en AdminProducts. R-1 (proceso): falta UAT."
+    }
+  ],
+  "created_at": "2026-10-12T16:53:26.939Z",
+  "updated_at": "2026-10-12T17:09:09.767Z",
+  "jira_key": null,
+  "verification_tier": "uat-only",
+  "marker": "[EXPLICIT]"
+}
