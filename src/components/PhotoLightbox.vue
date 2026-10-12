@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import { publicUrl } from '../photosApi'
+import PurchasePanel from './PurchasePanel.vue'
 import { swipeDirection } from '../galleryLogic'
 import type { Photo } from '../types'
 
@@ -23,7 +24,7 @@ let opener: HTMLElement | null = null
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Tab' && root.value) { // el foco no sale del dialogo
-    const f = Array.from(root.value.querySelectorAll<HTMLElement>('button'))
+    const f = Array.from(root.value.querySelectorAll<HTMLElement>('button, select, input:not(:disabled)'))
     if (!f.length) return
     const first = f[0], last = f[f.length - 1], at = document.activeElement
     if (!root.value.contains(at)) { e.preventDefault(); first.focus() }
@@ -32,6 +33,7 @@ function onKey(e: KeyboardEvent) {
     return
   }
   if (e.key === 'Escape') emit('close')
+  else if ((e.target as HTMLElement | null)?.closest?.('input, select')) return // flechas dentro de los campos no cambian de foto
   else if (e.key === 'ArrowLeft' && props.hasPrev) emit('prev')
   else if (e.key === 'ArrowRight' && props.hasNext) emit('next')
 }
@@ -60,6 +62,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
     <img v-if="url" :src="url" :width="photo?.width" :height="photo?.height" alt="Foto del evento" />
     <p v-else-if="loading || (photo && !failed)">Cargando…</p>
     <p v-else>Foto no disponible</p>
+    <PurchasePanel v-if="photo && url" :event-id="photo.eventId" :photo-id="photo.id" />
   </div>
 </template>
 

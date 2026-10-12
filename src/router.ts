@@ -28,6 +28,7 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('./views/EventGallery.vue'),
         children: [{ path: 'fotos/:photoId', name: 'event-photo', component: { render: () => null } }],
       },
+      { path: 'carrito', name: 'cart', component: () => import('./views/CartView.vue') },
       { path: ':pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue') },
     ],
   },

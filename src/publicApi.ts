@@ -46,3 +46,17 @@ export async function fetchPhotosPage(eventId: string, cursor: PhotoCursor) {
     hasMore: snap.docs.length === PAGE_SIZE,
   }
 }
+
+/** Foto vendible: null si no existe, no es visible/lista o su evento no esta publicado (admin logueado incluido). Red y otros errores se propagan. */
+export async function getPublicPhoto(eventId: string, photoId: string): Promise<Photo | null> {
+  try {
+    if (!(await getPublishedEvent(eventId))) return null
+    const s = await getDoc(doc(db, 'events', eventId, 'photos', photoId))
+    const d = s.data()
+    return s.exists() && d?.visible === true && d.status === 'ready' ? ({ id: s.id, eventId, ...d }) as Photo : null
+  } catch (e) {
+    const code = (e as { code?: string }).code
+    if (code === 'permission-denied' || code === 'not-found') return null
+    throw e
+  }
+}
