@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin — productos</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div style="min-height: 1000px; display: flex; flex-wrap: wrap; font-family: var(--font-sans); color: var(--ink); background: var(--surface)">
+<x-import component-from-global-scope="Estudio.SideNav" items="{{nav}}" home-href="AdminPanel.dc.html" store-href="Main.dc.html" logout-href="AdminLogin.dc.html" style="display: flex; flex: 1 1 240px"></x-import>
+<main style="flex: 999 1 560px; min-width: 0; padding: 44px var(--space-12) 72px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-7)">
+<h1 class="display-md" style="margin: 0; color: var(--ink)">Productos</h1>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: var(--space-5); align-items: start">
+<x-import component-from-global-scope="Estudio.Card" title="Copias impresas">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{prints}}" as="p" hint-placeholder-count="3">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line)">
+<span style="flex: 1 1 120px; display: flex; flex-direction: column; gap: 2px"><strong class="display-xs">{{p.name}}</strong><span class="mono-sm" style="color: var(--ink-muted)">[PRECIO]</span></span>
+<x-import component-from-global-scope="Estudio.Badge" status="{{p.status}}"></x-import>
+<span style="display: flex; gap: 6px"><x-import component-from-global-scope="Estudio.Button" >Editar</x-import><x-import component-from-global-scope="Estudio.Button" >{{p.toggle}}</x-import></span>
+</li>
+</sc-for>
+</ul>
+<x-import component-from-global-scope="Estudio.Card" sunken="{{yes}}" as="form" aria-label="Nuevo tamaño">
+<h3 style="margin: 0; font-size: 15px; font-weight: 600">Nuevo tamaño</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: var(--space-3)">
+<x-import component-from-global-scope="Estudio.Field" label="Nombre" placeholder="10x15"></x-import>
+<x-import component-from-global-scope="Estudio.Field" label="Precio (USD)" mono="{{yes}}" input-mode="decimal" placeholder="5.00"></x-import>
+</div>
+<div style="display: flex; gap: var(--space-2)"><x-import component-from-global-scope="Estudio.Button" variant="primary">Guardar</x-import><x-import component-from-global-scope="Estudio.Button" >Cancelar</x-import></div>
+</x-import>
+</x-import>
+<x-import component-from-global-scope="Estudio.Card" title="Archivo digital" aside="{{activo}}">
+<p class="body-sm" style="margin: 0; color: var(--ink-muted)">Descarga en alta resolución sin marca de agua. Un solo precio para todas las fotos.</p>
+<div style="display: flex; align-items: baseline; gap: var(--space-2)"><span class="display-md" style="font-size: 34px">[PRECIO]</span><span class="mono-sm" style="color: var(--ink-muted)">USD por foto</span></div>
+<x-import component-from-global-scope="Estudio.Card" sunken="{{yes}}" as="form" aria-label="Nuevo precio">
+<x-import component-from-global-scope="Estudio.Field" label="Nuevo precio (USD)" mono="{{yes}}" input-mode="decimal" placeholder="3.00"></x-import>
+<div style="display: flex; flex-wrap: wrap; gap: var(--space-2)"><x-import component-from-global-scope="Estudio.Button" variant="primary">Guardar</x-import><x-import component-from-global-scope="Estudio.Button" >Desactivar</x-import></div>
+</x-import>
+</x-import>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+const A = 'productos';
+return { yes: true, nav: [
+{ label: 'Panel', icon: 'panel', href: 'AdminPanel.dc.html', active: A === 'panel' },
+{ label: 'Eventos y fotos', icon: 'eventos', href: 'AdminEventos.dc.html', active: A === 'eventos' },
+{ label: 'Productos y precios', icon: 'productos', href: 'AdminProductos.dc.html', active: A === 'productos' },
+{ label: 'Pedidos', icon: 'pedidos', href: 'AdminPedidos.dc.html', active: A === 'pedidos' },
+{ label: 'Lista de impresión', icon: 'impresion', href: 'AdminImpresion.dc.html', active: A === 'impresion' },
+{ label: 'Configuración', icon: 'configuracion', href: 'AdminConfig.dc.html', active: A === 'config' }
+], activo: window.React.createElement(window.Estudio.Badge, { status: 'activo' }), prints: [ { name: '10x15', status: 'activo', toggle: 'Desactivar' }, { name: '13x18', status: 'activo', toggle: 'Desactivar' }, { name: '20x25', status: 'inactivo', toggle: 'Activar' } ] };
+}
+}
+</script>
+</body>
+</html>

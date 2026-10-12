@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin — lista de impresión</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div style="min-height: 1000px; display: flex; flex-wrap: wrap; font-family: var(--font-sans); color: var(--ink); background: var(--surface)">
+<x-import component-from-global-scope="Estudio.SideNav" items="{{nav}}" home-href="AdminPanel.dc.html" store-href="Main.dc.html" logout-href="AdminLogin.dc.html" style="display: flex; flex: 1 1 240px"></x-import>
+<main style="flex: 999 1 560px; min-width: 0; padding: 44px var(--space-12) 72px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-7)">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4)">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><h1 class="display-md" style="margin: 0; color: var(--ink)">Lista de impresión</h1><p class="body-sm" style="margin: 0; color: var(--ink-muted)">Copias pendientes de los pedidos pagados, agrupadas por tamaño.</p></div>
+<x-import component-from-global-scope="Estudio.Button" icon="pedidos" href="AdminPedidos.dc.html">Pedidos</x-import>
+</div>
+<x-import component-from-global-scope="Estudio.Card" title="10x15" aside="{{c3}}"><ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: var(--space-4)"><li style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--surface-sunken)"><img src="/_blob/3a7af7fc79c2e797cd5ff56df3d701f1" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover"><span style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--ink); color: var(--on-ink); font: 13px var(--font-mono)">× 2</span></div>
+<x-import component-from-global-scope="Estudio.Button" icon="descargar">Descargar original</x-import>
+</li><li style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--surface-sunken)"><img src="/_blob/094ac1a46530468edb11ef18108a47d0" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover"><span style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--ink); color: var(--on-ink); font: 13px var(--font-mono)">× 1</span></div>
+<x-import component-from-global-scope="Estudio.Button" disabled="{{yes}}">Descargando…</x-import>
+</li></ul></x-import>
+<x-import component-from-global-scope="Estudio.Card" title="20x25" aside="{{c1}}"><ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: var(--space-4)"><li style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--surface-sunken)"><img src="/_blob/ffbffd35e5c3e056e79180ff72a1d370" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover"><span style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--ink); color: var(--on-ink); font: 13px var(--font-mono)">× 1</span></div>
+<x-import component-from-global-scope="Estudio.Button" icon="descargar">Descargar original</x-import>
+</li></ul></x-import>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+const A = 'impresion';
+return { yes: true, nav: [
+{ label: 'Panel', icon: 'panel', href: 'AdminPanel.dc.html', active: A === 'panel' },
+{ label: 'Eventos y fotos', icon: 'eventos', href: 'AdminEventos.dc.html', active: A === 'eventos' },
+{ label: 'Productos y precios', icon: 'productos', href: 'AdminProductos.dc.html', active: A === 'productos' },
+{ label: 'Pedidos', icon: 'pedidos', href: 'AdminPedidos.dc.html', active: A === 'pedidos' },
+{ label: 'Lista de impresión', icon: 'impresion', href: 'AdminImpresion.dc.html', active: A === 'impresion' },
+{ label: 'Configuración', icon: 'configuracion', href: 'AdminConfig.dc.html', active: A === 'config' }
+], c3: window.React.createElement('span', { className: 'mono-sm', style: { color: 'var(--ink-muted)' } }, '3 copias'), c1: window.React.createElement('span', { className: 'mono-sm', style: { color: 'var(--ink-muted)' } }, '1 copia') };
+}
+}
+</script>
+</body>
+</html>

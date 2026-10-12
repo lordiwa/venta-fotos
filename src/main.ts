@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
+import './styles/tokens.css'
+import './styles/components.css'
 import './style.css'
 import './firebase'
 import App from './App.vue'

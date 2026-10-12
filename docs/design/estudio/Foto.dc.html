@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Foto ampliada y compra</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div role="dialog" aria-modal="true" aria-label="Foto ampliada" style="min-height: 900px; display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--on-rail); background: var(--overlay)">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-6) 0">
+<span class="mono-sm" style="color: var(--on-rail-muted); padding-left: var(--space-4)">Carrera 10K · Foto 7 de 15</span>
+<a href="Evento.dc.html" aria-label="Cerrar" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-pill); border: 1px solid #f3efe633; text-decoration: none; color: var(--on-rail)"><x-import component-from-global-scope="Estudio.Icon" name="cerrar"></x-import></a>
+</div>
+<div style="flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); padding: var(--space-4) var(--space-6) var(--space-8); box-sizing: border-box">
+<div style="flex: 999 1 560px; min-width: 0; display: flex; align-items: center; gap: var(--space-3)">
+<button type="button" aria-label="Foto anterior" style="flex: 0 0 auto; width: 48px; height: 48px; border-radius: var(--radius-pill); border: 1px solid #f3efe633; background: #0000; color: var(--on-rail); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="Estudio.Icon" name="anterior" size="{{n20}}"></x-import></button>
+<figure role="img" aria-label="Foto del evento, vista previa con marca de agua" style="flex: 1; min-width: 0; margin: 0; position: relative; aspect-ratio: 3 / 2; max-height: 680px; overflow: hidden; border-radius: 8px; background: var(--surface-sunken); box-shadow: var(--shadow-lightbox)">
+<img src="/_blob/3a7af7fc79c2e797cd5ff56df3d701f1" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover">
+<div aria-hidden="true" style="position: absolute; inset: -30%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-content: space-around; justify-items: center; transform: rotate(-18deg); font: 22px var(--font-mono); letter-spacing: 0.3em; color: #ffffff38; pointer-events: none; user-select: none"><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span><span>VISTA PREVIA</span></div>
+</figure>
+<button type="button" aria-label="Foto siguiente" style="flex: 0 0 auto; width: 48px; height: 48px; border-radius: var(--radius-pill); border: 1px solid #f3efe633; background: #0000; color: var(--on-rail); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="Estudio.Icon" name="siguiente" size="{{n20}}"></x-import></button>
+</div>
+<form style="flex: 1 1 340px; max-width: 400px; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-7); box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); color: var(--ink)">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="Estudio.Eyebrow" >Foto #7</x-import>
+<h2 class="display-sm" style="margin: 0; font-size: 28px">Elige tu formato</h2>
+</div>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--space-2)">
+<legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Producto</legend>
+<sc-for list="{{products}}" as="p" hint-placeholder-count="4">
+<x-import component-from-global-scope="Estudio.OptionCard" name="producto" label="{{p.name}}" meta="{{p.kind}}" price="[PRECIO]" checked="{{p.checked}}" on-change="{{p.pick}}"></x-import>
+</sc-for>
+</fieldset>
+<sc-if value="{{isPrint}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3)">
+<span class="label" style="color: var(--ink-muted)">Cantidad</span>
+<x-import component-from-global-scope="Estudio.Stepper" value="{{qty}}" on-change="{{setQty}}"></x-import>
+</div>
+</sc-if>
+<sc-if value="{{isDigital}}" hint-placeholder-val="{{false}}">
+<p class="body-sm" style="margin: 0; color: var(--ink-muted)">Archivo digital: una descarga por foto, sin marca de agua.</p>
+</sc-if>
+<x-import component-from-global-scope="Estudio.Button" variant="accent" size="lg" icon="carrito" on-click="{{add}}">Agregar al carrito</x-import>
+<sc-if value="{{added}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="Estudio.Alert" tone="success" action="{{verCarrito}}">Agregado al carrito</x-import>
+</sc-if>
+</form>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { picked: 0, qty: 1, added: false }; }
+renderVals() {
+const names = [['10x15','Copia impresa'],['13x18','Copia impresa'],['20x25','Copia impresa'],['Archivo digital','Descarga en alta resolución']];
+const picked = this.state.picked;
+const products = names.map((n, i) => ({ name: n[0], kind: n[1], checked: i === picked, pick: () => this.setState({ picked: i, qty: i === 3 ? 1 : this.state.qty, added: false }) }));
+return {
+n20: 20, products, qty: this.state.qty, added: this.state.added,
+isPrint: picked !== 3, isDigital: picked === 3,
+setQty: (n) => this.setState({ qty: n }),
+add: () => this.setState({ added: true }),
+verCarrito: window.React.createElement('a', { href: 'Carrito.dc.html', style: { fontWeight: 500 } }, 'Ver carrito')
+};
+}
+}
+</script>
+</body>
+</html>

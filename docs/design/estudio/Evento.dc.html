@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Galería del evento</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div style="min-height: 1500px; display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--ink); background: var(--surface)">
+<x-import component-from-global-scope="Estudio.TopBar" cart-count="{{cart}}" cart-href="Carrito.dc.html" home-href="Main.dc.html" links="{{links}}"></x-import>
+<section style="position: relative; min-height: 340px; display: flex; align-items: flex-end; overflow: hidden; background: var(--rail)">
+<img src="/_blob/400d42237833f63c33d053356087e127" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, #15140f40 0%, #15140f99 50%, #15140fe6 100%)"></div>
+<div style="position: relative; width: 100%; max-width: var(--content-max); margin: 0 auto; padding: var(--space-12) var(--space-10) var(--space-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-4); color: var(--on-rail)">
+<a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; color: var(--on-rail-muted); font-size: 14px; font-weight: 500; min-height: 44px"><x-import component-from-global-scope="Estudio.Icon" name="flecha-izquierda" size="{{n16}}"></x-import>Eventos</a>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4)">
+<div style="display: flex; flex-direction: column; gap: var(--space-3)">
+<h1 class="display-lg" style="margin: 0; font-size: 72px; color: var(--on-rail)">Carrera 10K</h1>
+<span class="mono-sm" style="color: var(--on-rail-muted)">[FECHA] · [LUGAR]</span>
+</div>
+<span class="mono-sm" style="color: var(--on-rail-muted); padding-bottom: 6px">15 fotos</span>
+</div>
+</div>
+</section>
+<main style="flex: 1; width: 100%; max-width: var(--content-max); margin: 0 auto; padding: var(--space-6) var(--space-10) 72px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-6)">
+<ul class="es-gallery">
+<sc-for list="{{photos}}" as="p" hint-placeholder-count="12">
+<li><x-import component-from-global-scope="Estudio.PhotoTile" src="{{p.src}}" label="{{p.label}}" href="Foto.dc.html" span="{{p.span}}" aria-label="{{p.aria}}" style="display: block; height: 100%"></x-import></li>
+</sc-for>
+</ul>
+<div role="status" style="display: flex; align-items: center; justify-content: center; gap: var(--space-3); padding: var(--space-5); font: 13px var(--font-mono); color: var(--ink-muted)"><span aria-hidden="true" style="display: inline-block; width: 40px; height: 2px; background: linear-gradient(90deg, var(--amber), #0000)"></span>Cargando más…</div>
+</main>
+<footer style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-7) var(--space-10); border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-muted)">
+<x-import component-from-global-scope="Estudio.Wordmark" style="font-size: 15px"></x-import>
+<div style="display: flex; flex-wrap: wrap; gap: var(--space-6)"><a href="Descargas.dc.html" style="color: var(--ink-muted); text-decoration: none">Mis descargas</a><a href="AdminLogin.dc.html" style="color: var(--ink-muted); text-decoration: none">Acceso del fotógrafo</a></div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cart: 2, links: [{ label: 'Eventos', href: 'Main.dc.html' }, { label: 'Mis descargas', href: 'Descargas.dc.html' }], n16: 16, photos: (function () {
+const srcs = ["/_blob/bf4b627695e1cde79c2b1a6123ee153f", "/_blob/ccc6be7ee9adbf4ba005095d1110c08d", "/_blob/d034addde3e3dd536eac3cf5d95daf41", "/_blob/3a7af7fc79c2e797cd5ff56df3d701f1", "/_blob/72fb28c5c4e21d772669fcb75153ed8d", "/_blob/2c163dcc6473da3e8a6c5e7da7a360e0", "/_blob/400d42237833f63c33d053356087e127", "/_blob/ffbffd35e5c3e056e79180ff72a1d370", "/_blob/1be31aad7beaf87d1e60a666316e9d6b", "/_blob/c3422e383599c0313a94e876a6439557", "/_blob/094ac1a46530468edb11ef18108a47d0", "/_blob/fecf633dbb204d3f03d38bce6c668bff"];
+const span = ['big','','','wide','','','','big','','wide','','','','',''];
+const out = [];
+for (let i = 0; i < 15; i++) out.push({ src: srcs[i % srcs.length], label: '#' + (i + 1), span: span[i] || '', aria: 'Ver foto ' + (i + 1) });
+return out;
+})() };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Inicio — eventos</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div style="min-height: 1500px; display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--ink); background: var(--surface)">
+<x-import component-from-global-scope="Estudio.TopBar" cart-count="{{cart}}" cart-href="Carrito.dc.html" home-href="Main.dc.html" links="{{links}}"></x-import>
+<section style="position: relative; min-height: 560px; display: flex; align-items: flex-end; overflow: hidden; background: var(--rail)">
+<img src="/_blob/41913865ca837e0bc0ba0ca88abc49ba" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, #15140f1a 0%, #15140f80 55%, #15140fe6 100%)"></div>
+<div style="position: relative; width: 100%; max-width: var(--content-max); margin: 0 auto; padding: 72px var(--space-10) var(--space-12); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-5); color: var(--on-rail)">
+<span class="eyebrow" style="text-transform: uppercase; color: var(--amber)">Fotografía de eventos</span>
+<h1 class="display-xl" style="margin: 0; font-size: clamp(52px, 8vw, 104px); max-width: 11ch; text-wrap: balance; color: var(--on-rail)">Encuentra tu foto.</h1>
+<p class="lead" style="margin: 0; max-width: 46ch; color: var(--on-rail-muted); text-wrap: pretty">Elige el evento, busca tu momento y llévatelo impreso o en digital.</p>
+</div>
+</section>
+<main style="flex: 1; width: 100%; max-width: var(--content-max); margin: 0 auto; padding: var(--space-8) var(--space-10) 88px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-7)">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--line)">
+<h2 class="display-md" style="margin: 0; font-size: 30px">Eventos</h2>
+<span class="mono-sm" style="color: var(--ink-muted)">4 eventos publicados</span>
+</div>
+<a class="card" href="Evento.dc.html" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); text-decoration: none; border-radius: var(--radius-lg); overflow: hidden; background: var(--surface-raised); border: 1px solid var(--line); color: var(--ink)">
+<div style="aspect-ratio: 16 / 10; overflow: hidden; background: var(--surface-sunken)"><img src="/_blob/400d42237833f63c33d053356087e127" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover"></div>
+<div style="display: flex; flex-direction: column; justify-content: flex-end; gap: var(--space-3); padding: 36px">
+<x-import component-from-global-scope="Estudio.Eyebrow" >Más reciente</x-import>
+<span class="display-lg" style="font-size: 44px">Carrera 10K</span>
+<span class="mono-sm" style="color: var(--ink-muted)">[FECHA] · [LUGAR]</span>
+<span style="display: inline-flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); color: var(--amber-ink); font-weight: 600">Ver las fotos <x-import component-from-global-scope="Estudio.Icon" name="flecha-derecha" size="{{n18}}"></x-import></span>
+</div>
+</a>
+<ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: var(--space-6)">
+<sc-for list="{{events}}" as="e" hint-placeholder-count="3">
+<li>
+<a class="card" href="Evento.dc.html" style="display: flex; flex-direction: column; gap: var(--space-3); text-decoration: none; color: var(--ink)">
+<div style="aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius-sm); background: var(--surface-sunken)"><img src="{{e.src}}" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover"></div>
+<span class="display-sm">{{e.name}}</span>
+<span class="mono-sm" style="color: var(--ink-muted)">{{e.meta}}</span>
+</a>
+</li>
+</sc-for>
+</ul>
+</main>
+<footer style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-7) var(--space-10); border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-muted)">
+<x-import component-from-global-scope="Estudio.Wordmark" style="font-size: 15px"></x-import>
+<div style="display: flex; flex-wrap: wrap; gap: var(--space-6)"><a href="Descargas.dc.html" style="color: var(--ink-muted); text-decoration: none">Mis descargas</a><a href="AdminLogin.dc.html" style="color: var(--ink-muted); text-decoration: none">Acceso del fotógrafo</a></div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cart: 2, links: [{ label: 'Eventos', href: 'Main.dc.html' }, { label: 'Mis descargas', href: 'Descargas.dc.html' }], n18: 18, events: [
+{ name: '[NOMBRE DEL EVENTO]', meta: '[FECHA] · [LUGAR]', src: '/_blob/d034addde3e3dd536eac3cf5d95daf41' },
+{ name: '[NOMBRE DEL EVENTO]', meta: '[FECHA] · [LUGAR]', src: '/_blob/72fb28c5c4e21d772669fcb75153ed8d' },
+{ name: '[NOMBRE DEL EVENTO]', meta: '[FECHA]', src: '/_blob/ffbffd35e5c3e056e79180ff72a1d370' }
+] };
+}
+}
+</script>
+</body>
+</html>

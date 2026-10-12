@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panel de administración</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; font-family: var(--font-sans); color: var(--ink); background: var(--surface)">
+<x-import component-from-global-scope="Estudio.SideNav" items="{{nav}}" home-href="AdminPanel.dc.html" store-href="Main.dc.html" logout-href="AdminLogin.dc.html" style="display: flex; flex: 1 1 240px"></x-import>
+<main style="flex: 999 1 560px; min-width: 0; padding: 44px var(--space-12) 72px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-7)">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="Estudio.Eyebrow" >Administración</x-import>
+<h1 class="display-md" style="margin: 0; color: var(--ink)">Panel</h1>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--space-4)"><li><a class="card" href="AdminEventos.dc.html" style="display: flex; flex-direction: column; gap: var(--space-4); height: 100%; padding: 26px; box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); text-decoration: none; color: var(--ink)">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--amber-ink)"><x-import component-from-global-scope="Estudio.Icon" name="eventos" size="{{n22}}"></x-import></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span class="display-sm" style="font-size: 20px">Eventos y fotos</span><span class="body-sm" style="color: var(--ink-muted)">Crea eventos, sube fotos y publícalos en la tienda.</span></span>
+</a></li><li><a class="card" href="AdminProductos.dc.html" style="display: flex; flex-direction: column; gap: var(--space-4); height: 100%; padding: 26px; box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); text-decoration: none; color: var(--ink)">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--amber-ink)"><x-import component-from-global-scope="Estudio.Icon" name="productos" size="{{n22}}"></x-import></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span class="display-sm" style="font-size: 20px">Productos y precios</span><span class="body-sm" style="color: var(--ink-muted)">Tamaños de impresión, archivo digital y sus precios.</span></span>
+</a></li><li><a class="card" href="AdminPedidos.dc.html" style="display: flex; flex-direction: column; gap: var(--space-4); height: 100%; padding: 26px; box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); text-decoration: none; color: var(--ink)">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--amber-ink)"><x-import component-from-global-scope="Estudio.Icon" name="pedidos" size="{{n22}}"></x-import></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span class="display-sm" style="font-size: 20px">Pedidos</span><span class="body-sm" style="color: var(--ink-muted)">Revisa cada pedido y avanza su estado hasta la entrega.</span></span>
+</a></li><li><a class="card" href="AdminImpresion.dc.html" style="display: flex; flex-direction: column; gap: var(--space-4); height: 100%; padding: 26px; box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); text-decoration: none; color: var(--ink)">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--amber-ink)"><x-import component-from-global-scope="Estudio.Icon" name="impresion" size="{{n22}}"></x-import></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span class="display-sm" style="font-size: 20px">Lista de impresión</span><span class="body-sm" style="color: var(--ink-muted)">Todas las copias pendientes, agrupadas por tamaño.</span></span>
+</a></li><li><a class="card" href="AdminConfig.dc.html" style="display: flex; flex-direction: column; gap: var(--space-4); height: 100%; padding: 26px; box-sizing: border-box; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); text-decoration: none; color: var(--ink)">
+<span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--amber-ink)"><x-import component-from-global-scope="Estudio.Icon" name="configuracion" size="{{n22}}"></x-import></span>
+<span style="display: flex; flex-direction: column; gap: 6px"><span class="display-sm" style="font-size: 20px">Configuración de la tienda</span><span class="body-sm" style="color: var(--ink-muted)">Costo de envío e instrucciones de retiro.</span></span>
+</a></li></ul>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const A = 'panel';
+return { yes: true, nav: [
+{ label: 'Panel', icon: 'panel', href: 'AdminPanel.dc.html', active: A === 'panel' },
+{ label: 'Eventos y fotos', icon: 'eventos', href: 'AdminEventos.dc.html', active: A === 'eventos' },
+{ label: 'Productos y precios', icon: 'productos', href: 'AdminProductos.dc.html', active: A === 'productos' },
+{ label: 'Pedidos', icon: 'pedidos', href: 'AdminPedidos.dc.html', active: A === 'pedidos' },
+{ label: 'Lista de impresión', icon: 'impresion', href: 'AdminImpresion.dc.html', active: A === 'impresion' },
+{ label: 'Configuración', icon: 'configuracion', href: 'AdminConfig.dc.html', active: A === 'config' }
+], n22: 22 };
+}
+}
+</script>
+</body>
+</html>

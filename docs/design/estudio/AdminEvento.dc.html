@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin — detalle del evento</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div style="min-height: 1500px; display: flex; flex-wrap: wrap; font-family: var(--font-sans); color: var(--ink); background: var(--surface)">
+<x-import component-from-global-scope="Estudio.SideNav" items="{{nav}}" home-href="AdminPanel.dc.html" store-href="Main.dc.html" logout-href="AdminLogin.dc.html" style="display: flex; flex: 1 1 240px"></x-import>
+<main style="flex: 999 1 560px; min-width: 0; padding: 44px var(--space-12) 72px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-7)">
+<a href="AdminEventos.dc.html" style="display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; color: var(--ink-muted); font-size: 14px; font-weight: 500; min-height: 44px"><x-import component-from-global-scope="Estudio.Icon" name="flecha-izquierda" size="{{n16}}"></x-import>Eventos</a>
+<section style="position: relative; display: flex; align-items: flex-end; min-height: 260px; overflow: hidden; border-radius: var(--radius-xl); background: var(--rail); color: var(--on-rail)">
+<img src="/_blob/400d42237833f63c33d053356087e127" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, #15140f0d 0%, #15140fd9 100%)"></div>
+<div style="position: relative; width: 100%; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-5); padding: var(--space-8); box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3)"><span class="display-lg" style="font-size: 44px; color: var(--on-rail)">Carrera 10K</span><x-import component-from-global-scope="Estudio.Badge" status="publicado"></x-import></div>
+<span class="mono-sm" style="color: var(--on-rail-muted)">[FECHA] · [LUGAR]</span>
+<p class="body-sm" style="margin: 0; max-width: 60ch; color: var(--on-rail-muted)">[DESCRIPCIÓN DEL EVENTO]</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--space-2)">
+<x-import component-from-global-scope="Estudio.Button" >Despublicar</x-import><x-import component-from-global-scope="Estudio.Button" href="#">Editar</x-import><x-import component-from-global-scope="Estudio.Button" variant="danger">Eliminar</x-import>
+</div>
+</div>
+</section>
+<x-import component-from-global-scope="Estudio.Card" title="Subir fotos">
+<x-import component-from-global-scope="Estudio.Dropzone" ></x-import>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: 14px"><span style="color: var(--ink-muted)">2 archivos · <span style="color: var(--danger)">1 con error</span></span><span style="display: flex; flex-wrap: wrap; gap: var(--space-2)"><x-import component-from-global-scope="Estudio.Button" >Reintentar fallidas</x-import><x-import component-from-global-scope="Estudio.Button" >Limpiar subidas</x-import></span></div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2)">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); font-size: 14px"><span class="mono-md" style="flex: 1 1 160px">IMG_0001.jpg</span><progress value="0.6" max="1" style="flex: 2 1 200px; height: 6px; accent-color: var(--amber)"></progress><span class="mono-sm" style="color: var(--ink-muted)">[ESTADO]</span></li>
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); font-size: 14px"><span class="mono-md" style="flex: 1 1 160px">IMG_0002.jpg</span><progress value="0" max="1" style="flex: 2 1 200px; height: 6px; accent-color: var(--amber)"></progress><span class="mono-sm" style="color: var(--ink-muted)">[ESTADO]</span><span class="caption" style="color: var(--danger)">[ERROR]</span></li>
+</ul>
+</x-import>
+<x-import component-from-global-scope="Estudio.Card" title="Fotos" aria-label="Fotos del evento" aside="{{count3}}">
+<ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: var(--space-4)">
+<li style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="outline: 3px solid var(--amber); outline-offset: 2px; position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--surface-sunken)"><img src="/_blob/400d42237833f63c33d053356087e127" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover"><span style="position: absolute; top: 10px; left: 10px; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--amber); color: var(--on-amber); font-size: 12px; font-weight: 600">Portada</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><x-import component-from-global-scope="Estudio.Button" disabled="{{yes}}">Es la portada</x-import><x-import component-from-global-scope="Estudio.Button" >Ocultar</x-import><x-import component-from-global-scope="Estudio.Button" variant="danger">Eliminar</x-import></div>
+</li>
+<li style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--surface-sunken)"><img src="/_blob/ccc6be7ee9adbf4ba005095d1110c08d" alt="" style="display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); opacity: 0.6"><span style="position: absolute; top: 10px; left: 10px; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--ink); color: var(--on-ink); font-size: 12px; font-weight: 600">Oculta</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><x-import component-from-global-scope="Estudio.Button" >Usar de portada</x-import><x-import component-from-global-scope="Estudio.Button" >Mostrar</x-import><x-import component-from-global-scope="Estudio.Button" variant="danger">Eliminar</x-import></div>
+</li>
+<li style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--surface-sunken)"><span style="display: flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; height: 100%; color: var(--ink-muted); font: 13px var(--font-mono)"><span aria-hidden="true" style="display: inline-block; width: 28px; height: 2px; background: linear-gradient(90deg, var(--amber), #0000)"></span>Procesando…</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><x-import component-from-global-scope="Estudio.Button" >Ocultar</x-import><x-import component-from-global-scope="Estudio.Button" variant="danger">Eliminar</x-import></div>
+</li>
+</ul>
+</x-import>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+const A = 'eventos';
+return { yes: true, nav: [
+{ label: 'Panel', icon: 'panel', href: 'AdminPanel.dc.html', active: A === 'panel' },
+{ label: 'Eventos y fotos', icon: 'eventos', href: 'AdminEventos.dc.html', active: A === 'eventos' },
+{ label: 'Productos y precios', icon: 'productos', href: 'AdminProductos.dc.html', active: A === 'productos' },
+{ label: 'Pedidos', icon: 'pedidos', href: 'AdminPedidos.dc.html', active: A === 'pedidos' },
+{ label: 'Lista de impresión', icon: 'impresion', href: 'AdminImpresion.dc.html', active: A === 'impresion' },
+{ label: 'Configuración', icon: 'configuracion', href: 'AdminConfig.dc.html', active: A === 'config' }
+], n16: 16, count3: window.React.createElement('span', { className: 'mono-sm', style: { color: 'var(--ink-muted)' } }, '3 fotos') };
+}
+}
+</script>
+</body>
+</html>

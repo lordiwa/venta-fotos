@@ -1,10 +1,8 @@
-:root { font-family: system-ui, sans-serif; color: #1f2430; background: #fff; }
 * { box-sizing: border-box; }
-body { margin: 0; }
-a { color: inherit; }
+body { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; background: var(--surface); color: var(--ink); -webkit-font-smoothing: antialiased; }
+a { color: var(--link); }
+a:hover { color: var(--link-hover); }
+img { max-width: 100%; }
+:where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .layout { min-height: 100vh; display: flex; flex-direction: column; }
-.bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid #e3e5ea; }
-.bar.admin { background: #1f2430; color: #fff; }
-.bar.small { border-top: 1px solid #e3e5ea; border-bottom: 0; font-size: 0.85rem; color: #6b7280; }
-.brand { font-weight: 700; text-decoration: none; }
-.content { flex: 1; padding: 1rem; width: 100%; max-width: 72rem; margin: 0 auto; }
+.content { flex: 1; width: 100%; max-width: var(--content-max); margin: 0 auto; padding: var(--space-6) var(--space-4); }

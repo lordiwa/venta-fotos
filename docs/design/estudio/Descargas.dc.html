@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mis descargas</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estudio/tokens.css">
+<link rel="stylesheet" href="ds/estudio/components/bundle.css">
+<script src="ds/estudio/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface)}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
+.card img{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.card:hover img{transform:scale(1.045)}
+.row:hover{background:var(--surface-sunken)}
+</style>
+</helmet>
+<div style="min-height: 1100px; display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--ink); background: var(--surface)">
+<x-import component-from-global-scope="Estudio.TopBar" cart-count="{{cart}}" cart-href="Carrito.dc.html" home-href="Main.dc.html" links="{{links}}"></x-import>
+<main style="flex: 1; width: 100%; max-width: 640px; margin: 0 auto; padding: var(--space-18) var(--space-10) 96px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-7)">
+<div style="display: flex; flex-direction: column; gap: var(--space-3)">
+<x-import component-from-global-scope="Estudio.Eyebrow" >Archivos digitales</x-import>
+<h1 class="display-lg" style="margin: 0; color: var(--ink)">Mis descargas</h1>
+<p class="body" style="margin: 0; color: var(--ink-muted); text-wrap: pretty">Escribe el número de tu pedido y el correo con el que compraste para generar enlaces nuevos a tus archivos digitales.</p>
+</div>
+<x-import component-from-global-scope="Estudio.Card" as="form" aria-label="Buscar pedido">
+<x-import component-from-global-scope="Estudio.Field" label="Número de pedido" mono="{{yes}}" placeholder="TYYXUQRC" auto-complete="off"></x-import>
+<x-import component-from-global-scope="Estudio.Field" label="Correo" type="email" auto-complete="email"></x-import>
+<x-import component-from-global-scope="Estudio.Button" variant="accent" size="lg">Generar enlaces</x-import>
+</x-import>
+<x-import component-from-global-scope="Estudio.Card" title="Pedido TYYXUQRC" aria-label="Tus archivos">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line)">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--line)">
+<img src="/_blob/1be31aad7beaf87d1e60a666316e9d6b" alt="" style="width: 64px; height: 48px; object-fit: cover; border-radius: 4px">
+<span class="mono-md" style="flex: 1 1 120px">foto2.jpg</span>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3)"><span class="caption" style="color: var(--ink-muted)">Disponible hasta el [FECHA]</span><x-import component-from-global-scope="Estudio.Button" variant="accent" icon="descargar" href="#">Descargar</x-import></span>
+</li>
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--line)">
+<img src="/_blob/bf4b627695e1cde79c2b1a6123ee153f" alt="" style="width: 64px; height: 48px; object-fit: cover; border-radius: 4px">
+<span class="mono-md" style="flex: 1 1 120px">foto1.jpg</span>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3)"><span class="caption" style="color: var(--ink-muted)">Disponible hasta el [FECHA]</span><x-import component-from-global-scope="Estudio.Button" variant="accent" icon="descargar" href="#">Descargar</x-import></span>
+</li>
+</ul>
+</x-import>
+</main>
+<footer style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-7) var(--space-10); border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-muted)">
+<x-import component-from-global-scope="Estudio.Wordmark" style="font-size: 15px"></x-import>
+<div style="display: flex; flex-wrap: wrap; gap: var(--space-6)"><a href="Descargas.dc.html" style="color: var(--ink-muted); text-decoration: none">Mis descargas</a><a href="AdminLogin.dc.html" style="color: var(--ink-muted); text-decoration: none">Acceso del fotógrafo</a></div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return { cart: 0, links: [{ label: 'Eventos', href: 'Main.dc.html' }, { label: 'Mis descargas', href: 'Descargas.dc.html' }], yes: true };
+}
+}
+</script>
+</body>
+</html>
