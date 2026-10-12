@@ -138,6 +138,16 @@ describe('Firestore', () => {
     await assertFails(q(anon()))
     await assertFails(q(user()))
   })
+  it('TASK-017 checkouts y orders no se leen ni escriben desde el cliente - evita espiar pedidos/snapshots o fabricar un pago', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'checkouts/c1'), { totalCents: 100 }) })
+    for (const ctx of [anon(), user(), admin()]) {
+      const db = ctx.firestore()
+      await assertFails(getDoc(doc(db, 'checkouts/c1')))
+      await assertFails(setDoc(doc(db, 'checkouts/c2'), { totalCents: 1 }))
+    }
+    await assertFails(getDoc(doc(anon().firestore(), 'orders/o1')))
+    await assertFails(getDocs(collection(anon().firestore(), 'orders')))
+  })
   it('UC14 colecciones no declaradas denegadas - evita reabrir users/purchases del modelo viejo', async () => {
     const db = admin().firestore()
     await assertFails(getDoc(doc(db, 'users/u1')))

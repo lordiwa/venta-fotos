@@ -1,0 +1,150 @@
+/** Logica pura del checkout (TASK-017): validacion, recalculo del total en centavos enteros y verificacion de la captura. Sin Firebase ni red. */
+import { randomInt } from "crypto";
+
+/** Moneda unica de la tienda (codigo ISO 4217). Se usa en la orden de PayPal y al verificar la captura. */
+export const CURRENCY = "USD";
+export const MAX_QTY = 99;
+export const MAX_LINES = 100;
+
+/** Error de negocio con mensaje apto para mostrar al comprador. */
+export class CheckoutError extends Error {
+  constructor(public code: "invalid-argument" | "failed-precondition", message: string) {
+    super(message);
+  }
+}
+
+export interface CartInputLine { eventId: string; photoId: string; productId: string; quantity: number }
+export interface Buyer { name: string; email: string; phone: string }
+export type Delivery = { method: "retiro" } | { method: "envio"; address: string; cost: number };
+export interface CatalogProduct { name: string; kind: "print" | "digital"; price: number; active?: boolean }
+export interface StoreSettings { shippingCost?: number; pickupInfo?: string }
+export interface SnapshotLine { eventId: string; photoId: string; productId: string; productName: string; unitPrice: number; quantity: number }
+
+/** Lo que createOrder guarda en checkouts/{paypalOrderId}: captureOrder usa esto y nunca datos del cliente. */
+export interface CheckoutSnapshot {
+  lines: SnapshotLine[];
+  eventIds: string[];
+  buyer: Buyer;
+  delivery: Delivery;
+  totalCents: number;
+  currency: string;
+}
+
+export const toCents = (n: number): number => Math.round(n * 100);
+/** Importe en el formato de PayPal ("12.50"), desde centavos enteros. */
+export const centsToString = (c: number): string => (c / 100).toFixed(2);
+
+const validId = (v: unknown): v is string => typeof v === "string" && v !== "" && v.length <= 200 && !v.includes("/");
+const text = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+/** Forma de las lineas que manda el cliente. Rechaza lo que no sea ids + cantidad entera 1..99, y lineas repetidas. */
+export function parseCartInput(data: unknown): CartInputLine[] {
+  if (!Array.isArray(data) || data.length === 0) throw new CheckoutError("invalid-argument", "El carrito está vacío.");
+  if (data.length > MAX_LINES) throw new CheckoutError("invalid-argument", "El carrito tiene demasiadas líneas.");
+  const seen = new Set<string>();
+  return data.map((x) => {
+    const l = x as Record<string, unknown> | null;
+    if (!l || typeof l !== "object" || !validId(l.eventId) || !validId(l.photoId) || !validId(l.productId)
+      || typeof l.quantity !== "number" || !Number.isInteger(l.quantity) || l.quantity < 1 || l.quantity > MAX_QTY) {
+      throw new CheckoutError("invalid-argument", "El carrito contiene una línea inválida.");
+    }
+    const key = `${l.eventId}/${l.photoId}/${l.productId}`;
+    if (seen.has(key)) throw new CheckoutError("invalid-argument", "El carrito contiene líneas repetidas.");
+    seen.add(key);
+    return { eventId: l.eventId, photoId: l.photoId, productId: l.productId, quantity: l.quantity };
+  });
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function parseBuyer(data: unknown): Buyer {
+  const b = (data ?? {}) as Record<string, unknown>;
+  const name = text(b.name, 120);
+  const email = text(b.email, 200);
+  const phone = text(b.phone, 40);
+  if (!name) throw new CheckoutError("invalid-argument", "Escribe tu nombre.");
+  if (!EMAIL.test(email)) throw new CheckoutError("invalid-argument", "Escribe un correo válido.");
+  if (phone.replace(/\D/g, "").length < 7) throw new CheckoutError("invalid-argument", "Escribe un teléfono válido (mínimo 7 dígitos).");
+  return { name, email, phone };
+}
+
+/** Entrega: envio exige direccion; el costo sale de settings/store, nunca del cliente. Un carrito solo digital no tiene envio. */
+export function resolveDelivery(data: unknown, hasPrints: boolean, settings: StoreSettings): { delivery: Delivery; shippingCents: number } {
+  if (!hasPrints) return { delivery: { method: "retiro" }, shippingCents: 0 };
+  const d = (data ?? {}) as Record<string, unknown>;
+  if (d.method === "retiro") return { delivery: { method: "retiro" }, shippingCents: 0 };
+  if (d.method !== "envio") throw new CheckoutError("invalid-argument", "Elige retiro en persona o envío a domicilio.");
+  const address = text(d.address, 300);
+  if (!address) throw new CheckoutError("invalid-argument", "Escribe la dirección de envío.");
+  const cost = typeof settings.shippingCost === "number" && settings.shippingCost > 0 ? settings.shippingCost : 0;
+  return { delivery: { method: "envio", address, cost }, shippingCents: toCents(cost) };
+}
+
+export interface BuildInput {
+  lines: CartInputLine[];
+  buyer: Buyer;
+  deliveryInput: unknown;
+  /** Catalogo leido por el servidor, por productId (undefined si no existe). */
+  products: Record<string, CatalogProduct | undefined>;
+  /** Claves "eventId/photoId" de fotos publicas (evento publicado, visible y lista). */
+  publicPhotos: Set<string>;
+  settings: StoreSettings;
+}
+
+/** Recalcula todo desde el catalogo: precio y nombre salen de ahi; digital = 1 por foto; lineas no vendibles se rechazan. */
+export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
+  const lines: SnapshotLine[] = i.lines.map((l) => {
+    const p = i.products[l.productId];
+    if (!p || p.active !== true || typeof p.price !== "number" || !(p.price > 0)) {
+      throw new CheckoutError("failed-precondition", "Un producto del carrito ya no está disponible.");
+    }
+    if (!i.publicPhotos.has(`${l.eventId}/${l.photoId}`)) throw new CheckoutError("failed-precondition", "Una foto del carrito ya no está disponible.");
+    if (p.kind === "digital" && l.quantity !== 1) throw new CheckoutError("invalid-argument", "El archivo digital se compra de a uno por foto.");
+    return { eventId: l.eventId, photoId: l.photoId, productId: l.productId, productName: p.name, unitPrice: p.price, quantity: l.quantity };
+  });
+  const hasPrints = i.lines.some((l) => i.products[l.productId]?.kind === "print");
+  const { delivery, shippingCents } = resolveDelivery(i.deliveryInput, hasPrints, i.settings);
+  const linesCents = lines.reduce((s, l) => s + toCents(l.unitPrice) * l.quantity, 0);
+  return {
+    lines,
+    eventIds: [...new Set(lines.map((l) => l.eventId))],
+    buyer: i.buyer,
+    delivery,
+    totalCents: linesCents + shippingCents,
+    currency: CURRENCY,
+  };
+}
+
+/** Respuesta de PayPal a la captura (solo los campos que se leen). */
+export interface PaypalCaptureResponse {
+  status?: string;
+  purchase_units?: { payments?: { captures?: { status?: string; amount?: { value?: string; currency_code?: string } }[] } }[];
+}
+
+/** CU8: la captura debe estar COMPLETED y su monto/moneda iguales a los calculados por el servidor. */
+export function verifyCapture(res: PaypalCaptureResponse, snap: Pick<CheckoutSnapshot, "totalCents" | "currency">): void {
+  const cap = res.purchase_units?.[0]?.payments?.captures?.[0];
+  if (res.status !== "COMPLETED" || cap?.status !== "COMPLETED") throw new CheckoutError("failed-precondition", "El pago no se completó.");
+  if (cap.amount?.currency_code !== snap.currency || cap.amount?.value !== centsToString(snap.totalCents)) {
+    throw new CheckoutError("failed-precondition", "El monto cobrado no coincide con el del pedido.");
+  }
+}
+
+// Base32 sin 0/O/1/I/L: facil de dictar por telefono.
+const ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+/** Numero de pedido: 8 caracteres aleatorios, no secuencial. */
+export const newOrderNumber = (): string => Array.from({ length: 8 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
+
+/** Documento orders/{id} (sin createdAt, que pone el servidor). eventIds es contrato de TASK-012. */
+export function buildOrderDoc(snap: CheckoutSnapshot, paypalOrderId: string, number: string) {
+  return {
+    number,
+    status: "pagado" as const,
+    lines: snap.lines,
+    eventIds: [...new Set(snap.lines.map((l) => l.eventId))],
+    total: snap.totalCents / 100,
+    delivery: snap.delivery,
+    buyer: snap.buyer,
+    paypalOrderId,
+  };
+}

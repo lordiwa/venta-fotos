@@ -53,6 +53,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Snapshots de checkout (TASK-017): solo las Functions los leen y escriben; ni el admin ni el publico.
+    match /checkouts/{id} {
+      allow read, write: if false;
+    }
+
     // Todo lo demas (incluidas las antiguas users / purchases / photos raiz): denegado.
     match /{document=**} {
       allow read, write: if false;

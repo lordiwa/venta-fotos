@@ -18,6 +18,15 @@ describe('router', () => {
     expect(router.resolve('/carrito').name).toBe('cart')
   })
 
+  // Prevents: /checkout o /pedido/<n> cayendo en la 404 (el comprador pagaria y no veria su confirmacion).
+  it('/checkout y /pedido/:number resuelven bajo el layout publico', () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    expect(router.resolve('/checkout').name).toBe('checkout')
+    const o = router.resolve('/pedido/ABCD2345')
+    expect(o.name).toBe('order')
+    expect(o.params.number).toBe('ABCD2345')
+  })
+
   // Prevents: link compartido a una foto que no resuelve (o que monta otra vista) en vez de la galeria del evento.
   it('/eventos/:id y /eventos/:id/fotos/:photoId resuelven con sus params bajo el layout publico', () => {
     const router = createRouter({ history: createMemoryHistory(), routes })

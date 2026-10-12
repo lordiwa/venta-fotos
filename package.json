@@ -17,6 +17,7 @@
     "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
+    "@paypal/paypal-js": "^11.2.2",
     "firebase": "^12.19.0",
     "pinia": "^4.0.3",
     "vue": "^3.5.42",

@@ -82,6 +82,7 @@ function onQty(key: string, ev: Event) {
       </li>
     </ul>
     <p class="total"><strong>Total estimado:</strong> {{ formatMoney(view.total) }}</p>
+    <RouterLink class="pay" to="/checkout">Ir a pagar</RouterLink>
   </template>
 </template>
 
@@ -94,4 +95,5 @@ function onQty(key: string, ev: Event) {
 .warn { color: #b42318; font-size: 0.9rem; }
 input { width: 4rem; }
 .total { font-size: 1.2rem; }
+.pay { display: inline-block; background: #1f2430; color: #fff; border-radius: 6px; padding: 0.5rem 1.2rem; text-decoration: none; }
 </style>

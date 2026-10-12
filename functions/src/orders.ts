@@ -1,0 +1,52 @@
+/** Acceso a Firestore del checkout (TASK-017): lectura del catalogo, snapshot pendiente y creacion idempotente del pedido. */
+import * as admin from "firebase-admin";
+import { buildOrderDoc, buildSnapshot, CartInputLine, CatalogProduct, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, StoreSettings } from "./checkout";
+
+type Db = admin.firestore.Firestore;
+
+export interface OrderSummary { number: string; lines: unknown[]; total: number; delivery: unknown }
+
+/** Recalcula el pedido desde el catalogo y settings/store (nada del cliente salvo ids, cantidades, contacto y direccion). */
+export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: unknown; delivery?: unknown }): Promise<CheckoutSnapshot> {
+  const lines: CartInputLine[] = parseCartInput(data.lines);
+  const buyer = parseBuyer(data.buyer);
+  const productIds = [...new Set(lines.map((l) => l.productId))];
+  const eventIds = [...new Set(lines.map((l) => l.eventId))];
+  const photoKeys = [...new Set(lines.map((l) => `${l.eventId}/${l.photoId}`))];
+
+  const [productSnaps, eventSnaps, photoSnaps, settingsSnap] = await Promise.all([
+    db.getAll(...productIds.map((id) => db.doc(`products/${id}`))),
+    db.getAll(...eventIds.map((id) => db.doc(`events/${id}`))),
+    db.getAll(...photoKeys.map((k) => { const [e, p] = k.split("/"); return db.doc(`events/${e}/photos/${p}`); })),
+    db.doc("settings/store").get(),
+  ]);
+  const products: Record<string, CatalogProduct | undefined> = {};
+  productSnaps.forEach((s, i) => { products[productIds[i]] = s.exists ? (s.data() as CatalogProduct) : undefined; });
+  const published = new Set(eventIds.filter((_, i) => eventSnaps[i].exists && eventSnaps[i].get("published") === true));
+  const publicPhotos = new Set(photoKeys.filter((k, i) => {
+    const s = photoSnaps[i];
+    return published.has(k.split("/")[0]) && s.exists && s.get("visible") === true && s.get("status") === "ready";
+  }));
+  return buildSnapshot({
+    lines, buyer, deliveryInput: data.delivery, products, publicPhotos,
+    settings: (settingsSnap.data() ?? {}) as StoreSettings,
+  });
+}
+
+/** Guarda el snapshot calculado; captureOrder lo lee de aqui y no confia en el cliente. */
+export const saveCheckout = (db: Db, paypalOrderId: string, snap: CheckoutSnapshot) =>
+  db.doc(`checkouts/${paypalOrderId}`).set({ ...snap, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+
+const summarize = (d: admin.firestore.DocumentData): OrderSummary => ({ number: d.number, lines: d.lines, total: d.total, delivery: d.delivery });
+
+/** CU10: el pedido tiene como id el de PayPal y se crea en una transaccion; una segunda captura devuelve el mismo. */
+export async function finalizeOrder(db: Db, paypalOrderId: string, snap: CheckoutSnapshot): Promise<OrderSummary> {
+  const ref = db.doc(`orders/${paypalOrderId}`);
+  return db.runTransaction(async (tx) => {
+    const existing = await tx.get(ref);
+    if (existing.exists) return summarize(existing.data()!);
+    const doc = buildOrderDoc(snap, paypalOrderId, newOrderNumber());
+    tx.set(ref, { ...doc, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    return summarize(doc);
+  });
+}
