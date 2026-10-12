@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-12T04:08:51.126Z",
+  "generated_at": "2026-10-12T04:15:51.022Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -64,7 +64,7 @@
     {
       "key": "TASK-019",
       "title": "Descarga del archivo digital con enlace firmado",
-      "status": "todo",
+      "status": "in_review",
       "priority": "medium"
     },
     {

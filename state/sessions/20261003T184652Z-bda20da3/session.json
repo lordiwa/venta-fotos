@@ -2,15 +2,14 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "paused",
-  "updated_at": "2026-10-12T04:09:14.475Z",
+  "updated_at": "2026-10-12T04:16:25.033Z",
   "active_task": null,
-  "workflow_step": "update",
-  "next_action": "Al retomar: proponer TASK-014 (catálogo) + TASK-016 (carrito), presentar sus casos de uso con auto-refinado y esperar la aprobación del humano. Recordar el contrato orders.eventIds para TASK-017.",
-  "handoff_summary": "PAUSADA por el humano (2026-10-03). Cerradas: TASK-001, 010, 012, 013 y 015 (subir y ver fotos funciona; el humano lo aprobó). TASK-011 (login) está en in_review con review y wargaming PASS; el UAT queda en pausa porque el humano manejará el login con Firebase. Todo está pusheado a origin/main (929f7da). Decisiones: la marca MUESTRA queda pixelada como está, las miniaturas sin marca, los compradores sin cuenta y el envío con costo fijo. Entorno: JDK 21 en C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot (agregarlo al PATH si la terminal no lo ve); .env.local de demo ya creado; npm run emulators, npm run seed:admin y npm run dev. Puede haber procesos huérfanos de emuladores o vite (PIDs 46036, 44688, 38848, 34660).",
+  "workflow_step": "review",
+  "next_action": "Leer HANDOFF.md. Obtener o relanzar la review de 8c64cff, ronda de fix (W-1 y sufijos [NNN]), uat, cerrar TASK-019 y pushear. Después detener los emuladores, correr test:rules y test:functions:integration, y salir del loop (set-mode harness, release).",
+  "handoff_summary": "Loop keys:TASK-014,016,017,018,019. Cerrados y pusheados: 011, 014, 016, 017, 018. TASK-019 in_review (8c64cff local, sin push): wargaming PASS con MEDIUM W-1 (XFF spoofing en el límite por IP); falta el veredicto del reviewer, la ronda de fix, uat, el cierre y el push. Detalle completo en HANDOFF.md.",
   "open_questions": [
-    "Java (JDK 21) no está instalado: necesario para los emuladores de Firestore/Storage",
-    "El proyecto Firebase \"venta-fotos\" de .firebaserc no existe en la cuenta; usar demo-venta-fotos para emuladores hasta crearlo",
-    "Plan Blaze necesario para Functions con llamadas salientes (PayPal)"
+    "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
+    "Credenciales sandbox de PayPal para probar el popup real"
   ],
   "blockers": [],
   "decisions": [
@@ -80,7 +79,7 @@
     }
   ],
   "pending_human_confirmation": null,
-  "mode": "loop",
+  "mode": "harness",
   "loop_auth": {
     "auto_close_on_green_review": true,
     "uat_delegated_to_orchestrator": true,
@@ -89,8 +88,8 @@
     "auto_version_bump_on_milestone": false
   },
   "loop_state": {
-    "current_ticket": "TASK-018",
-    "phase": "update",
+    "current_ticket": "TASK-019",
+    "phase": "review",
     "iteration": 4,
     "completed_this_run": 4,
     "run_started_at": "2026-10-11T00:00:00Z"

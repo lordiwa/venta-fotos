@@ -9,7 +9,7 @@
     "Con número de pedido y correo correctos se puede generar un enlace nuevo; con datos incorrectos no",
     "No se puede obtener el original de una foto que no está en un pedido pagado"
   ],
-  "status": "todo",
+  "status": "in_review",
   "priority": "medium",
   "labels": [
     "storefront",
@@ -32,10 +32,20 @@
       "author": "orchestrator",
       "at": "2026-10-12T03:24:01.476Z",
       "body": "CASOS DE USO APROBADOS por el humano el 2026-10-11 (\"yes\"): CU1–CU8 tal como figuran en el comentario \"CASOS DE USO PROPUESTOS\", sin cambios."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-12T04:13:34.396Z",
+      "body": "Hand-off: commit 8c64cff (local).\n- getDownloadLinks: callable sin auth; busca por number, compara el correo normalizado, solo estados post-pago y solo líneas digitales; originalPath sale del doc de la foto. NOT_FOUND genérico.\n- Límite: 10 fallos/h por IP y por número en downloadAttempts, con reglas cerradas.\n- Enlaces: URL firmada v4 con attachment; en el emulador, token de descarga. DOWNLOAD_TTL_DAYS por defecto 7 (rango 1..7, tope de v4).\n- Cliente: DownloadList en /pedido/:number y página /descargas.\n- Incluye el LOW de TASK-018 (revoke diferido y extensión) y corrige el puerto 5101 del test de integración de TASK-017.\n- Resultados: build OK; npm test 67/67; test:functions 19/19.\n- Red-green: 6 roturas plantadas.\n- Sin correr: test:rules (nuevo test de downloadAttempts) e integración (nuevo caso CU8). La expiración (CU3) no se aplica en el emulador.\n- Trade-off aceptado: alguien que conoce un número puede agotar su contador durante una hora."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-12T04:15:51.022Z",
+      "body": "[WARGAMING] Atacado en Chrome real y emuladores (8c64cff) contra CU1–CU8, como comprador anónimo.\nSobrevivió:\n- CU1/CU8: compra simulada con 2 digitales y una 10x15 (correo con mayúsculas) → /pedido/TYYXUQRC muestra 2 \"Descargar\" con \"Disponible hasta el 18/10/2026\".\n- CU2: el enlace sirve 200 image/jpeg de 1600×1067 (el original) con color plano en esquina, centro y franja media, sin marca de agua.\n- CU4: en /descargas, \"tyyxuqrc\" y \"  carla.ruiz@example.TEST \" generan enlaces nuevos.\n- CU5: correo equivocado y número inexistente dan el mismo mensaje \"No encontramos un pedido con esos datos\" y el mismo código 404.\n- CU6: el pedido solo de impresiones YC67G9RR → \"Este pedido no incluye archivos digitales.\". La API solo acepta número y correo, así que no se puede pedir una foto arbitraria.\n- CU7: tras 10 fallos en la ventana → 429 RESOURCE_EXHAUSTED \"Demasiados intentos\".\n- CU3 (UI): con el reloj del navegador +8 días, cada archivo muestra \"El enlace venció\", se ocultan los botones y se ofrece \"Generar un enlace nuevo\". En el emulador Storage no aplica la expiración; en producción la aplica la URL firmada v4.\nNo sobrevivió (sin HIGH):\n- MEDIUM W-1: el límite por IP se salta con un X-Forwarded-For falso (petición con XFF 9.9.9.9 → 200 estando la IP real bloqueada). El riesgo queda acotado porque también hay que conocer el correo del comprador y sigue el límite por número.\n- LOW: mensajes con sufijo técnico \"[404]\"/\"[429]\".\n- LOW/UX: el bloqueo por IP también alcanza la descarga automática de la página de confirmación de un comprador legítimo que comparte la IP.\nE2E afectados: ninguno (no hay capa e2e)."
     }
   ],
   "created_at": "2026-10-03T18:51:36.158Z",
-  "updated_at": "2026-10-12T03:24:01.476Z",
+  "updated_at": "2026-10-12T04:15:51.022Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true
