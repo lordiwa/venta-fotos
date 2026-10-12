@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Product } from './types'
 import { DIGITAL_ID, DIGITAL_NAME, productFields, sortByName, type ProductForm } from './productsLogic'
@@ -17,8 +17,12 @@ export async function listActiveProducts(): Promise<Product[]> {
   return snap.docs.map((d) => toProduct(d.id, d.data()))
 }
 
-export async function createPrint(f: ProductForm): Promise<string> {
-  return (await addDoc(collection(db, 'products'), { ...productFields(f), kind: 'print', active: true })).id
+/** Id generado en el cliente: reintentar el mismo formulario pendiente reutiliza el id y no duplica el producto. */
+export const newProductId = () => doc(collection(db, 'products')).id
+
+export async function createPrint(f: ProductForm, id: string = newProductId()): Promise<string> {
+  await setDoc(doc(db, 'products', id), { ...productFields(f), kind: 'print', active: true })
+  return id
 }
 
 export const updateProduct = (id: string, f: ProductForm) => updateDoc(doc(db, 'products', id), productFields(f))

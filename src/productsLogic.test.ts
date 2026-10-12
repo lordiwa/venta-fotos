@@ -1,6 +1,7 @@
 // Prevents: guardar precios/costos invalidos (vacio, 0, negativo, texto) que romperian el total de un pedido.
 import { describe, it, expect } from 'vitest'
-import { SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
+import { vi } from 'vitest'
+import { withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
 
 describe('productsLogic', () => {
   it('CU1/CU2: precio valido se normaliza (coma o punto)', () => {
@@ -37,5 +38,35 @@ describe('productsLogic', () => {
   // Prevents: lista de tamanos desordenada ("20x25" antes que "9x13").
   it('sortByName ordena numericamente', () => {
     expect(sortByName([{ name: '20x25' }, { name: '9x13' }, { name: '10x15' }]).map((p) => p.name)).toEqual(['9x13', '10x15', '20x25'])
+  })
+
+  // Prevents: boton en "Guardando..." para siempre sin aviso cuando Firestore encola la escritura sin red.
+  describe('withOfflineNotice', () => {
+    it('lento: avisa una vez y, al resolver, devuelve el valor; rapido: no avisa; rechazo: propaga', async () => {
+      vi.useFakeTimers()
+      try {
+        const onSlow = vi.fn()
+        let done!: (v: string) => void
+        const slow = withOfflineNotice(new Promise<string>((r) => (done = r)), onSlow, 6000)
+        vi.advanceTimersByTime(5999)
+        expect(onSlow).not.toHaveBeenCalled()
+        vi.advanceTimersByTime(1)
+        expect(onSlow).toHaveBeenCalledTimes(1)
+        done('ok')
+        await expect(slow).resolves.toBe('ok')
+
+        const fast = vi.fn()
+        await withOfflineNotice(Promise.resolve(1), fast, 6000)
+        vi.advanceTimersByTime(10000)
+        expect(fast).not.toHaveBeenCalled()
+
+        const rej = vi.fn()
+        await expect(withOfflineNotice(Promise.reject(new Error('boom')), rej, 6000)).rejects.toThrow('boom')
+        vi.advanceTimersByTime(10000)
+        expect(rej).not.toHaveBeenCalled()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 })

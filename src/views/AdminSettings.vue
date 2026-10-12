@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { getSettings, saveSettings } from '../settingsApi'
-import { saveErrorMessage, settingsToForm, validateSettingsForm, type SettingsErrors } from '../productsLogic'
+import { OFFLINE_NOTICE, saveErrorMessage, settingsToForm, validateSettingsForm, withOfflineNotice, type SettingsErrors } from '../productsLogic'
 
 const form = ref({ shippingCost: '', pickupInfo: '' })
 const errors = ref<SettingsErrors>({})
@@ -10,6 +10,7 @@ const loadError = ref<string | null>(null)
 const saveError = ref<string | null>(null)
 const saved = ref(false)
 const saving = ref(false)
+const offline = ref<string | null>(null)
 
 onMounted(async () => {
   try {
@@ -29,13 +30,14 @@ async function submit() {
   saving.value = true
   saveError.value = null
   try {
-    await saveSettings(form.value)
+    await withOfflineNotice(saveSettings(form.value), () => { offline.value = OFFLINE_NOTICE })
     saved.value = true
   } catch (e) {
     // CU10: el formulario conserva lo escrito.
     saveError.value = saveErrorMessage(e)
   } finally {
     saving.value = false
+    offline.value = null
   }
 }
 </script>
@@ -49,6 +51,7 @@ async function submit() {
     <p v-if="errors.shippingCost" class="error" role="alert">{{ errors.shippingCost }}</p>
     <label>Instrucciones de retiro <textarea v-model="form.pickupInfo" rows="3" /></label>
     <p v-if="saveError" class="error" role="alert">{{ saveError }}</p>
+    <p v-if="offline" role="status">{{ offline }}</p>
     <p v-if="saved" role="status">Guardado.</p>
     <button type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar' }}</button>
   </form>

@@ -46,6 +46,18 @@ export function settingsToForm(s: { shippingCost?: number; pickupInfo?: string }
   return { shippingCost: s?.shippingCost == null ? '' : formatMoney(s.shippingCost), pickupInfo: s?.pickupInfo ?? '' }
 }
 
+export const OFFLINE_NOTICE = 'Sin conexión. Los cambios se guardarán automáticamente al volver la conexión.'
+export const OFFLINE_MS = 6000
+
+/**
+ * Firestore encola las escrituras sin red y la promesa no se resuelve ni rechaza hasta volver la conexion.
+ * Si tarda mas de `ms`, avisa con onSlow (sin cancelar nada: la escritura sigue en cola). Resuelve/rechaza como `p`.
+ */
+export function withOfflineNotice<T>(p: Promise<T>, onSlow: () => void, ms = OFFLINE_MS): Promise<T> {
+  const t = setTimeout(onSlow, ms)
+  return p.finally(() => clearTimeout(t))
+}
+
 export const PERMISSION_MESSAGE = 'No tienes permiso para guardar. Vuelve a iniciar sesión.'
 export const NETWORK_MESSAGE = 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo; tus datos siguen en el formulario.'
 

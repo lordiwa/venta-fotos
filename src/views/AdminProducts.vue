@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { createPrint, listProducts, saveDigital, setProductActive, updateProduct } from '../productsApi'
-import { formatMoney, PERMISSION_MESSAGE, saveErrorMessage, validateProductForm, type ProductErrors } from '../productsLogic'
+import { createPrint, newProductId, listProducts, saveDigital, setProductActive, updateProduct } from '../productsApi'
+import { formatMoney, OFFLINE_NOTICE, PERMISSION_MESSAGE, saveErrorMessage, validateProductForm, withOfflineNotice, type ProductErrors } from '../productsLogic'
 import type { Product } from '../types'
 
 const products = ref<Product[]>([])
@@ -30,6 +30,9 @@ const form = ref({ name: '', price: '' })
 const errors = ref<ProductErrors>({})
 const saveError = ref<string | null>(null)
 const saving = ref(false)
+const offline = ref<string | null>(null) // aviso de escritura en cola (sin red)
+const slow = () => { offline.value = OFFLINE_NOTICE }
+let pendingId: string | null = null // id del alta en curso: un reintento no duplica
 
 function startEdit(p: Product) {
   editingId.value = p.id
@@ -39,6 +42,7 @@ function startEdit(p: Product) {
 }
 function cancel() {
   editingId.value = null
+  pendingId = null
   form.value = { name: '', price: '' }
   errors.value = {}
   saveError.value = null
@@ -49,14 +53,15 @@ async function submit() {
   saving.value = true
   saveError.value = null
   try {
-    if (editingId.value) await updateProduct(editingId.value, form.value)
-    else await createPrint(form.value)
+    if (editingId.value) await withOfflineNotice(updateProduct(editingId.value, form.value), slow)
+    else await withOfflineNotice(createPrint(form.value, (pendingId ??= newProductId())), slow)
     cancel()
     await load()
   } catch (e) {
     saveError.value = saveErrorMessage(e)
   } finally {
     saving.value = false
+    offline.value = null
   }
 }
 
@@ -71,13 +76,14 @@ async function submitDigital() {
   digitalSaving.value = true
   digitalSaveError.value = null
   try {
-    await saveDigital({ name: '', price: digitalPrice.value })
+    await withOfflineNotice(saveDigital({ name: '', price: digitalPrice.value }), slow)
     digitalPrice.value = ''
     await load()
   } catch (e) {
     digitalSaveError.value = saveErrorMessage(e)
   } finally {
     digitalSaving.value = false
+    offline.value = null
   }
 }
 
@@ -85,11 +91,13 @@ const toggleError = ref<string | null>(null)
 async function toggle(p: Product) {
   toggleError.value = null
   try {
-    await setProductActive(p.id, !isActive(p))
+    await withOfflineNotice(setProductActive(p.id, !isActive(p)), slow)
     await load()
   } catch (e) {
     const m = saveErrorMessage(e)
     toggleError.value = m === PERMISSION_MESSAGE ? m : 'No se pudo cambiar el estado. Inténtalo de nuevo.'
+  } finally {
+    offline.value = null
   }
 }
 </script>
@@ -100,6 +108,7 @@ async function toggle(p: Product) {
   <template v-else>
     <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
     <p v-if="toggleError" class="error" role="alert">{{ toggleError }}</p>
+    <p v-if="offline" role="status">{{ offline }}</p>
 
     <h2>Copias impresas</h2>
     <p v-if="!prints.length">Aún no hay tamaños. Agrega el primero.</p>
