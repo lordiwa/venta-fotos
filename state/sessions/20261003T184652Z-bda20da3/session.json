@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "paused",
-  "updated_at": "2026-10-12T15:41:30.757Z",
-  "active_task": null,
-  "workflow_step": "idle",
-  "next_action": "Salir del loop (loop-ctl set-mode --mode harness; loop-ctl release), lo corre el humano. Luego decidir: vista de cobros sin pedido; credenciales sandbox PayPal; deploy para verificar vencimiento real, firma v4 y Content-Disposition de TASK-019.",
-  "handoff_summary": "Loop keys:TASK-014,016,017,018,019 COMPLETO. Todos cerrados y pusheados. TASK-019 cerrado (2c05b68) tras fix round (6b5f8e5..5903de3), re-review APPROVE, UAT PASS. Verificación final: test:rules 15/15, test:functions:integration 3/3 (c40428e corrige la carrera del test CU8). Emuladores y vite detenidos; los datos de prueba del emulador se perdieron.",
+  "updated_at": "2026-10-13T04:21:46.541Z",
+  "active_task": "TASK-021",
+  "workflow_step": "paused",
+  "next_action": "Cuando el humano vuelva: (1) confirmar UAT del rediseño y cerrar TASK-022/023/024; (2) con billing activo + Storage inicializado + credenciales PayPal + correo del fotógrafo: secretos, deploy de functions y storage, claim admin, pedido de prueba en producción, README; (3) correr test:functions:integration con emuladores detenidos (región nueva).",
+  "handoff_summary": "Rediseño Estudio implementado (TASK-022 a8648d7, TASK-024 bc110be+1b51b5c, TASK-023 8147c47+1e01d3f): reviewer APPROVE, in_review, falta confirmación de UAT del humano para cerrar. TASK-021 bloqueado: proyecto Firebase venta-fotos-estudio (cuenta rmatovelle84@gmail.com, southamerica-east1) creado; Functions en southamerica-east1 (caa73a3); deploy parcial de Hosting (https://venta-fotos-estudio.web.app) y Firestore. Functions no se despliega porque la facturación no está abierta; Storage no inicializado. Todo pusheado hasta 885b674.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
