@@ -39,10 +39,25 @@
       "author": "orchestrator",
       "at": "2026-10-12T17:45:52.408Z",
       "body": "Deploy parcial 2026-10-12 a pedido del humano (\"deploy como está para que lo vea el cliente\"): Hosting (https://venta-fotos-estudio.web.app, HTTP 200) y reglas+índices de Firestore desplegados. NO desplegados: Functions (la cuenta de facturación del proyecto no está abierta: Secret Manager no se puede habilitar) y Storage (no inicializado en la consola). Sin Functions/Storage la tienda carga pero no hay eventos, ni subida/proceso de fotos, ni checkout. Push hecho hasta 7af249b. Bloqueado hasta: billing activo + Storage 'Get started' en southamerica-east1 + credenciales PayPal + correo del admin."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-14T17:02:57.636Z",
+      "body": "Dato del humano (2026-10-14): el correo del fotógrafo para la cuenta admin y el claim admin es gulmork@gmail.com. Siguen pendientes: facturación abierta en venta-fotos-estudio, Storage inicializado y credenciales PayPal."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-14T17:25:03.352Z",
+      "body": "Dato del humano (2026-10-14): la cuenta PayPal del fotógrafo es reino182@hotmail.com. Facturación del proyecto ya activada según el humano. Faltan el Client ID y el Secret de la app REST (developer.paypal.com) de esa cuenta, modo Live, para cargarlos como secretos de Functions."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-14T17:55:57.397Z",
+      "body": "Avance 2026-10-14: CLI logueado como rmatovelle84@gmail.com. Facturación confirmada activa (billingEnabled=true). Bucket por defecto creado vía API firebasestorage v1beta: venta-fotos-estudio.firebasestorage.app en SOUTHAMERICA-EAST1 (coincide con VITE_FIREBASE_STORAGE_BUCKET de .env.production.local). storage.rules desplegadas. Deploy de Functions pendiente: el orquestador no tiene permiso para el deploy a producción; el humano lo corre. Plan: primero las 4 functions sin secretos (processPhoto, cleanupPhotoFiles, getDownloadLinks, advanceOrder); createOrder/captureOrder cuando existan PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET (cuenta PayPal reino182@hotmail.com) y VITE_PAYPAL_CLIENT_ID en .env.production.local. Admin: crear usuario gulmork@gmail.com en Auth y luego npm run set-admin -- gulmork@gmail.com --prod."
     }
   ],
   "created_at": "2026-10-03T18:51:36.286Z",
-  "updated_at": "2026-10-12T17:45:52.512Z",
+  "updated_at": "2026-10-14T17:55:57.397Z",
   "jira_key": null,
   "verification_tier": "uat-only",
   "requires_uat": true

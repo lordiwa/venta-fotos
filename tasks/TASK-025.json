@@ -1,0 +1,42 @@
+{
+  "key": "TASK-025",
+  "title": "Marca Martial Photo: logo, nombre y favicon en toda la app",
+  "description": "Integrar la identidad Martial Photo. Los dos PNG 500x500 con fondo transparente están en la raíz del repo (\"Martial photo w.png\" = círculo blanco para fondos oscuros; \"Martialphoto B.png\" = círculo negro para fondos claros). Reemplazar el nombre \"Venta de Fotos\" por \"Martial Photo\" en toda la app (Wordmark, título de pestaña, footer, textos y correos/PDF que lo mencionen). Mostrar el logo en la TopBar pública, en el rail del admin (SideNav) y en el login de admin; generar el favicon desde el logo. Ubicación y tamaño a criterio del developer siempre que se vea bien y no rompa el layout.",
+  "acceptance_criteria": [
+    "La barra pública muestra el logo negro junto a \"Martial Photo\" y lleva al inicio; en tema oscuro usa el logo blanco",
+    "El rail del admin y el login de admin muestran el logo blanco sobre el fondo oscuro",
+    "El título de la pestaña es \"Martial Photo\" y el favicon se genera del logo (reemplaza favicon.svg)",
+    "Los PNG viven en src/assets/ con nombres sin espacios y la raíz del repo queda limpia; el logo se ve nítido y sin deformar",
+    "No queda ninguna mención a \"Venta de Fotos\" en src/, functions/src ni index.html",
+    "A 390px la barra no se rompe ni hay scroll horizontal; la imagen lleva alt y el enlace sigue siendo un único tab stop",
+    "typecheck, tests unitarios y build verdes"
+  ],
+  "status": "in_review",
+  "priority": "medium",
+  "labels": [
+    "diseño",
+    "estudio"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-14T17:02:21.113Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO)\n1. Objetivo: que la app lleve la marca Martial Photo (logo, nombre, favicon) en lugar del nombre genérico \"Venta de Fotos\".\n2. Actor: comprador anónimo y administrador (ambos ven la marca); el fotógrafo como dueño de la marca.\n3. Problema: la app rediseñada no tiene identidad; muestra un punto ámbar y \"Venta de Fotos\".\n4. Caminos: principal (ver la barra pública con logo y nombre, ir al inicio al pulsarla); alternativos (tema oscuro usa el logo blanco; rail y login de admin con el logo blanco; pestaña con título y favicon); fallo (imagen que no carga → el nombre sigue visible como texto).\n5. Hecho: los AC del ticket.\n6. Restricciones: PNG 500x500 transparentes ya provistos; mobile 390px sin scroll horizontal; accesibilidad del enlace; nada de \"Venta de Fotos\" en src/, functions/src ni index.html.\n7. Fuera de alcance: rediseñar el logo, marca de agua de las fotos (sigue \"MUESTRA\"), dominio/correo del fotógrafo.\n\nCASOS DE USO APROBADOS por el humano el 2026-10-14 (\"si reemplaza venta de fotos y pon donde tu consideres que se vea bien\"):\nCU1 Barra pública: logo negro + \"Martial Photo\", enlace al inicio; tema oscuro → logo blanco.\nCU2 Rail del admin y login de admin: logo blanco sobre el fondo oscuro.\nCU3 Pestaña: título \"Martial Photo\" y favicon generado del logo (reemplaza favicon.svg).\nCU4 Archivos: PNG en src/assets/ con nombres sin espacios, raíz limpia; logo nítido y sin deformar (~36px de alto en la barra).\nCU5 Móvil 390px: logo y texto caben sin romper la barra ni scroll horizontal.\nCU6 Accesibilidad: imagen con alt \"Martial Photo\"; el enlace sigue siendo un único tab stop.\nCU7 Nombre: ninguna mención a \"Venta de Fotos\" queda en src/, functions/src ni index.html; si la imagen no carga, el nombre sigue visible como texto.\nUbicación y tamaño exactos a criterio del developer."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-14T17:06:58.886Z",
+      "body": "Review fresca de c8c26d3: REQUEST-CHANGES solo por proceso; el código cumple AC1-AC7. npm test 69/69 y build (vue-tsc + vite) verdes. Verificado: swap de logo por [data-theme=dark] coherente con tokens.css; rail y login solo logo blanco; favicon.png 64x64 referenciado y favicon.svg sin referencias en fuentes; PNG 500x500 en src/assets sin espacios, raíz limpia; cero menciones a \"Venta de Fotos\"; topbar flex-wrap a 390px; un solo tab stop.\n[FINDING-HIGH: R-1] Wordmark.vue:15-16 envía alt=\"\" en vez del alt \"Martial Photo\" del CU6 aprobado (a11y correcta: el texto ya está en el mismo enlace), sin escalación registrada al humano. Se resuelve con la aceptación del humano.\n[FINDING-HIGH: R-2] requires_uat=true sin comentario uat; debe existir con los 7 AC en PASS antes del cierre, ejercitando tema oscuro y 390px.\nMEDIUM: hand-off sin checklist itemizado; falta registro de wargaming (sin specs e2e afectados).\nLOW: favicon negro casi invisible en pestañas oscuras (sugerir fondo sólido / 192px); footer mezcla logo 40px con texto 15px (sugerir tamaño en em); ambos PNG se descargan en la barra pública (~49 kB); tasks/TASK-025.json sin commitear."
+    }
+  ],
+  "created_at": "2026-10-14T17:02:07.168Z",
+  "updated_at": "2026-10-14T17:06:58.886Z",
+  "jira_key": null,
+  "verification_tier": "uat-only",
+  "requires_uat": true,
+  "marker": "[EXPLICIT]"
+}

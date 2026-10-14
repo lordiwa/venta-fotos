@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "paused",
-  "updated_at": "2026-10-13T04:21:46.541Z",
-  "active_task": "TASK-021",
+  "updated_at": "2026-10-14T22:30:51.232Z",
+  "active_task": "TASK-025",
   "workflow_step": "paused",
-  "next_action": "Cuando el humano vuelva: (1) confirmar UAT del rediseño y cerrar TASK-022/023/024; (2) con billing activo + Storage inicializado + credenciales PayPal + correo del fotógrafo: secretos, deploy de functions y storage, claim admin, pedido de prueba en producción, README; (3) correr test:functions:integration con emuladores detenidos (región nueva).",
-  "handoff_summary": "Rediseño Estudio implementado (TASK-022 a8648d7, TASK-024 bc110be+1b51b5c, TASK-023 8147c47+1e01d3f): reviewer APPROVE, in_review, falta confirmación de UAT del humano para cerrar. TASK-021 bloqueado: proyecto Firebase venta-fotos-estudio (cuenta rmatovelle84@gmail.com, southamerica-east1) creado; Functions en southamerica-east1 (caa73a3); deploy parcial de Hosting (https://venta-fotos-estudio.web.app) y Firestore. Functions no se despliega porque la facturación no está abierta; Storage no inicializado. Todo pusheado hasta 885b674.",
+  "next_action": "Al volver: (1) pedir al humano aceptación de alt=\"\" (R-1) y veredicto UAT de los 7 puntos de TASK-025 → registrar comentario uat, [FINDING-RESOLVED: R-1] y [FINDING-RESOLVED: R-2], wargaming, cerrar TASK-025 con PLANTILLA-ENTREGA, commitear tasks/TASK-025.json y hacer push. (2) El humano corre: npm run build:functions && npx firebase deploy --only functions:processPhoto,functions:cleanupPhotoFiles,functions:getDownloadLinks,functions:advanceOrder --project venta-fotos-estudio --force. (3) Humano crea gulmork@gmail.com en Auth → npm run set-admin -- gulmork@gmail.com --prod. (4) Con secretos PayPal: desplegar createOrder/captureOrder, VITE_PAYPAL_CLIENT_ID y redeploy de hosting. (5) Cargar productos y configuración en el admin (local y prod). (6) UAT de TASK-022/023/024.",
+  "handoff_summary": "TASK-025 (marca Martial Photo: logo, nombre, favicon) implementada en c8c26d3 (sin push) y en in_review: reviewer APPROVE del código con 2 HIGH de proceso abiertos (R-1 alt=\"\" en vez del alt del CU6, pendiente aceptación del humano; R-2 falta comentario uat con los 7 AC). Orquestador verificó en navegador: claro, oscuro, login admin, 390px OK. Rediseño TASK-022/023/024 sigue pendiente de UAT del humano. TASK-021: CLI logueado como rmatovelle84@gmail.com; facturación activa; bucket venta-fotos-estudio.firebasestorage.app creado en southamerica-east1 y storage.rules desplegadas; deploy de Functions bloqueado para el orquestador (el humano debe correrlo). Datos: admin gulmork@gmail.com (usuario aún no creado en Auth), PayPal reino182@hotmail.com (faltan Client ID/Secret live). Diagnóstico local: fotos listas; faltan productos y settings/store en el emulador para poder vender.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
@@ -32,6 +32,16 @@
       "at": "2026-10-04T03:24:08.210Z",
       "decision": "Humano aprueba en bloque subir/ver fotos (\"me gusta como esta\"): marca MUESTRA pixelada aceptada, miniaturas sin marca",
       "rationale": "Aprobación explícita del humano tras ver la galería"
+    },
+    {
+      "at": "2026-10-14T17:02:58.938Z",
+      "decision": "Marca Martial Photo reemplaza Venta de Fotos en toda la app (TASK-025); correo del fotógrafo para el admin de producción: gulmork@gmail.com",
+      "rationale": "Indicado por el humano el 2026-10-14"
+    },
+    {
+      "at": "2026-10-14T22:30:51.232Z",
+      "decision": "PayPal del fotógrafo: reino182@hotmail.com; Storage de producción creado por API en southamerica-east1; Functions se despliegan por el humano (orquestador sin permiso de deploy a prod)",
+      "rationale": "Datos del humano y bloqueo del clasificador de permisos, 2026-10-14"
     }
   ],
   "subagent_results": [

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-12T17:45:52.512Z",
+  "generated_at": "2026-10-14T17:55:57.397Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -96,6 +96,12 @@
       "title": "Rediseño Estudio del panel de administración",
       "status": "in_review",
       "priority": "high"
+    },
+    {
+      "key": "TASK-025",
+      "title": "Marca Martial Photo: logo, nombre y favicon en toda la app",
+      "status": "in_review",
+      "priority": "medium"
     }
   ]
 }
