@@ -3,7 +3,11 @@
 /* Wordmark */
 .es-wordmark { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
 .es-wordmark-rail { color: var(--on-rail); }
-.es-wordmark-dot { width: 10px; height: 10px; border-radius: var(--radius-pill); background: var(--amber); }
+.es-wordmark-logo { width: 40px; height: 40px; flex: none; object-fit: contain; }
+.es-wordmark-rail .es-wordmark-logo { width: 44px; height: 44px; }
+.es-wordmark-logo-ondark { display: none; }
+.es-wordmark-rail .es-wordmark-logo-ondark, [data-theme="dark"] .es-wordmark-logo-ondark { display: block; }
+[data-theme="dark"] .es-wordmark-logo-onlight { display: none; }
 
 /* Button */
 .es-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); box-sizing: border-box; min-height: var(--control-md); padding: 0 var(--space-5); border: 1px solid transparent; border-radius: var(--radius-pill); font-family: var(--font-sans); font-size: 15px; font-weight: 500; line-height: 1; text-decoration: none; cursor: pointer; white-space: nowrap; transition: transform .15s ease, filter .15s ease, background .15s ease, border-color .15s ease; }
@@ -131,7 +135,7 @@ textarea.es-input { padding: 12px 14px; resize: vertical; line-height: 1.5; }
 .es-input-wrap { display: contents; }
 .es-rail-button { width: 100%; border: 0; background: transparent; font-family: inherit; cursor: pointer; text-align: left; }
 
-/* Venta de Fotos: controles tocables >= 44px y topbar compacta en movil */
+/* Martial Photo: controles tocables >= 44px y topbar compacta en movil */
 .es-topbar-link { display: inline-flex; align-items: center; min-height: var(--control-md); }
 .es-topbar-link.router-link-exact-active { color: var(--ink); }
 @media (max-width: 720px) {
