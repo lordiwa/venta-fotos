@@ -7,6 +7,7 @@ import { getSettings } from '../settingsApi'
 import { reconcile } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { useCartStore } from '../stores/cart'
+import { currentPaymentMode } from '../paymentMode'
 import { classifyCaptureError, clearPending, CURRENCY, loadPending, loadPendingEmail, savePending, saveSummary, totalWithShipping, validateCheckoutForm, type CheckoutForm } from '../checkoutLogic'
 import { captureOrder, createOrder, errorMessage } from '../checkoutApi'
 import { Alert, Button, Card, Field, OptionCard } from '../ui'
@@ -14,7 +15,7 @@ import type { Product, StoreSettings } from '../types'
 
 const cart = useCartStore()
 const router = useRouter()
-const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID as string | undefined
+const clientId = currentPaymentMode() === 'whatsapp' ? undefined : (import.meta.env.VITE_PAYPAL_CLIENT_ID as string | undefined)
 const canSimulate = import.meta.env.DEV // CU12: el boton no existe en el build de produccion
 
 const PENDING_NOTICE = 'Confirmando tu pago anterior…'

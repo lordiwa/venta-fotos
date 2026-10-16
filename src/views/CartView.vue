@@ -96,7 +96,8 @@ const whatsappHref = computed(() => {
         <Button variant="ghost" icon="quitar" @click="cart.remove(`${l.eventId}/${l.photoId}/${l.productId}`)">Quitar</Button>
       </li>
     </ul>
-    <Button variant="secondary" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
+    <p v-if="!paypal" class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
+    <Button :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
   </template>
   <div v-else class="cols">
     <ul class="lines">
