@@ -1,0 +1,111 @@
+{
+  "key": "TASK-026",
+  "title": "Pedido de fotos por WhatsApp (+593 99 856 5995)",
+  "description": "El comprador debe poder enviar un pedido de una o varias fotos por WhatsApp al número del fotógrafo (+593 99 856 5995), como alternativa al pago con PayPal (aún sin credenciales live). Desde el carrito, un botón \"Pedir por WhatsApp\" abre wa.me con un mensaje pre-armado que lista evento, foto, producto, cantidad y total estimado. Desde una foto individual (panel de compra del lightbox) se puede pedir solo esa foto con el producto y la cantidad elegidos. El número vive en settings/store.whatsappPhone, editable en Configuración del admin, con +593998565995 como valor por defecto cuando no está configurado. No se escribe ningún pedido en Firestore: el pedido por WhatsApp se coordina por chat. Indicado por el humano el 2026-10-16.",
+  "acceptance_criteria": [
+    "En el carrito con productos, junto a \"Ir a pagar\" hay un botón \"Pedir por WhatsApp\" que abre https://wa.me/593998565995?text=… en pestaña nueva (rel noopener) con un mensaje que lista evento, foto (nombre o id), producto × cantidad y el total estimado; solo incluye las líneas disponibles y codifica el texto en la URL",
+    "Desde el panel de compra de una foto (lightbox) se puede pedir esa única foto por WhatsApp con el producto y la cantidad elegidos",
+    "En Configuración del admin existe el campo \"WhatsApp para pedidos\", se guarda en settings/store.whatsappPhone sin pisar los demás campos, acepta solo + y dígitos (8 a 15) y si está vacío la app usa +593998565995",
+    "Con el carrito vacío no aparece el botón; si no se pudo actualizar el carrito (error de red) el botón sigue funcionando con los datos guardados localmente",
+    "A 390px el botón cabe sin romper el resumen ni generar scroll horizontal; el control es un enlace real accesible con texto claro",
+    "Ningún pedido por WhatsApp escribe en Firestore ni requiere login",
+    "typecheck, tests unitarios (lógica pura del mensaje y del número) y build verdes"
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "ventas",
+    "whatsapp",
+    "estudio"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "505ff10",
+    "b0fb644"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T17:50:08.344Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO a partir de \"+593 99 856 5995 también agrega para que puedan hacer un pedido de x fotos al WhatsApp\", 2026-10-16)\n1. Objetivo: que el comprador pueda pedir una o varias fotos por WhatsApp al +593 99 856 5995 sin pasar por PayPal.\n2. Actor: comprador anónimo (envía el mensaje); fotógrafo (recibe el pedido en WhatsApp y lo coordina por chat); admin (configura el número).\n3. Problema: hoy la única vía de compra es PayPal, que todavía no tiene credenciales live; muchos compradores prefieren pedir y pagar por WhatsApp/transferencia.\n4. Caminos: principal (carrito con fotos → \"Pedir por WhatsApp\" → se abre wa.me con el mensaje listo con evento, foto, producto × cantidad y total estimado); alternativos (pedir una sola foto desde el panel de compra del lightbox; admin cambia el número en Configuración; carrito con error de red usa los datos locales); fallo (carrito vacío → sin botón; líneas no disponibles → excluidas del mensaje; número vacío → por defecto +593998565995; número inválido en el admin → error de validación, no se guarda).\n5. Hecho: los AC del ticket.\n6. Restricciones: wa.me exige número internacional solo dígitos (593998565995); texto codificado con encodeURIComponent; enlace real <a target=\"_blank\" rel=\"noopener\"> (en móvil abre la app); sin login; sin escrituras en Firestore; móvil 390px; mensaje en español.\n7. Fuera de alcance: registrar el pedido de WhatsApp como orden en Firestore/admin, cobro, confirmación automática, botón flotante de contacto general."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T17:50:08.392Z",
+      "body": "CASOS DE USO PROPUESTOS (pendientes de aprobación del humano; derivados del bloque 4 del PEDIDO):\nCU1 Carrito con 2 fotos (una impresa ×2, una digital): pulsar \"Pedir por WhatsApp\" abre en pestaña nueva https://wa.me/593998565995?text=… y el chat muestra: saludo, una línea por producto \"Evento – Foto <nombre o id> – <producto> × <cantidad> – <subtotal>\", y \"Total estimado: USD X\". El carrito NO se vacía.\nCU2 Foto individual: en el panel de compra del lightbox, debajo de \"Agregar al carrito\", el enlace \"Pedir esta foto por WhatsApp\" abre el chat con solo esa foto, el producto y la cantidad elegidos.\nCU3 Admin → Configuración: campo \"WhatsApp para pedidos\" con el número actual; guardar escribe settings/store.whatsappPhone sin pisar shippingCost, pickupInfo ni watermarkText; el carrito usa el nuevo número en la siguiente carga.\nCU4 Número vacío en Configuración (o documento settings/store sin el campo): la app usa +593998565995. Número con letras o fuera de 8–15 dígitos: mensaje de error y no se guarda.\nCU5 Carrito vacío: no hay botón de WhatsApp. Carrito con una foto no disponible (evento despublicado): esa línea no va en el mensaje y el total estimado la excluye.\nCU6 Carrito en estado \"No pudimos actualizar tu carrito\" (sin red): el botón sigue visible y arma el mensaje con nombre de producto y cantidad guardados localmente.\nCU7 Móvil 390px: el botón cabe en el resumen sin scroll horizontal; es un enlace <a> con texto visible, target _blank y rel noopener; typecheck, tests (buildWhatsAppMessage, normalizePhone) y build verdes.\nNegativos: ningún pedido por WhatsApp crea documentos en Firestore; no se exige login; el número de teléfono nunca se expone con espacios o \"+\" en la URL de wa.me."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:00:44.093Z",
+      "body": "CASOS DE USO APROBADOS por el humano el 2026-10-16 (\"apruebo si\"): CU1–CU7 y los negativos del comentario anterior, tal cual, sin cambios. Fuera de alcance confirmado: orden en Firestore/admin, cobro, botón flotante. Tier tests-after, requires_uat true."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-16T18:06:08.962Z",
+      "body": "Hand-off: commit 505ff10 (sin push). Nuevos: src/whatsappLogic.ts, src/whatsappLogic.test.ts. Modificados: types.ts, productsLogic.ts(+test), views/CartView.vue, views/AdminSettings.vue, views/EventGallery.vue, components/PhotoLightbox.vue, components/PurchasePanel.vue. CU1–CU7 cubiertos (CU7 sin verificación visual a 390px: queda para UAT). npm test 73/73; build (vue-tsc) verde. 4 tests nuevos de 7 permitidos, cada uno con línea de daño y plantados en rojo. Desviaciones: entrada del admin tolera espacios y guiones (se guarda +dígitos); botón oculto si ninguna línea está disponible (decisión del developer, no cubierta por los CU); modo sin red omite el evento (solo hay ids locales); settingsFields solo incluye whatsappPhone si el formulario lo trae y AdminSettings convierte con phoneToStore (evita import circular); 3 expectativas de settingsToForm actualizadas; sin icono de WhatsApp."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-16T18:08:22.073Z",
+      "body": "Review fresca de 505ff10 (base 505ff10^): APPROVE del código; cierre bloqueado solo por UAT. npm test 73/73 (11 archivos); build con vue-tsc verde. Verificado: CartView filtra r.counted → no disponibles fuera del mensaje y del total; Button con href renderiza <a> con target/rel; encodeURIComponent cubre + & # \\n; número solo dígitos (test not.toContain('wa.me/+')); saveSettings sigue merge:true y nunca emite watermarkText; vacío → default +593998565995; letras/fuera de 8–15 → error sin guardar; settings/store legible sin login; sin setDoc/addDoc nuevos. Superficie peligrosa: ninguna (solo campo opcional en settings/store vía admin). Regla 2 y 3 OK (4 tests con daño nombrado). Regla 1: ningún CU contradicho.\n[FINDING-HIGH: R-1] requires_uat=true sin comentario uat que cubra AC1–AC7 (incluir 390px/AC5 y el flujo real wa.me) y sin registro de wargaming. Gate de cierre, no defecto de código.\nMEDIUM M-1: tolerar espacios/guiones en el admin ensancha la literalidad de AC3; pedir ratificación del humano en la UAT (si la rechaza, endurecer el regex de normalizePhone).\nLOW L-1: redundancia en AdminSettings.vue:20 y rama undefined de whatsappPhone en settingsFields sin llamador. L-2: en modo sin red podría usarse priceAtAdd para un total estimado."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-16T18:16:14.527Z",
+      "body": "1. Carrito con impresa ×2 (foto-a) y digital ×1 (foto-b) más una foto de evento despublicado: pulsar \"Pedir por WhatsApp\" abre pestaña nueva en wa.me/593998565995 y WhatsApp muestra el mensaje con saludo, dos líneas \"Torneo de Judo & Karate 2026 – Foto judo & final #1.jpg – Impresión 10×15 × 2 – 5.00\" / \"… karate+kata.jpg – Archivo digital × 1 – 4.00\" y \"Total estimado: USD 9.00\"; el carrito sigue con sus 3 líneas. Verificado por el Orquestador en navegador (emulador) a petición del humano. Verdict: PASS\n2. Lightbox de foto-a: enlace \"Pedir esta foto por WhatsApp\" bajo \"Agregar al carrito\"; con Archivo digital arma 1 línea × 1 – 4.00; al elegir Impresión 10×15 y cantidad 2 arma \"× 2 – 5.00\" y total 5.00. Verificado por el Orquestador a petición del humano. Verdict: PASS\n3. Admin → Configuración: campo \"WhatsApp para pedidos\"; guardar \"+593 98 765-4321\" escribe settings/store.whatsappPhone = \"+593987654321\" y conserva watermarkText, shippingCost y pickupInfo; el carrito pasa a wa.me/593987654321. Verificado por el Orquestador a petición del humano. Verdict: PASS\n4. Guardar \"abc123\" muestra \"Escribe un número válido: solo + y dígitos, de 8 a 15 dígitos\" y no escribe en Firestore; guardar vacío deja whatsappPhone = \"\" y el carrito vuelve a wa.me/593998565995. Verificado por el Orquestador a petición del humano. Verdict: PASS\n5. Carrito vacío: sin botón de WhatsApp (\"Tu carrito está vacío\"). Foto del evento despublicado: marcada \"Esta foto ya no está disponible\", fuera del mensaje y del total (9.00). Verificado por el Orquestador a petición del humano. Verdict: PASS\n6. Con la red de Firestore deshabilitada el carrito muestra \"No pudimos actualizar tu carrito\" y el botón sigue; el mensaje lleva \"Foto foto-a – Impresión 10×15 × 2\", \"Foto foto-b – Archivo digital × 1\", \"Foto foto-c – Archivo digital × 1\" sin precios. Verificado por el Orquestador a petición del humano. Verdict: PASS\n7. Vista a 390px: scrollWidth 371 < 386 (sin scroll horizontal), el botón mide 281×52 dentro del resumen; es un <a> con target _blank y rel noopener; npm test 73/73 y build con vue-tsc verdes (reviewer). Verificado por el Orquestador a petición del humano. Verdict: PASS\n\nOverall result: PASS"
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:18:55.287Z",
+      "body": "[WARGAMING] Atacados CU1–CU7 y los negativos de TASK-026 sobre 505ff10 (sonda scratchpad/wargame.test.ts 4/4; sin cambios en el repo). CU1: mensaje con & # % + emoji/comillas/500 chars/99 líneas (URL 13 KB)/qty 99/precio cambiado/redondeo → sobrevivió. CU2: catálogo vacío o en error → sin <a> vacío; digital fuerza 1 → sobrevivió. CU3: merge:true, watermarkText nunca en el payload → sobrevivió. CU4: variantes con espacios/guiones/saltos → 593998565995; \"+1 (555)…\", \"++593\", 7 dígitos, 16 dígitos, dígitos árabes, ZWSP → rechazados → sobrevivió. CU5: vacío/unavailable/producto eliminado → fuera del mensaje y total → sobrevivió. CU6: error de red → datos locales, getSettings falla → default → sobrevivió. CU7: <a> real por $attrs, un tab stop; CSS compatible con 390px → sobrevivió. Negativos: sin escrituras, sin login, \"&phone=\" en nombres no inyecta parámetros, sin v-html → sobrevivió. Veredicto: PASA.\nHallazgos: MEDIUM WG-M-1 whatsappLogic.ts:13 número local sin país (\"0998565995\", \"00593…\") pasa la validación y genera wa.me inválido para todos. MEDIUM WG-M-2 AdminSettings.vue:31 whatsappPhone no-string en Firestore lanza TypeError fuera del try y bloquea el guardado de Configuración. LOW: qty digital manipulada en localStorage en modo sin red; nombres con \"\\n\" o \" – \" rompen el formato; sin noreferrer; URL 13 KB con 99 líneas. Decisión del orquestador: corregir WG-M-1 y WG-M-2 (y L-1 del reviewer) en una ronda de fix antes del cierre."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-16T18:20:26.854Z",
+      "body": "Fix round b0fb644 (sin push): WG-M-1 normalizePhone rechaza primer dígito 0 (\"0998565995\", \"00593…\", \"+0998…\"), mantiene 8–15 dígitos y tolerancia a espacios/guiones; WG-M-2 normalizePhone/validateWhatsappPhone/phoneToStore/resolveWhatsappDigits aceptan unknown (String(x ?? '')) y settingsToForm devuelve siempre string; L-1 AdminSettings usa settingsToForm(s) sin redundancia (la rama undefined de settingsFields tiene llamador en productsLogic.test.ts:19 y se conserva; saveSettings sigue sin pisar watermarkText). Archivos: whatsappLogic.ts(+test), productsLogic.ts, AdminSettings.vue. npm test 75/75 (11 archivos); build verde. 2 tests nuevos con \"Daño:\". Texto de error del admin ahora: \"Escribe un número válido con código de país, sin el 0 inicial: solo + y dígitos, de 8 a 15 (ej. +593998565995)\"."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-16T18:20:55.950Z",
+      "body": "1. Re-check tras el fix b0fb644: en Configuración, guardar \"0998565995\" (número local sin país) muestra \"Escribe un número válido con código de país, sin el 0 inicial: solo + y dígitos, de 8 a 15 (ej. +593998565995)\" y no guarda. Resto del flujo sin cambios respecto al UAT anterior (7/7 PASS). Verificado por el Orquestador en el emulador a petición del humano. Verdict: PASS\n\nOverall result: PASS"
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-16T18:21:21.886Z",
+      "body": "Re-review b0fb644: APPROVE, sin HIGH ni MEDIUM. npm test 75/75 (11 archivos); build verde. WG-M-1: whatsappLogic.ts:16 rechaza primer dígito 0, mantiene 8–15 y tolerancia a +/espacios/guiones; mensaje de error explica el código de país. WG-M-2: String(input ?? '') en normalizePhone/validateWhatsappPhone; phoneToStore/resolveWhatsappDigits aceptan unknown; settingsToForm devuelve siempre string → sin TypeError en AdminSettings. L-1 resuelto; saveSettings sigue merge:true y nunca emite watermarkText. Sin regresiones en los casos aprobados; 2 tests nuevos con daño nombrado y capaces de fallar. LOW: settingsToForm convierte objetos a \"[object Object]\" (normalizePhone lo rechaza igual).\n[FINDING-RESOLVED: R-1] UAT registrada (7/7 PASS + re-check del fix) y wargaming registrado."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-16T18:21:52.073Z",
+      "body": "1. Carrito con impresa ×2 (foto-a), digital ×1 (foto-b) y una foto de evento despublicado: \"Pedir por WhatsApp\" abre pestaña nueva en wa.me/593998565995 y WhatsApp muestra saludo, \"Torneo de Judo & Karate 2026 – Foto judo & final #1.jpg – Impresión 10×15 × 2 – 5.00\", \"… karate+kata.jpg – Archivo digital × 1 – 4.00\" y \"Total estimado: USD 9.00\"; el carrito conserva sus 3 líneas. Verificado por el Orquestador en el emulador a petición del humano. Verdict: PASS\n2. Lightbox de foto-a: \"Pedir esta foto por WhatsApp\" bajo \"Agregar al carrito\"; digital → 1 línea × 1 – 4.00; Impresión 10×15 con cantidad 2 → \"× 2 – 5.00\", total 5.00. Verificado por el Orquestador a petición del humano. Verdict: PASS\n3. Admin → Configuración: guardar \"+593 98 765-4321\" escribe whatsappPhone = \"+593987654321\" conservando watermarkText, shippingCost y pickupInfo; el carrito pasa a wa.me/593987654321. Verificado por el Orquestador a petición del humano. Verdict: PASS\n4. \"abc123\" → error y no guarda; vacío → whatsappPhone \"\" y el carrito vuelve a wa.me/593998565995; tras el fix b0fb644, \"0998565995\" → \"Escribe un número válido con código de país, sin el 0 inicial: solo + y dígitos, de 8 a 15 (ej. +593998565995)\" y no guarda. Verificado por el Orquestador a petición del humano. Verdict: PASS\n5. Carrito vacío: sin botón (\"Tu carrito está vacío\"). Foto de evento despublicado: \"Esta foto ya no está disponible\", fuera del mensaje y del total (9.00). Verificado por el Orquestador a petición del humano. Verdict: PASS\n6. Red de Firestore deshabilitada: \"No pudimos actualizar tu carrito\" y el botón sigue; mensaje con \"Foto foto-a – Impresión 10×15 × 2\", \"Foto foto-b – Archivo digital × 1\", \"Foto foto-c – Archivo digital × 1\" sin precios. Verificado por el Orquestador a petición del humano. Verdict: PASS\n7. Vista a 390px: scrollWidth 371 < 386, botón 281×52 dentro del resumen; <a> con target _blank y rel noopener; npm test 75/75 y build con vue-tsc verdes (reviewer, b0fb644). Verificado por el Orquestador a petición del humano. Verdict: PASS\n\nOverall result: PASS"
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:22:26.447Z",
+      "body": "ENTREGA (PLANTILLA-ENTREGA)\n1. CASOS DE USO APROBADOS Y ESTADO FINAL\nCU1 Carrito con impresa ×2 + digital: \"Pedir por WhatsApp\" abre wa.me/593998565995 con saludo, línea por producto y total estimado; el carrito no se vacía → CUMPLIDO (UAT 1, wargaming CU1).\nCU2 Lightbox: \"Pedir esta foto por WhatsApp\" con producto y cantidad elegidos → CUMPLIDO (UAT 2).\nCU3 Admin Configuración: campo \"WhatsApp para pedidos\" guarda settings/store.whatsappPhone con merge sin pisar watermarkText/shippingCost/pickupInfo → CUMPLIDO (UAT 3).\nCU4 Vacío → +593998565995; inválido → error sin guardar → CUMPLIDO (UAT 4); endurecido en b0fb644: números locales con 0 inicial rechazados.\nCU5 Carrito vacío sin botón; foto no disponible fuera del mensaje y del total → CUMPLIDO (UAT 5).\nCU6 Sin red: botón visible con datos locales → CUMPLIDO (UAT 6).\nCU7 390px sin scroll horizontal (371 < 386); <a> con target _blank y rel noopener; typecheck/tests/build verdes → CUMPLIDO (UAT 7).\nNegativos: sin escrituras en Firestore por el comprador, sin login, número solo dígitos en la URL → CUMPLIDO.\n2. RESULTADO DE LA IMPLEMENTACIÓN\nCommits 505ff10 (feat) y b0fb644 (fix de wargaming). Nuevo src/whatsappLogic.ts (+test): normalizePhone, validateWhatsappPhone, phoneToStore, resolveWhatsappDigits, buildWhatsAppMessage, whatsappUrl; CartView y PurchasePanel con enlace de pedido; PhotoLightbox/EventGallery pasan nombre de evento y foto; AdminSettings con el campo y validación; StoreSettings.whatsappPhone. npm test 75/75; build con vue-tsc verde. Reviewer APPROVE en ambos commits.\n3. WARGAMING\nCasos atacados: CU1–CU7 y los negativos, sobre 505ff10, con sonda en scratchpad (4/4). Camino principal (CU1, carrito → wa.me): codificación de & # % + emoji/saltos, 99 líneas (URL 13 KB), precio cambiado, redondeos → sobrevivió. Caminos alternativos: CU2 lightbox con catálogo vacío/en error y digital con qty>1 → sobrevivió; CU3 admin con 12 variantes de número (espacios, guiones, +1 (555), ++, 7/16 dígitos, árabes, ZWSP) → sobrevivió; CU6 red caída y getSettings fallando → sobrevivió. Caminos de fallo: CU4 número inválido/vacío, CU5 carrito vacío, foto no disponible y producto eliminado → sobrevivió. Negativos: inyección \"&phone=\" en nombres, v-html, escrituras en Firestore, login → sobrevivió. Lo que NO sobrevivió a la primera: MEDIUM WG-M-1 (camino de fallo CU4: número local con 0 inicial pasaba y generaba wa.me inválido) y WG-M-2 (camino alternativo CU3: whatsappPhone no-string bloqueaba el guardado); ambos corregidos en b0fb644 y re-revisados APPROVE. LOW aceptados: qty digital manipulada sin red, nombres con \\n, sin noreferrer, URL larga. E2E: no hay specs e2e en el repo; corrido npm test (75/75). Veredicto: PASA.\n4. UAT\nRealizada por el Orquestador en el emulador local a petición del humano (uat_delegated_to_orchestrator): 7/7 PASS más re-check del fix (texto de error nuevo). Pendiente de ratificación del humano: el campo del admin tolera espacios y guiones al escribir (guarda +dígitos)."
+    }
+  ],
+  "created_at": "2026-10-16T17:49:19.200Z",
+  "updated_at": "2026-10-16T18:22:26.447Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true,
+  "marker": "[EXPLICIT]",
+  "linked_commits_verification": {
+    "at": "2026-10-16T18:22:26.447Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "505ff10",
+        "state": "verified"
+      },
+      {
+        "sha": "b0fb644",
+        "state": "verified"
+      }
+    ]
+  }
+}

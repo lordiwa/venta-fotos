@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-14T17:55:57.397Z",
+  "generated_at": "2026-10-16T18:22:26.447Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -102,6 +102,12 @@
       "title": "Marca Martial Photo: logo, nombre y favicon en toda la app",
       "status": "in_review",
       "priority": "medium"
+    },
+    {
+      "key": "TASK-026",
+      "title": "Pedido de fotos por WhatsApp (+593 99 856 5995)",
+      "status": "done",
+      "priority": "high"
     }
   ]
 }
