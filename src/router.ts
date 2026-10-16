@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
+import { currentPaymentMode } from './paymentMode'
 
 export const routes: RouteRecordRaw[] = [
   { path: '/admin/login', name: 'admin-login', meta: { adminLogin: true }, component: () => import('./views/AdminLogin.vue') },
@@ -31,7 +32,7 @@ export const routes: RouteRecordRaw[] = [
         children: [{ path: 'fotos/:photoId', name: 'event-photo', component: { render: () => null } }],
       },
       { path: 'carrito', name: 'cart', component: () => import('./views/CartView.vue') },
-      { path: 'checkout', name: 'checkout', component: () => import('./views/CheckoutView.vue') },
+      { path: 'checkout', name: 'checkout', beforeEnter: () => (currentPaymentMode() === 'whatsapp' ? { name: 'cart' } : true), component: () => import('./views/CheckoutView.vue') },
       { path: 'descargas', name: 'downloads', component: () => import('./views/DescargasView.vue') },
       { path: 'pedido/:number', name: 'order', component: () => import('./views/OrderView.vue') },
       { path: ':pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue') },

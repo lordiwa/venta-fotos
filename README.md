@@ -23,6 +23,8 @@ El panel `/admin` exige una cuenta de Firebase Auth (correo y contraseña) con e
 
 ### Pagos con PayPal (checkout)
 
+**Sin pago en línea (TASK-027)**: sin `VITE_PAYPAL_CLIENT_ID` la tienda opera por WhatsApp y `/checkout` redirige al carrito. En Functions, `createOrder`/`captureOrder` solo se exportan con `PAYPAL_ENABLED=true` (ver `functions/.env.example`); sin ella el deploy no pide los secretos de PayPal.
+
 El checkout usa Cloud Functions `createOrder`/`captureOrder` (PayPal Orders v2, sin SDK). Las credenciales **nunca** van al cliente ni al repo:
 
 - **Secretos de Functions** (credenciales REST de una app de PayPal, sandbox para pruebas): `firebase functions:secrets:set PAYPAL_CLIENT_ID` y `firebase functions:secrets:set PAYPAL_CLIENT_SECRET`.

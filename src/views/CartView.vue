@@ -7,11 +7,13 @@ import { getSettings } from '../settingsApi'
 import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappUrl, type WhatsAppLine } from '../whatsappLogic'
 import { reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
+import { currentPaymentMode } from '../paymentMode'
 import { useCartStore } from '../stores/cart'
 import { Alert, Button, Card, Stepper } from '../ui'
 import type { Photo, Product } from '../types'
 
 const cart = useCartStore()
+const paypal = currentPaymentMode() === 'paypal'
 const products = ref<Product[]>([])
 const photos = ref<Record<string, PhotoAvailability>>({})
 const thumbs = ref<Record<string, string | undefined>>({})
@@ -116,9 +118,10 @@ const whatsappHref = computed(() => {
         <div v-for="r in view.lines.filter((x) => x.counted)" :key="r.key"><dt>{{ r.product?.name ?? r.line.productName ?? 'Producto' }} × {{ r.quantity }}</dt><dd class="mono-md">{{ formatMoney(r.subtotal) }}</dd></div>
       </dl>
       <p class="total"><strong>Total estimado:</strong> <span class="display-md amount">{{ formatMoney(view.total) }}</span></p>
-      <p class="caption muted">El envío, si lo eliges, se suma al pagar.</p>
-      <Button variant="accent" size="lg" to="/checkout">Ir a pagar</Button>
-      <Button v-if="view.lines.some((r) => r.counted)" variant="secondary" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
+      <p v-if="paypal" class="caption muted">El envío, si lo eliges, se suma al pagar.</p>
+      <p v-else class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
+      <Button v-if="paypal" variant="accent" size="lg" to="/checkout">Ir a pagar</Button>
+      <Button v-if="view.lines.some((r) => r.counted)" :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
       <RouterLink to="/" class="more">Seguir viendo fotos</RouterLink>
     </Card>
   </div>

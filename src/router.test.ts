@@ -1,9 +1,11 @@
 // Prevents: ruta inexistente que deja pantalla en blanco en vez de la 404 del layout publico (UC1/UC2).
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { routes } from './router'
 
 describe('router', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
   it('resuelve / y /admin a layouts distintos y lo desconocido a not-found', () => {
     const router = createRouter({ history: createMemoryHistory(), routes })
     expect(router.resolve('/').name).toBe('home')
@@ -37,5 +39,17 @@ describe('router', () => {
     expect(ph.name).toBe('event-photo')
     expect(ph.params).toMatchObject({ eventId: 'e1', photoId: 'p9' })
     expect(ph.matched.map((m) => m.name)).toContain('event')
+  })
+
+  // Daño: el comprador sin PayPal llega a un /checkout roto ("PayPal no configurado") desde un enlace viejo o URL escrita.
+  it('/checkout redirige a /carrito sin VITE_PAYPAL_CLIENT_ID y entra con el', async () => {
+    vi.stubEnv('VITE_PAYPAL_CLIENT_ID', '')
+    const r1 = createRouter({ history: createMemoryHistory(), routes })
+    await r1.push('/checkout')
+    expect(r1.currentRoute.value.name).toBe('cart')
+    vi.stubEnv('VITE_PAYPAL_CLIENT_ID', 'AbC123')
+    const r2 = createRouter({ history: createMemoryHistory(), routes })
+    await r2.push('/checkout')
+    expect(r2.currentRoute.value.name).toBe('checkout')
   })
 })

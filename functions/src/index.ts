@@ -22,14 +22,14 @@ setGlobalOptions({ region: "southamerica-east1" });
 
 // ---- TASK-017: checkout con PayPal ----
 
-const PAYPAL_CLIENT_ID = defineSecret("PAYPAL_CLIENT_ID");
-const PAYPAL_CLIENT_SECRET = defineSecret("PAYPAL_CLIENT_SECRET");
+/**
+ * TASK-027: sin PAYPAL_ENABLED=true no se exportan createOrder/captureOrder. La CLI valida los secretos de TODOS
+ * los endpoints exportados al analizar el deploy, asi que sin PayPal no deben existir (ni declarar secretos).
+ */
+const PAYPAL_ENABLED = process.env.PAYPAL_ENABLED === "true";
 /** Sandbox por defecto; en produccion: https://api-m.paypal.com */
 const PAYPAL_BASE_URL = defineString("PAYPAL_BASE_URL", { default: "https://api-m.sandbox.paypal.com" });
 const SIMULATED_PREFIX = "SIMULADO-";
-const callOpts = { secrets: [PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET] };
-
-const paypalConfig = () => ({ baseUrl: PAYPAL_BASE_URL.value(), clientId: PAYPAL_CLIENT_ID.value(), clientSecret: PAYPAL_CLIENT_SECRET.value() });
 
 function toHttpsError(e: unknown, op: string): HttpsError {
   if (e instanceof HttpsError) return e;
@@ -38,62 +38,76 @@ function toHttpsError(e: unknown, op: string): HttpsError {
   return new HttpsError("internal", "No pudimos procesar el pago. Intenta de nuevo.");
 }
 
-/** Recalcula el total en el servidor, crea la orden de PayPal (o una simulada en emuladores) y guarda el snapshot. */
-export const createOrder = onCall(callOpts, async (request) => {
-  try {
-    const simulated = request.data?.simulated === true;
-    if (simulated) assertSimulationAllowed(process.env);
-    const db = admin.firestore();
-    const snap = await computeSnapshot(db, request.data ?? {});
-    const paypalOrderId = simulated ? `${SIMULATED_PREFIX}${randomUUID().slice(0, 12)}` : await createPaypalOrder(paypalConfig(), snap);
-    await saveCheckout(db, paypalOrderId, snap);
-    logger.info("createOrder", { paypalOrderId, totalCents: snap.totalCents, simulated });
-    return { paypalOrderId };
-  } catch (e) {
-    throw toHttpsError(e, "createOrder");
-  }
-});
+function buildPaypalFunctions() {
+  const PAYPAL_CLIENT_ID = defineSecret("PAYPAL_CLIENT_ID");
+  const PAYPAL_CLIENT_SECRET = defineSecret("PAYPAL_CLIENT_SECRET");
+  const callOpts = { secrets: [PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET] };
+  const paypalConfig = () => ({ baseUrl: PAYPAL_BASE_URL.value(), clientId: PAYPAL_CLIENT_ID.value(), clientSecret: PAYPAL_CLIENT_SECRET.value() });
 
-/** Captura el pago, verifica el monto contra el snapshot del servidor y crea el pedido pagado (idempotente). */
-export const captureOrder = onCall(callOpts, async (request) => {
-  try {
-    const id = request.data?.paypalOrderId;
-    if (typeof id !== "string" || !id || id.includes("/")) throw new HttpsError("invalid-argument", "Falta la orden de pago.");
-    const db = admin.firestore();
-    const checkout = await db.doc(`checkouts/${id}`).get();
-    if (!checkout.exists) throw new HttpsError("not-found", "No encontramos esa orden de pago.");
-    const snap = checkout.data() as CheckoutSnapshot;
-    if (id.startsWith(SIMULATED_PREFIX)) {
-      assertSimulationAllowed(process.env);
-    } else {
-      const res = await capturePaypalOrder(paypalConfig(), id);
-      // R-1: desde aqui PayPal pudo haber cobrado; se deja constancia ANTES de verificar y todo error se registra.
-      try {
-        await updateCheckout(db, id, { capture: { ...extractCapture(res), capturedAtMs: Date.now() } });
-        const outcome = classifyCapture(res, snap);
-        if (outcome === "captura_pendiente") {
-          await updateCheckout(db, id, { status: outcome });
-          throw new CheckoutError("failed-precondition", `Tu pago está en revisión en PayPal (id ${id}). Te contactaremos.`, true);
-        }
-        if (outcome === "captura_no_coincide") {
-          await updateCheckout(db, id, { status: outcome });
-          throw new CheckoutError("failed-precondition", `Recibimos tu pago pero no pudimos confirmar el pedido. Guarda este código: ${id}.`, true);
-        }
-      } catch (e) {
-        const notCaptured = e instanceof CheckoutError && !e.final; // DECLINED/FAILED: no hubo cobro
-        if (notCaptured) logger.warn("captureOrder: captura no completada", { paypalOrderId: id, reason: e.message });
-        else logger.error("captureOrder: cobro sin pedido", { paypalOrderId: id, error: String(e) });
-        throw e;
-      }
+  /** Recalcula el total en el servidor, crea la orden de PayPal (o una simulada en emuladores) y guarda el snapshot. */
+  const createOrder = onCall(callOpts, async (request) => {
+    try {
+      const simulated = request.data?.simulated === true;
+      if (simulated) assertSimulationAllowed(process.env);
+      const db = admin.firestore();
+      const snap = await computeSnapshot(db, request.data ?? {});
+      const paypalOrderId = simulated ? `${SIMULATED_PREFIX}${randomUUID().slice(0, 12)}` : await createPaypalOrder(paypalConfig(), snap);
+      await saveCheckout(db, paypalOrderId, snap);
+      logger.info("createOrder", { paypalOrderId, totalCents: snap.totalCents, simulated });
+      return { paypalOrderId };
+    } catch (e) {
+      throw toHttpsError(e, "createOrder");
     }
-    const order = await finalizeOrder(db, id, snap);
-    await updateCheckout(db, id, { status: "pagado", orderNumber: order.number }).catch((e) => logger.error("captureOrder: no se pudo marcar el checkout", e));
-    logger.info("captureOrder", { paypalOrderId: id, number: order.number });
-    return order;
-  } catch (e) {
-    throw toHttpsError(e, "captureOrder");
-  }
-});
+  });
+
+  /** Captura el pago, verifica el monto contra el snapshot del servidor y crea el pedido pagado (idempotente). */
+  const captureOrder = onCall(callOpts, async (request) => {
+    try {
+      const id = request.data?.paypalOrderId;
+      if (typeof id !== "string" || !id || id.includes("/")) throw new HttpsError("invalid-argument", "Falta la orden de pago.");
+      const db = admin.firestore();
+      const checkout = await db.doc(`checkouts/${id}`).get();
+      if (!checkout.exists) throw new HttpsError("not-found", "No encontramos esa orden de pago.");
+      const snap = checkout.data() as CheckoutSnapshot;
+      if (id.startsWith(SIMULATED_PREFIX)) {
+        assertSimulationAllowed(process.env);
+      } else {
+        const res = await capturePaypalOrder(paypalConfig(), id);
+        // R-1: desde aqui PayPal pudo haber cobrado; se deja constancia ANTES de verificar y todo error se registra.
+        try {
+          await updateCheckout(db, id, { capture: { ...extractCapture(res), capturedAtMs: Date.now() } });
+          const outcome = classifyCapture(res, snap);
+          if (outcome === "captura_pendiente") {
+            await updateCheckout(db, id, { status: outcome });
+            throw new CheckoutError("failed-precondition", `Tu pago está en revisión en PayPal (id ${id}). Te contactaremos.`, true);
+          }
+          if (outcome === "captura_no_coincide") {
+            await updateCheckout(db, id, { status: outcome });
+            throw new CheckoutError("failed-precondition", `Recibimos tu pago pero no pudimos confirmar el pedido. Guarda este código: ${id}.`, true);
+          }
+        } catch (e) {
+          const notCaptured = e instanceof CheckoutError && !e.final; // DECLINED/FAILED: no hubo cobro
+          if (notCaptured) logger.warn("captureOrder: captura no completada", { paypalOrderId: id, reason: e.message });
+          else logger.error("captureOrder: cobro sin pedido", { paypalOrderId: id, error: String(e) });
+          throw e;
+        }
+      }
+      const order = await finalizeOrder(db, id, snap);
+      await updateCheckout(db, id, { status: "pagado", orderNumber: order.number }).catch((e) => logger.error("captureOrder: no se pudo marcar el checkout", e));
+      logger.info("captureOrder", { paypalOrderId: id, number: order.number });
+      return order;
+    } catch (e) {
+      throw toHttpsError(e, "captureOrder");
+    }
+  });
+
+  return { createOrder, captureOrder };
+}
+
+const paypalFunctions = PAYPAL_ENABLED ? buildPaypalFunctions() : undefined;
+// Un export undefined no es un endpoint: la CLI lo ignora.
+export const createOrder = paypalFunctions?.createOrder;
+export const captureOrder = paypalFunctions?.captureOrder;
 
 // ---- TASK-019: descarga del archivo digital ----
 
