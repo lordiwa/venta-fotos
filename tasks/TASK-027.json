@@ -1,0 +1,106 @@
+{
+  "key": "TASK-027",
+  "title": "Modo sin pago en línea: WhatsApp como único canal y Functions sin secretos de PayPal",
+  "description": "El humano decidió el 2026-10-16 no usar PayPal por ahora: los pagos se acuerdan en persona o por WhatsApp. Hoy el carrito muestra \"Ir a pagar\" que lleva a /checkout con \"Pago con PayPal no configurado\" (callejón sin salida), y el deploy de Functions falla porque createOrder/captureOrder declaran secretos de PayPal que no existen. Cuando no hay VITE_PAYPAL_CLIENT_ID la tienda debe funcionar en modo WhatsApp: el botón principal del carrito es \"Pedir por WhatsApp\", no hay \"Ir a pagar\", /checkout redirige al carrito y el mensaje explica que el pago se acuerda por el chat. En Functions, createOrder y captureOrder solo se exportan cuando PAYPAL_ENABLED=true (functions/.env), de modo que el deploy de producción no exige los secretos. Cuando el fotógrafo tenga PayPal, basta configurar VITE_PAYPAL_CLIENT_ID y PAYPAL_ENABLED para volver al flujo completo sin tocar código.",
+  "acceptance_criteria": [
+    "Sin VITE_PAYPAL_CLIENT_ID: el carrito muestra \"Pedir por WhatsApp\" como botón principal (accent) y no muestra \"Ir a pagar\"; el texto de ayuda dice que el pago se acuerda por WhatsApp (retiro o envío) en vez de \"El envío, si lo eliges, se suma al pagar\"",
+    "Sin VITE_PAYPAL_CLIENT_ID: entrar a /checkout redirige a /carrito",
+    "Con VITE_PAYPAL_CLIENT_ID definido: el carrito y el checkout quedan exactamente como hoy (\"Ir a pagar\" principal, WhatsApp secundario)",
+    "El panel de compra de una foto conserva \"Agregar al carrito\" y \"Pedir esta foto por WhatsApp\" en ambos modos",
+    "functions/src/index.ts exporta createOrder y captureOrder solo cuando PAYPAL_ENABLED es \"true\"; con PAYPAL_ENABLED ausente el análisis de deploy no requiere PAYPAL_CLIENT_ID ni PAYPAL_CLIENT_SECRET; functions/.env.example documenta la variable",
+    "El emulador local sigue funcionando con los pagos simulados en DEV (PAYPAL_ENABLED=true en functions/.env.local)",
+    "typecheck, tests unitarios y build (app y functions) verdes"
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "ventas",
+    "whatsapp",
+    "deploy"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "2f0e003",
+    "6b19210"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:37:26.202Z",
+      "body": "PEDIDO (completado contra PLANTILLA-PEDIDO a partir de \"por ahora dejémoslo por pagos en persona o a convenir por el WhatsApp\", 2026-10-16)\n1. Objetivo: que la tienda funcione sin pago en línea: el comprador pide por WhatsApp y el pago se acuerda en persona o por el chat.\n2. Actor: comprador anónimo (pide por WhatsApp); fotógrafo (cobra en persona/transferencia); humano que despliega (deploy de Functions sin secretos de PayPal).\n3. Problema: \"Ir a pagar\" lleva a un checkout muerto (\"Pago con PayPal no configurado\") y el deploy de Functions falla porque createOrder/captureOrder exigen secretos que no existen.\n4. Caminos: principal (carrito sin PayPal → botón principal \"Pedir por WhatsApp\", sin \"Ir a pagar\", texto de ayuda sobre el pago por chat); alternativos (con VITE_PAYPAL_CLIENT_ID todo queda como hoy; panel de foto conserva \"Agregar al carrito\" + WhatsApp; deploy de Functions sin PAYPAL_ENABLED no exige secretos; emulador local con PAYPAL_ENABLED=true sigue simulando pagos); fallo (entrar a /checkout sin PayPal → redirige al carrito; compartir un enlace viejo a /checkout → mismo redirect).\n5. Hecho: los AC del ticket.\n6. Restricciones: sin tocar el flujo de PayPal existente (debe reactivarse solo con configuración); sin \"Venta de Fotos\"; 390px; nada de secretos en el repo.\n7. Fuera de alcance: eliminar el código de PayPal, pedidos de WhatsApp en el panel admin, ocultar \"Mis descargas\" o \"Pedidos\" del admin."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:37:26.325Z",
+      "body": "CASOS DE USO PROPUESTOS (pendientes de aprobación del humano):\nCU1 Carrito con fotos, sin VITE_PAYPAL_CLIENT_ID: el resumen muestra \"Pedir por WhatsApp\" como botón principal (ámbar), no existe \"Ir a pagar\", y el texto de ayuda dice \"El pago y la entrega (retiro o envío) se acuerdan por WhatsApp\".\nCU2 Sin PayPal, abrir /checkout (menú, enlace viejo o URL escrita) → redirige a /carrito sin error.\nCU3 Con VITE_PAYPAL_CLIENT_ID definido: carrito con \"Ir a pagar\" principal y WhatsApp secundario, y /checkout funciona como hoy (sin regresión).\nCU4 Panel de compra de una foto: \"Agregar al carrito\" y \"Pedir esta foto por WhatsApp\" en ambos modos.\nCU5 Deploy de Functions en producción sin PAYPAL_ENABLED: el análisis no pide PAYPAL_CLIENT_ID ni PAYPAL_CLIENT_SECRET y despliega processPhoto, cleanupPhotoFiles, getDownloadLinks y advanceOrder; createOrder/captureOrder no se exportan.\nCU6 Emulador local con PAYPAL_ENABLED=true en functions/.env.local: createOrder/captureOrder existen y el pago simulado en DEV sigue funcionando.\nCU7 Carrito vacío: sin botones; 390px sin scroll horizontal; typecheck, tests y build (app y functions) verdes.\nNegativos: ningún secreto en el repo; el código de PayPal no se borra; \"Mis descargas\" y el admin de pedidos no cambian."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:38:10.225Z",
+      "body": "CASOS DE USO APROBADOS por el humano el 2026-10-16 (\"si\"): CU1–CU7 y los negativos del comentario anterior, tal cual, sin cambios. Tier tests-after, requires_uat true."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-16T18:42:04.788Z",
+      "body": "Hand-off: commit 2f0e003 (sin push). Nuevos: src/paymentMode.ts(+test), functions/.env.example. Modificados: CartView.vue, router.ts(+test), functions/src/index.ts, README.md. CU1 CartView usa currentPaymentMode(): sin id oculta \"Ir a pagar\", WhatsApp accent, ayuda \"El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.\"; CU2 beforeEnter en checkout → cart (test); CU3 con id template igual que antes, CheckoutView sin tocar; CU4 PurchasePanel sin tocar; CU5/CU6 exports de functions/lib: PAYPAL_ENABLED vacío → getDownloadLinks,advanceOrder,processPhoto,cleanupPhotoFiles; true → + createOrder,captureOrder (defineSecret solo se llama con la variable encendida); CU7 carrito vacío sin botones, 390px no medido (UAT). npm test 77/77 (12 archivos); build app y functions verdes. 2 tests nuevos con \"Daño:\", plantados en rojo. Notas: functions/src/index.ts en CRLF, createOrder/captureOrder dentro de buildPaypalFunctions() (diff grande, lógica igual); tipo CloudFunction | undefined; README pide ahora PAYPAL_ENABLED=true en functions/.env.local para pagos simulados."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-16T18:44:06.876Z",
+      "body": "1. Carrito con impresa ×2 y digital ×1 en el emulador sin VITE_PAYPAL_CLIENT_ID: el resumen muestra solo \"Pedir por WhatsApp\" como <a class=\"es-btn-accent\" target=_blank rel=noopener> y \"Seguir viendo fotos\"; no existe \"Ir a pagar\"; ayuda \"El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.\" Verificado por el Orquestador en navegador a petición del humano. Verdict: PASS\n2. Sin PayPal: navegación interna a /checkout?x=1#y y carga directa de http://localhost:5173/checkout terminan en /carrito con h1 \"Carrito\", sin error ni mención a PayPal; history.back() vuelve a /carrito sin bucle. Verificado por el Orquestador a petición del humano. Verdict: PASS\n3. Segunda instancia de Vite con VITE_PAYPAL_CLIENT_ID=sb-test-client: carrito con \"Ir a pagar\" (accent) + \"Pedir por WhatsApp\" (secondary) y ayuda \"El envío, si lo eliges, se suma al pagar.\"; /checkout carga la pantalla \"Pagar\" con formulario, entrega y resumen como antes. Verificado por el Orquestador a petición del humano. Verdict: PASS\n4. Lightbox de foto-a en modo WhatsApp: panel con \"Agregar al carrito\" y \"Pedir esta foto por WhatsApp\". Verificado por el Orquestador a petición del humano. Verdict: PASS\n5. functions/lib/index.js con PAYPAL_ENABLED vacío exporta solo getDownloadLinks, advanceOrder, processPhoto, cleanupPhotoFiles, ninguno con secretos. Verificado por el Orquestador a petición del humano. Verdict: PASS\n6. Con PAYPAL_ENABLED=true exporta además createOrder y captureOrder con secretos declarados; functions/.env.local del emulador tiene PAYPAL_ENABLED=true. Verificado por el Orquestador a petición del humano. Verdict: PASS\n7. Carrito vacío: solo \"Tu carrito está vacío\" y \"Ver las fotos\"; a 390px scrollWidth 371 < 386 y el botón accent mide 281px dentro del resumen; npm test 77/77, build app y functions verdes (developer). Verificado por el Orquestador a petición del humano. Verdict: PASS\n\nOverall result: PASS"
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-16T18:45:34.122Z",
+      "body": "Review fresca de 2f0e003: APPROVE, sin HIGH. npm test 77/77 (12 archivos); npm run test:functions 21/21; build app (vue-tsc) y functions (tsc) verdes. Exports verificados: PAYPAL_ENABLED vacío → getDownloadLinks, advanceOrder, processPhoto, cleanupPhotoFiles sin secretEnvironmentVariables; true → + createOrder/captureOrder con secretos. AC1/CU1 CartView.vue:121-124 (v-if paypal, WhatsApp accent, ayuda exacta; modo paypal idéntico a 2f0e003^). AC2/CU2 router.ts:35 beforeEnter → cart solo en modo whatsapp, sin bucle; CheckoutView conserva su replace con carrito vacío. paymentMode.ts:6 trata undefined/null/''/espacios/no-string como whatsapp. PurchasePanel sin cambios. .env.example sin secretos; .env.local ignorado. git diff -w: lógica de createOrder/captureOrder intacta; código PayPal no borrado; README coherente. UAT uat del 2026-10-16 cubre AC1–AC7. Reglas 2 y 3 OK. Superficie peligrosa: sí (secretos/deploy), sin test vago.\nMEDIUM M-1: hand-off sin checklist pre-hand-off itemizado. MEDIUM M-2: sin regression lock para el gating de exports en Functions (verificación manual + UAT 5/6). LOW L-1: config cruzada (VITE_PAYPAL_CLIENT_ID con PAYPAL_ENABLED ausente) lleva a /checkout contra una Function inexistente; documentar que van juntas. LOW L-2: exports tipados CloudFunction | undefined."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:48:04.161Z",
+      "body": "[WARGAMING] Atacados CU1–CU7 y los negativos de TASK-027 sobre 2f0e003 (sondas scratchpad wg027.spec.ts y fnprobe.cjs; sin cambios en el repo). Camino principal CU1: paymentMode con undefined/''/espacios/\\n/0/null/false/{}/[] → whatsapp, 'sb-xxxx' → paypal; Vite entrega undefined real para una var ausente → sobrevivió. Caminos alternativos: CU2 /checkout?x=1#y, /checkout/, /Checkout, push por nombre, replace → cart; back/forward sin bucle → sobrevivió; CU3 modo paypal idéntico al anterior y /checkout conserva query/hash → sobrevivió; CU4 PurchasePanel igual en ambos modos → sobrevivió; CU5 PAYPAL_ENABLED ausente/''/'TRUE'/' true'/'1'/'yes'/'false' → sin createOrder/captureOrder y sin SecretParam declarado (la CLI no valida secretos); firebase-tools pasa functions/.env al análisis de deploy → sobrevivió; CU6 true → ambos callables con secretos; lógica intacta (diff -w) → sobrevivió. Caminos de fallo: CU7 carrito vacío sin botones; CSS sin scroll a 390px → sobrevivió. Negativos: sin secretos en el commit, código PayPal intacto, DescargasView/AdminOrders intactos → sobrevivió. Veredicto: PASA.\nHallazgos: MEDIUM WG-M-1 CartView.vue:103 — rama sin red (error=true) sin PayPal deja \"Pedir por WhatsApp\" como secondary y sin la ayuda; CU1 pide WhatsApp principal. LOW: CheckoutView decide con !clientId en vez de paymentMode (id en blanco); PAYPAL_ENABLED='TRUE'/'1' deshabilitan en silencio; test:functions:integration depende de .env.local; configuración cruzada front/functions. Decisión del orquestador: corregir WG-M-1 y unificar CheckoutView con currentPaymentMode en una ronda de fix antes del cierre."
+    },
+    {
+      "author": "developer",
+      "at": "2026-10-16T18:48:56.281Z",
+      "body": "Fix round 6b19210 (sin push): CartView.vue rama de error usa `paypal ? 'secondary' : 'accent'` y muestra la ayuda \"El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.\" en modo whatsapp; CheckoutView.vue: clientId = undefined cuando currentPaymentMode() es whatsapp. Solo esos dos archivos. npm test 77/77; build verde. Modo paypal sin cambios. Sin tests nuevos."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-16T18:49:51.018Z",
+      "body": "1. Carrito con impresa ×2 y digital ×1 sin VITE_PAYPAL_CLIENT_ID: resumen con solo \"Pedir por WhatsApp\" (es-btn-accent, target _blank, rel noopener) y \"Seguir viendo fotos\"; sin \"Ir a pagar\"; ayuda \"El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.\" Tras el fix 6b19210 la rama sin red muestra el mismo botón accent y la misma ayuda (CartView.vue, `paypal ? 'secondary' : 'accent'`; verificado en código y con la red de Firestore deshabilitada el botón es accent con la ayuda). Verificado por el Orquestador en navegador a petición del humano. Verdict: PASS\n2. Sin PayPal: /checkout?x=1#y por navegación interna y http://localhost:5173/checkout por carga directa terminan en /carrito sin error; back sin bucle. Verificado por el Orquestador a petición del humano. Verdict: PASS\n3. Vite con VITE_PAYPAL_CLIENT_ID=sb-test-client: \"Ir a pagar\" accent + \"Pedir por WhatsApp\" secondary, ayuda \"El envío, si lo eliges, se suma al pagar.\"; /checkout carga \"Pagar\" como antes. Verificado por el Orquestador a petición del humano. Verdict: PASS\n4. Lightbox de foto-a: \"Agregar al carrito\" y \"Pedir esta foto por WhatsApp\". Verificado por el Orquestador a petición del humano. Verdict: PASS\n5. functions/lib con PAYPAL_ENABLED vacío exporta solo getDownloadLinks, advanceOrder, processPhoto, cleanupPhotoFiles sin secretos. Verificado por el Orquestador a petición del humano. Verdict: PASS\n6. Con PAYPAL_ENABLED=true exporta además createOrder y captureOrder con secretos; functions/.env.local del emulador lo tiene en true. Verificado por el Orquestador a petición del humano. Verdict: PASS\n7. Carrito vacío: solo \"Tu carrito está vacío\" y \"Ver las fotos\"; 390px scrollWidth 371 < 386; npm test 77/77, builds de app y functions verdes (reviewer y developer). Verificado por el Orquestador a petición del humano. Verdict: PASS\n\nOverall result: PASS"
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-16T18:49:57.592Z",
+      "body": "Re-review 6b19210: APPROVE, sin HIGH ni MEDIUM. npm test 77/77; build verde. WG-M-1: CartView.vue:99-100 ayuda con v-if=\"!paypal\" y variant `paypal ? 'secondary' : 'accent'` en la rama de error; `paypal` definido en :16; modo paypal idéntico a 2f0e003. LOW: CheckoutView.vue:18 clientId undefined en modo whatsapp; resto intacto. LOW no bloqueante: sin test para la rama de error en modo whatsapp (cubierto por UAT)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-16T18:50:29.312Z",
+      "body": "ENTREGA (PLANTILLA-ENTREGA)\n1. CASOS DE USO APROBADOS Y ESTADO FINAL\nCU1 Carrito sin VITE_PAYPAL_CLIENT_ID: \"Pedir por WhatsApp\" principal (accent), sin \"Ir a pagar\", ayuda \"El pago y la entrega (retiro o envío) se acuerdan por WhatsApp\" → CUMPLIDO (UAT 1; tras 6b19210 también en la rama sin red).\nCU2 Sin PayPal, /checkout por menú, enlace viejo o URL → /carrito sin error → CUMPLIDO (UAT 2, wargaming con query/hash/mayúsculas/back-forward).\nCU3 Con VITE_PAYPAL_CLIENT_ID: carrito y checkout como antes → CUMPLIDO (UAT 3 en Vite con id de prueba).\nCU4 Panel de foto con \"Agregar al carrito\" + \"Pedir esta foto por WhatsApp\" en ambos modos → CUMPLIDO (UAT 4).\nCU5 Deploy sin PAYPAL_ENABLED: sin secretos exigidos; exporta processPhoto, cleanupPhotoFiles, getDownloadLinks, advanceOrder → CUMPLIDO (UAT 5, exports verificados en functions/lib).\nCU6 Emulador con PAYPAL_ENABLED=true: createOrder/captureOrder con secretos → CUMPLIDO (UAT 6).\nCU7 Carrito vacío sin botones; 390px sin scroll (371 < 386); tests y builds verdes → CUMPLIDO (UAT 7).\nNegativos: sin secretos en el repo, código PayPal intacto, \"Mis descargas\" y admin de pedidos intactos → CUMPLIDO.\n2. RESULTADO DE LA IMPLEMENTACIÓN\nCommits 2f0e003 (feat) y 6b19210 (fix de wargaming). src/paymentMode.ts (+test) con paymentMode/currentPaymentMode; CartView con botón principal según modo (incluida rama sin red); router con beforeEnter en checkout (+test); CheckoutView coherente con paymentMode; functions/src/index.ts envuelve createOrder/captureOrder y defineSecret en buildPaypalFunctions() condicionado a PAYPAL_ENABLED=\"true\"; functions/.env.example y README documentan la variable. npm test 77/77, test:functions 21/21, builds de app y functions verdes. Reviewer APPROVE en ambos commits (MEDIUM M-2 del reviewer: sin regression lock del gating de exports, cubierto por verificación manual y UAT 5/6; LOW aceptados: config cruzada documentada, exports tipados opcionales).\n3. WARGAMING\nCasos atacados: CU1–CU7 y negativos sobre 2f0e003 (sondas wg027.spec.ts y fnprobe.cjs en scratchpad; sin cambios en el repo). Camino principal CU1: paymentMode con undefined/''/espacios/\\n/0/null/false/{}/[] y 'sb-xxxx'; Vite entrega undefined real → sobrevivió. Caminos alternativos: CU2 /checkout con query/hash, barra final, mayúsculas, push por nombre, replace, back/forward → sobrevivió; CU3 modo paypal idéntico y /checkout conserva query/hash → sobrevivió; CU4 panel igual en ambos modos → sobrevivió; CU5 PAYPAL_ENABLED ausente/''/'TRUE'/' true'/'1'/'yes'/'false' → sin callables de PayPal ni SecretParam; firebase-tools pasa functions/.env al análisis → sobrevivió; CU6 true → callables con secretos, lógica intacta → sobrevivió. Caminos de fallo: CU7 carrito vacío y 390px → sobrevivió. Negativos: sin secretos en el commit, código PayPal y vistas de descargas/pedidos intactos → sobrevivió. Lo que NO sobrevivió a la primera: MEDIUM WG-M-1 (camino de fallo sin red en modo whatsapp dejaba WhatsApp como secundario) → corregido en 6b19210 y re-revisado APPROVE. LOW aceptados: CheckoutView con !clientId (corregido igualmente en 6b19210), PAYPAL_ENABLED='TRUE'/'1' desactivan en silencio, test de integración depende de .env.local, configuración cruzada front/functions. E2E: no hay specs e2e en el repo; corridos npm test 77/77 y test:functions 21/21. Veredicto: PASA.\n4. UAT\nRealizada por el Orquestador en el emulador local a petición del humano (uat_delegated_to_orchestrator): 7/7 PASS en modo whatsapp (Vite 5173) y modo paypal (Vite 5174 temporal), exports de functions con y sin PAYPAL_ENABLED, y re-check de la rama sin red tras el fix."
+    }
+  ],
+  "created_at": "2026-10-16T18:37:02.238Z",
+  "updated_at": "2026-10-16T18:50:29.312Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true,
+  "marker": "[INFERRED:strong]",
+  "linked_commits_verification": {
+    "at": "2026-10-16T18:50:29.312Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "2f0e003",
+        "state": "verified"
+      },
+      {
+        "sha": "6b19210",
+        "state": "verified"
+      }
+    ]
+  }
+}

@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-16T18:23:17.114Z",
+  "updated_at": "2026-10-16T18:50:30.643Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
-  "next_action": "(1) Humano decide R-1 de TASK-025 y UAT → cerrar TASK-025. (2) Humano despliega: npm run build && npx firebase deploy --only hosting --project venta-fotos-estudio (y Functions cuando corresponda). (3) Cargar productos y configuración (incl. WhatsApp) en el admin de producción. (4) PayPal live. (5) UAT TASK-022/023/024.",
-  "handoff_summary": "TASK-026 (pedido por WhatsApp al +593 99 856 5995) CERRADA el 2026-10-16: commits 505ff10 + b0fb644, reviewer APPROVE x2, UAT 7/7 por el orquestador, wargaming PASA. Pendiente de ratificar por el humano: el admin tolera espacios/guiones en el número. Claim admin prod de gulmork@gmail.com asignado. TASK-025 sigue in_review con R-1 (alt=\"\") y R-2 (uat) pendientes de decisión del humano. Producción aún sin el deploy de hosting con TASK-025/026 ni Functions; sin PayPal live; sin productos/settings en prod.",
+  "next_action": "Push; deploy hosting + functions filtradas; avisar al humano para que pruebe en https://venta-fotos-estudio.web.app (crear productos/configuración/evento con fotos). Luego cerrar TASK-025 con el humano.",
+  "handoff_summary": "TASK-027 (modo sin pago en línea) CERRADA el 2026-10-16: commits 2f0e003 + 6b19210; reviewer APPROVE x2; UAT 7/7; wargaming PASA. Siguiente: push + deploy de hosting y Functions filtradas (processPhoto,cleanupPhotoFiles,getDownloadLinks,advanceOrder) a venta-fotos-estudio, pedido por el humano. TASK-025 sigue in_review (R-1 alt, R-2 uat pendientes del humano). Sin PayPal por decisión del humano.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
@@ -47,6 +47,11 @@
       "at": "2026-10-16T17:50:09.302Z",
       "decision": "Pedido por WhatsApp al +593 99 856 5995 como vía alternativa a PayPal (TASK-026); número configurable en settings/store.whatsappPhone con ese valor por defecto",
       "rationale": "Pedido del humano el 2026-10-16"
+    },
+    {
+      "at": "2026-10-16T18:36:39.947Z",
+      "decision": "Sin PayPal por ahora: los pagos se acuerdan en persona o por WhatsApp. No se cargan secretos de PayPal ni se despliegan createOrder/captureOrder.",
+      "rationale": "Decisión del humano el 2026-10-16 (\"dejémoslo por pagos en persona o a convenir por el WhatsApp\")"
     }
   ],
   "subagent_results": [
@@ -115,6 +120,18 @@
       "agent": "reviewer",
       "task": "TASK-026",
       "summary": "Re-review b0fb644 APPROVE sin HIGH/MEDIUM; 75/75; R-1 resuelto."
+    },
+    {
+      "at": "2026-10-16T18:44:07.890Z",
+      "agent": "developer",
+      "task": "TASK-027",
+      "summary": "Commit 2f0e003: paymentMode.ts(+test), CartView, router beforeEnter(+test), functions/src/index.ts con buildPaypalFunctions() condicionado a PAYPAL_ENABLED, functions/.env.example, README. npm test 77/77; builds verdes; exports verificados (vacío → 4 fns sin secretos; true → 6)."
+    },
+    {
+      "at": "2026-10-16T18:50:30.643Z",
+      "agent": "reviewer",
+      "task": "TASK-027",
+      "summary": "APPROVE 2f0e003 (MEDIUM: sin lock del gating de exports; LOW config cruzada) y APPROVE 6b19210. Wargaming PASA (WG-M-1 corregido)."
     }
   ],
   "pending_human_confirmation": null,
