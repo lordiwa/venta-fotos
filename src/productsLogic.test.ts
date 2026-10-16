@@ -24,10 +24,10 @@ describe('productsLogic', () => {
 
   // Prevents: pagina de ajustes rota ("no se pudo cargar") o falso error de red cuando settings/store esta incompleto.
   it('settingsToForm tolera documentos incompletos', () => {
-    expect(settingsToForm(null)).toEqual({ shippingCost: '', pickupInfo: '' })
-    expect(settingsToForm({ watermarkText: 'X' } as never)).toEqual({ shippingCost: '', pickupInfo: '' })
-    expect(settingsToForm({ shippingCost: 3 })).toEqual({ shippingCost: '3.00', pickupInfo: '' })
-    expect(settingsToForm({ shippingCost: 0, pickupInfo: 'a' })).toEqual({ shippingCost: '0.00', pickupInfo: 'a' })
+    expect(settingsToForm(null)).toEqual({ shippingCost: '', pickupInfo: '', whatsappPhone: '' })
+    expect(settingsToForm({ watermarkText: 'X' } as never)).toEqual({ shippingCost: '', pickupInfo: '', whatsappPhone: '' })
+    expect(settingsToForm({ shippingCost: 3 })).toEqual({ shippingCost: '3.00', pickupInfo: '', whatsappPhone: '' })
+    expect(settingsToForm({ shippingCost: 0, pickupInfo: 'a' })).toEqual({ shippingCost: '0.00', pickupInfo: 'a', whatsappPhone: '' })
   })
   // Prevents: decirle al admin "revisa tu conexion" cuando en realidad su sesion/permiso fallo.
   it('saveErrorMessage distingue permission-denied de red', () => {

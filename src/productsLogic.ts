@@ -29,7 +29,7 @@ export function productFields(f: ProductForm) {
   return { name: f.name.trim(), price: parseMoney(f.price) as number }
 }
 
-export interface SettingsForm { shippingCost: string; pickupInfo: string }
+export interface SettingsForm { shippingCost: string; pickupInfo: string; whatsappPhone?: string }
 export type SettingsErrors = Partial<Record<'shippingCost', string>>
 
 /** CU7: 0 vale (envio gratis); negativo o no numerico se rechaza. */
@@ -38,12 +38,14 @@ export function validateSettingsForm(f: SettingsForm): SettingsErrors {
 }
 
 export function settingsFields(f: SettingsForm) {
-  return { shippingCost: parseMoney(f.shippingCost) as number, pickupInfo: f.pickupInfo.trim() }
+  const base = { shippingCost: parseMoney(f.shippingCost) as number, pickupInfo: f.pickupInfo.trim() }
+  // Solo se escribe si el formulario lo trae: con merge:true no se pisan los demas campos.
+  return f.whatsappPhone === undefined ? base : { ...base, whatsappPhone: f.whatsappPhone.trim() }
 }
 
 /** Documento settings/store (posiblemente incompleto) -> valores del formulario. */
-export function settingsToForm(s: { shippingCost?: number; pickupInfo?: string } | null): SettingsForm {
-  return { shippingCost: s?.shippingCost == null ? '' : formatMoney(s.shippingCost), pickupInfo: s?.pickupInfo ?? '' }
+export function settingsToForm(s: { shippingCost?: number; pickupInfo?: string; whatsappPhone?: string } | null): SettingsForm {
+  return { shippingCost: s?.shippingCost == null ? '' : formatMoney(s.shippingCost), pickupInfo: s?.pickupInfo ?? '', whatsappPhone: s?.whatsappPhone ?? '' }
 }
 
 export const OFFLINE_NOTICE = 'Sin conexión. Mantén esta pestaña abierta: los cambios se guardarán al volver la conexión.'

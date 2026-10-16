@@ -3,6 +3,8 @@ import { computed, onMounted, ref } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { listActiveProducts } from '../productsApi'
 import { getPublicPhoto, getPublishedEvent } from '../publicApi'
+import { getSettings } from '../settingsApi'
+import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappUrl, type WhatsAppLine } from '../whatsappLogic'
 import { reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { useCartStore } from '../stores/cart'
@@ -13,6 +15,9 @@ const cart = useCartStore()
 const products = ref<Product[]>([])
 const photos = ref<Record<string, PhotoAvailability>>({})
 const thumbs = ref<Record<string, string | undefined>>({})
+const eventNames = ref<Record<string, string | undefined>>({})
+const photoNames = ref<Record<string, string | undefined>>({})
+const whatsappDigits = ref(resolveWhatsappDigits(null))
 const loading = ref(true)
 const error = ref(false) // red u otro fallo: NUNCA se interpreta como "no disponible"
 
@@ -24,7 +29,8 @@ async function load() {
     const keys = [...new Set(lines.map((l) => `${l.eventId}/${l.photoId}`))]
     // Un evento se consulta una sola vez aunque tenga muchas fotos en el carrito.
     const eventIds = [...new Set(lines.map((l) => l.eventId))]
-    const published = new Map(await Promise.all(eventIds.map(async (id) => [id, !!(await getPublishedEvent(id))] as [string, boolean])))
+    const events = new Map(await Promise.all(eventIds.map(async (id) => [id, await getPublishedEvent(id)] as const)))
+    const published = new Map([...events].map(([id, e]) => [id, !!e]))
     const [prods, found] = await Promise.all([
       listActiveProducts(),
       Promise.all(keys.map(async (k) => {
@@ -35,15 +41,36 @@ async function load() {
     products.value = prods
     photos.value = Object.fromEntries(found.map(([k, p]) => [k, p ? 'available' : 'unavailable'])) as Record<string, PhotoAvailability>
     thumbs.value = Object.fromEntries(found.map(([k, p]) => [k, p?.thumbPath]))
+    eventNames.value = Object.fromEntries([...events].map(([id, e]) => [id, e?.name]))
+    photoNames.value = Object.fromEntries(found.map(([k, p]) => [k, p?.name]))
   } catch {
     error.value = true
   } finally {
     loading.value = false
   }
 }
-onMounted(() => { if (cart.lines.length) load(); else loading.value = false })
+onMounted(() => {
+  if (cart.lines.length) load(); else loading.value = false
+  // El numero es opcional: si falla la lectura se queda el por defecto y el boton sigue funcionando.
+  getSettings().then((s) => { whatsappDigits.value = resolveWhatsappDigits(s?.whatsappPhone) }).catch(() => {})
+})
 
 const view = computed(() => reconcile(cart.lines, products.value, photos.value))
+
+/** Pedido por WhatsApp: solo lineas disponibles; sin red, lo guardado localmente y sin precios. */
+const whatsappHref = computed(() => {
+  const name = (eventId: string, photoId: string) => photoNames.value[`${eventId}/${photoId}`] ?? photoId
+  const msg = error.value
+    ? buildWhatsAppMessage({ lines: cart.lines.map((l): WhatsAppLine => ({ photo: l.photoId, product: l.productName ?? 'Producto', quantity: l.quantity })) })
+    : buildWhatsAppMessage({
+      lines: view.value.lines.filter((r) => r.counted).map((r): WhatsAppLine => ({
+        event: eventNames.value[r.line.eventId], photo: name(r.line.eventId, r.line.photoId),
+        product: r.product?.name ?? r.line.productName ?? 'Producto', quantity: r.quantity, subtotal: r.subtotal,
+      })),
+      total: view.value.total,
+    })
+  return whatsappUrl(whatsappDigits.value, msg)
+})
 </script>
 
 <template>
@@ -67,6 +94,7 @@ const view = computed(() => reconcile(cart.lines, products.value, photos.value))
         <Button variant="ghost" icon="quitar" @click="cart.remove(`${l.eventId}/${l.photoId}/${l.productId}`)">Quitar</Button>
       </li>
     </ul>
+    <Button variant="secondary" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
   </template>
   <div v-else class="cols">
     <ul class="lines">
@@ -90,6 +118,7 @@ const view = computed(() => reconcile(cart.lines, products.value, photos.value))
       <p class="total"><strong>Total estimado:</strong> <span class="display-md amount">{{ formatMoney(view.total) }}</span></p>
       <p class="caption muted">El envío, si lo eliges, se suma al pagar.</p>
       <Button variant="accent" size="lg" to="/checkout">Ir a pagar</Button>
+      <Button v-if="view.lines.some((r) => r.counted)" variant="secondary" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
       <RouterLink to="/" class="more">Seguir viendo fotos</RouterLink>
     </Card>
   </div>

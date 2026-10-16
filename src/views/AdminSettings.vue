@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { getSettings, saveSettings } from '../settingsApi'
+import { DEFAULT_WHATSAPP_PHONE, phoneToStore, validateWhatsappPhone } from '../whatsappLogic'
 import { OFFLINE_NOTICE, saveErrorMessage, settingsToForm, validateSettingsForm, withOfflineNotice, type SettingsErrors } from '../productsLogic'
 import { Alert, Button, Card, Field } from '../ui'
 
-const form = ref({ shippingCost: '', pickupInfo: '' })
-const errors = ref<SettingsErrors>({})
+const form = ref({ shippingCost: '', pickupInfo: '', whatsappPhone: '' })
+const errors = ref<SettingsErrors & { whatsappPhone?: string }>({})
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 const saveError = ref<string | null>(null)
@@ -16,7 +17,7 @@ const offline = ref<string | null>(null)
 onMounted(async () => {
   try {
     const s = await getSettings()
-    form.value = settingsToForm(s)
+    form.value = { ...settingsToForm(s), whatsappPhone: s?.whatsappPhone ?? '' }
   } catch {
     loadError.value = 'No se pudo cargar la configuración.'
   } finally {
@@ -27,11 +28,13 @@ onMounted(async () => {
 async function submit() {
   saved.value = false
   errors.value = validateSettingsForm(form.value)
+  const phoneError = validateWhatsappPhone(form.value.whatsappPhone)
+  if (phoneError) errors.value.whatsappPhone = phoneError
   if (Object.keys(errors.value).length) return
   saving.value = true
   saveError.value = null
   try {
-    await withOfflineNotice(saveSettings(form.value), () => { offline.value = OFFLINE_NOTICE })
+    await withOfflineNotice(saveSettings({ ...form.value, whatsappPhone: phoneToStore(form.value.whatsappPhone) }), () => { offline.value = OFFLINE_NOTICE })
     saved.value = true
   } catch (e) {
     // CU10: el formulario conserva lo escrito.
@@ -60,6 +63,11 @@ async function submit() {
       <Field label="Instrucciones de retiro" hint="Aparece en la pantalla de pago y en la confirmación.">
         <template #default="{ id, describedby, inputClass }">
           <textarea :id="id" v-model="form.pickupInfo" :class="inputClass" :disabled="saving" rows="4" placeholder="Dónde, cuándo y cómo retirar las copias impresas" :aria-describedby="describedby" />
+        </template>
+      </Field>
+      <Field label="WhatsApp para pedidos" mono :hint="`Número al que escriben los compradores. Si lo dejas vacío se usa ${DEFAULT_WHATSAPP_PHONE}.`" :error="errors.whatsappPhone">
+        <template #default="{ id, describedby, invalid, inputClass }">
+          <input :id="id" v-model="form.whatsappPhone" :class="inputClass" :disabled="saving" type="tel" inputmode="tel" :placeholder="DEFAULT_WHATSAPP_PHONE" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
         </template>
       </Field>
       <Alert v-if="saveError" tone="danger">{{ saveError }}</Alert>

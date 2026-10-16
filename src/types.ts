@@ -55,6 +55,8 @@ export interface StoreSettings {
   pickupInfo?: string
   /** Texto de la marca de agua de las vistas previas. Si falta o queda vacio, la Function usa "MUESTRA". */
   watermarkText?: string
+  /** Numero de WhatsApp para pedidos ("+" y digitos). Si falta, la app usa +593998565995. */
+  whatsappPhone?: string
 }
 
 /** orders/{orderId}: solo escribible por Cloud Functions. */

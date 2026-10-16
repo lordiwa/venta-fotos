@@ -172,7 +172,7 @@ onBeforeUnmount(() => observer?.disconnect())
     v-if="photoId && (state === 'ready' || state === 'empty')"
     :photo="current"
     :loading="!nav?.found && !!nav?.needsMore && !failed"
-    :caption="caption" :tag="tag"
+    :caption="caption" :tag="tag" :event-name="event?.name"
     :has-prev="!!nav?.prevId"
     :has-next="!!nav?.nextId || !!nav?.needsMore"
     @prev="prev" @next="next" @close="close"

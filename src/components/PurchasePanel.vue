@@ -2,12 +2,14 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { getActiveCatalog } from '../productsApi'
 import { formatMoney } from '../productsLogic'
+import { getSettings } from '../settingsApi'
+import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappUrl } from '../whatsappLogic'
 import { useCartStore } from '../stores/cart'
 import { Alert, Button, Eyebrow, OptionCard, Stepper } from '../ui'
 import type { Product } from '../types'
 
 /** Selector de producto y cantidad para la foto abierta (CU1, CU3, CU10, CU11). */
-const props = defineProps<{ eventId: string; photoId: string; label?: string }>()
+const props = defineProps<{ eventId: string; photoId: string; label?: string; eventName?: string; photoName?: string }>()
 const cart = useCartStore()
 
 const products = ref<Product[]>([])
@@ -15,6 +17,7 @@ const state = ref<'loading' | 'error' | 'ready'>('loading')
 const productId = ref('')
 const qty = ref(1) // el Stepper acota 1..99 (CU10): no hay valores invalidos que corregir
 const confirmed = ref(false)
+const whatsappDigits = ref(resolveWhatsappDigits(null))
 
 async function load() {
   state.value = 'loading'
@@ -27,6 +30,8 @@ async function load() {
   }
 }
 onMounted(async () => {
+  // Numero de pedidos: si falla la lectura queda el por defecto y el enlace sigue funcionando.
+  getSettings().then((s) => { whatsappDigits.value = resolveWhatsappDigits(s?.whatsappPhone) }).catch(() => {})
   // Cache: navegar entre fotos no recarga el catalogo ni parpadea.
   try { products.value = await getActiveCatalog(); productId.value = products.value[0]?.id ?? ''; state.value = 'ready' } catch { state.value = 'error' }
 })
@@ -36,6 +41,15 @@ const selected = computed(() => products.value.find((p) => p.id === productId.va
 const isDigital = computed(() => selected.value?.kind === 'digital')
 watch(isDigital, (d) => { if (d) qty.value = 1 })
 watch([productId, qty], () => { confirmed.value = false })
+
+/** CU2: pedido de esta unica foto con el producto y la cantidad elegidos. */
+const whatsappHref = computed(() => {
+  const p = selected.value
+  if (!p) return ''
+  const quantity = isDigital.value ? 1 : qty.value
+  const line = { event: props.eventName, photo: props.photoName ?? props.photoId, product: p.name, quantity, subtotal: Math.round(p.price * quantity * 100) / 100 }
+  return whatsappUrl(whatsappDigits.value, buildWhatsAppMessage({ lines: [line], total: line.subtotal }))
+})
 
 function add() {
   if (!selected.value) return
@@ -70,6 +84,7 @@ function add() {
       </div>
       <p v-else class="body-sm muted note">Archivo digital: una descarga por foto, sin marca de agua.</p>
       <Button type="submit" variant="accent" size="lg" icon="carrito">Agregar al carrito</Button>
+      <Button variant="ghost" :href="whatsappHref" target="_blank" rel="noopener">Pedir esta foto por WhatsApp</Button>
       <Alert v-if="confirmed" tone="success">
         Agregado al carrito
         <template #action><RouterLink to="/carrito" class="cart-link">Ver carrito</RouterLink></template>

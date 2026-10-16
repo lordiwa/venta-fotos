@@ -7,7 +7,7 @@ import { Icon } from '../ui'
 import type { Photo } from '../types'
 
 /** Vista ampliada: SOLO previewPath (con marca de agua). Nunca originalPath. */
-const props = defineProps<{ photo: Photo | null; loading: boolean; hasPrev: boolean; hasNext: boolean; caption?: string; tag?: string }>()
+const props = defineProps<{ photo: Photo | null; loading: boolean; hasPrev: boolean; hasNext: boolean; caption?: string; tag?: string; eventName?: string }>()
 const emit = defineEmits<{ prev: []; next: []; close: [] }>()
 const url = ref<string | null>(null)
 const failed = ref(false)
@@ -72,7 +72,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
         </figure>
         <button v-if="hasNext" class="round nav r" aria-label="Foto siguiente" @click="emit('next')"><Icon name="siguiente" :size="20" /></button>
       </div>
-      <PurchasePanel v-if="photo" :event-id="photo.eventId" :photo-id="photo.id" :label="tag" />
+      <PurchasePanel v-if="photo" :event-id="photo.eventId" :photo-id="photo.id" :label="tag" :event-name="eventName" :photo-name="photo.name" />
     </div>
   </div>
 </template>
