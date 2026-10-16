@@ -1,5 +1,6 @@
 // Prevents: que un pedido por WhatsApp llegue a un numero equivocado, con el texto mal codificado o con lineas no vendibles.
 import { describe, it, expect } from 'vitest'
+import { settingsToForm } from './productsLogic'
 import { buildWhatsAppMessage, DEFAULT_WHATSAPP_PHONE, normalizePhone, phoneToStore, resolveWhatsappDigits, validateWhatsappPhone, whatsappUrl } from './whatsappLogic'
 
 describe('whatsappLogic', () => {
@@ -14,6 +15,22 @@ describe('whatsappLogic', () => {
     expect(validateWhatsappPhone('')).toBeNull()
     expect(validateWhatsappPhone('hola')).not.toBeNull()
     expect(phoneToStore('593 99 856 5995')).toBe('+593998565995')
+  })
+  it('normalizePhone: rechaza numeros que empiezan en 0 (locales sin codigo de pais)', () => {
+    // Daño: guardar "0998565995" genera wa.me/0998565995, un enlace invalido que deja a todos los compradores sin contacto.
+    for (const n of ['0998565995', '00593998565995', '+0998565995', '0 99-856 5995']) {
+      expect(normalizePhone(n)).toBeNull()
+      expect(validateWhatsappPhone(n)).not.toBeNull()
+    }
+  })
+  it('valores no-string (p. ej. numero escrito a mano en la consola) cuentan como vacio y no lanzan', () => {
+    // Daño: un TypeError en el submit bloquea el guardado de toda la Configuracion.
+    const def = DEFAULT_WHATSAPP_PHONE.replace('+', '')
+    expect(validateWhatsappPhone(null)).toBeNull()
+    expect(() => validateWhatsappPhone(593998565995)).not.toThrow()
+    expect(phoneToStore(undefined)).toBe('')
+    expect(resolveWhatsappDigits(null)).toBe(def)
+    expect(settingsToForm({ whatsappPhone: 593998565995 }).whatsappPhone).toBe('593998565995')
   })
   it('resolveWhatsappDigits: vacio, ausente o invalido usan el numero por defecto', () => {
     // Daño: carrito sin numero de contacto si el documento settings/store no tiene el campo.

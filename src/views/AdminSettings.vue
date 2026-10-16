@@ -17,7 +17,7 @@ const offline = ref<string | null>(null)
 onMounted(async () => {
   try {
     const s = await getSettings()
-    form.value = { ...settingsToForm(s), whatsappPhone: s?.whatsappPhone ?? '' }
+    form.value = settingsToForm(s)
   } catch {
     loadError.value = 'No se pudo cargar la configuración.'
   } finally {
