@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-16T18:50:30.643Z",
+  "updated_at": "2026-10-16T21:03:30.441Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
-  "next_action": "Push; deploy hosting + functions filtradas; avisar al humano para que pruebe en https://venta-fotos-estudio.web.app (crear productos/configuración/evento con fotos). Luego cerrar TASK-025 con el humano.",
-  "handoff_summary": "TASK-027 (modo sin pago en línea) CERRADA el 2026-10-16: commits 2f0e003 + 6b19210; reviewer APPROVE x2; UAT 7/7; wargaming PASA. Siguiente: push + deploy de hosting y Functions filtradas (processPhoto,cleanupPhotoFiles,getDownloadLinks,advanceOrder) a venta-fotos-estudio, pedido por el humano. TASK-025 sigue in_review (R-1 alt, R-2 uat pendientes del humano). Sin PayPal por decisión del humano.",
+  "next_action": "Humano prueba prod (admin gulmork@gmail.com: productos, configuración, evento con fotos, pedido por WhatsApp). Luego cerrar TASK-025 (decisión R-1 + UAT) y UAT de TASK-022/023/024.",
+  "handoff_summary": "Producción completa el 2026-10-16: hosting con TASK-025/026/027 (modo WhatsApp) y Functions processPhoto, cleanupPhotoFiles, getDownloadLinks, advanceOrder desplegadas en southamerica-east1 tras conceder 5 bindings IAM (humano, con token ADC). functions/.env local (gitignored) con PAYPAL_ENABLED=false. Falta que el humano cargue productos, configuración y un evento con fotos en prod y pruebe el pedido por WhatsApp. TASK-025 sigue in_review (R-1 alt=\"\", R-2 uat pendientes del humano). Sin PayPal por decisión del humano.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
@@ -52,6 +52,11 @@
       "at": "2026-10-16T18:36:39.947Z",
       "decision": "Sin PayPal por ahora: los pagos se acuerdan en persona o por WhatsApp. No se cargan secretos de PayPal ni se despliegan createOrder/captureOrder.",
       "rationale": "Decisión del humano el 2026-10-16 (\"dejémoslo por pagos en persona o a convenir por el WhatsApp\")"
+    },
+    {
+      "at": "2026-10-16T21:03:30.441Z",
+      "decision": "El humano autoriza al orquestador a correr deploys de producción y bindings IAM de venta-fotos-estudio (procedimiento en .claude/skills/deploy-prod).",
+      "rationale": "\"te doy permiso haz eso skills para el futuro que puedas hacerlo tu\", 2026-10-16"
     }
   ],
   "subagent_results": [
