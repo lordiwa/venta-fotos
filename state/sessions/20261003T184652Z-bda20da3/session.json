@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-16T21:03:30.441Z",
+  "updated_at": "2026-10-17T15:49:36.199Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
   "next_action": "Humano prueba prod (admin gulmork@gmail.com: productos, configuración, evento con fotos, pedido por WhatsApp). Luego cerrar TASK-025 (decisión R-1 + UAT) y UAT de TASK-022/023/024.",
-  "handoff_summary": "Producción completa el 2026-10-16: hosting con TASK-025/026/027 (modo WhatsApp) y Functions processPhoto, cleanupPhotoFiles, getDownloadLinks, advanceOrder desplegadas en southamerica-east1 tras conceder 5 bindings IAM (humano, con token ADC). functions/.env local (gitignored) con PAYPAL_ENABLED=false. Falta que el humano cargue productos, configuración y un evento con fotos en prod y pruebe el pedido por WhatsApp. TASK-025 sigue in_review (R-1 alt=\"\", R-2 uat pendientes del humano). Sin PayPal por decisión del humano.",
+  "handoff_summary": "2026-10-17: hotfix c2afaf6 desplegado a hosting prod: galeria en dos columnas 4:3 y lightbox opaco en movil (<=720px); verificado en el sitio en vivo a 390px. Producción completa el 2026-10-16: hosting con TASK-025/026/027 (modo WhatsApp) y Functions processPhoto, cleanupPhotoFiles, getDownloadLinks, advanceOrder desplegadas en southamerica-east1 tras conceder 5 bindings IAM (humano, con token ADC). functions/.env local (gitignored) con PAYPAL_ENABLED=false. Falta que el humano cargue productos, configuración y un evento con fotos en prod y pruebe el pedido por WhatsApp. TASK-025 sigue in_review (R-1 alt=\"\", R-2 uat pendientes del humano). Sin PayPal por decisión del humano.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
@@ -57,6 +57,11 @@
       "at": "2026-10-16T21:03:30.441Z",
       "decision": "El humano autoriza al orquestador a correr deploys de producción y bindings IAM de venta-fotos-estudio (procedimiento en .claude/skills/deploy-prod).",
       "rationale": "\"te doy permiso haz eso skills para el futuro que puedas hacerlo tu\", 2026-10-16"
+    },
+    {
+      "at": "2026-10-17T15:49:36.199Z",
+      "decision": "Galeria movil: dos columnas 4:3 y lightbox opaco (hotfix directo del orquestador, sin ticket, c2afaf6)",
+      "rationale": "Reporte del humano: las imagenes no se veian bien en movil"
     }
   ],
   "subagent_results": [
