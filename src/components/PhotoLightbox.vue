@@ -90,6 +90,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
 .round:hover { background: #f3efe622; }
 .round:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 @media (max-width: 720px) {
+  .lb { background: var(--rail); } /* opaco: en movil la pagina se veia detras de la foto */
   .top { padding: var(--space-3) var(--space-3) 0; }
   .stage { padding: var(--space-3) var(--space-3) var(--space-6); gap: var(--space-4); }
   .nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 1; background: #15140fb3; }
