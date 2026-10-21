@@ -16,6 +16,8 @@ function fakes() {
   let clock = 1;
   let gen = 1;
   const hooks: { beforeGet?: Hook; beforeSave?: Hook; beforeList?: Hook } = {};
+  /** Fallos de un solo uso: commit ambiguo (aplica y lanza) y borrado transitorio de un archivo. */
+  const faults: { ambiguousCommit?: boolean; failDelete?: string } = {};
   const once = async (k: keyof typeof hooks, name: string) => { const h = hooks[k]; if (h) await h(name); };
 
   const isDelete = (v: unknown) => v instanceof FieldValue && v.isEqual(FieldValue.delete());
@@ -44,6 +46,7 @@ function fakes() {
         update: (rf: { path: string }, patch: Data) => { pending.push([rf.path, patch]); },
       });
       for (const [p, patch] of pending) write(p, patch);
+      if (faults.ambiguousCommit && pending.length) { faults.ambiguousCommit = false; throw new Error("DEADLINE_EXCEEDED tras el commit"); }
       return r;
     },
   };
@@ -57,6 +60,7 @@ function fakes() {
       download: async () => [files.get(name)!.buf],
       save: async (buf: Buffer) => { await once("beforeSave", name); files.set(name, { gen: ++gen, buf }); f.metadata = { generation: String(gen) }; },
       delete: async (o: { ignoreNotFound?: boolean; ifGenerationMatch?: number | string } = {}) => {
+        if (faults.failDelete === name) { faults.failDelete = undefined; throw apiErr(503); }
         const cur = files.get(name);
         if (!cur) { if (o.ignoreNotFound) return; throw apiErr(404); }
         if (o.ifGenerationMatch !== undefined && String(cur.gen) !== String(o.ifGenerationMatch)) throw apiErr(412);
@@ -72,7 +76,7 @@ function fakes() {
     ]; },
   };
   const set = (path: string, data: Data) => docs.set(path, { data: { ...data }, t: ++clock });
-  return { db: db as unknown as Firestore, bucket: bucket as unknown as Bucket, docs, files, hooks, set, write };
+  return { db: db as unknown as Firestore, bucket: bucket as unknown as Bucket, docs, files, hooks, faults, set, write };
 }
 
 let jpeg: Buffer;
@@ -137,5 +141,38 @@ describe("syncCover orquestacion (TASK-028)", () => {
     await syncCoverForPhoto(f.db, f.bucket, "e", "p", visible, hidden);
     expect(f.docs.get("events/e")!.data.coverPath).toBe("covers/e/p.jpg");
     expect(f.files.has("covers/e/p.jpg")).toBe(true);
+  });
+
+  // Previene (M-6): que un commit ambiguo (aplicado, pero el cliente recibe error) deje coverPath apuntando a un
+  // archivo que el manejo del error acaba de borrar; ni el trigger ni el backfill lo reparaban despues.
+  it("commit ambiguo al publicar: el archivo publicado no se borra", async () => {
+    const f = seed({ coverPhotoId: "p" });
+    f.faults.ambiguousCommit = true;
+    await syncCover(f.db, f.bucket, "e", { coverPhotoId: "p" }).catch(() => undefined);
+    expect(f.docs.get("events/e")!.data.coverPath).toBe("covers/e/p.jpg");
+    expect(f.files.has("covers/e/p.jpg")).toBe(true);
+  });
+
+  // Previene (M-7): que un fallo transitorio al borrar deje legible la portada de una foto oculta (o de una portada
+  // quitada): el error se relanza para que el trigger reintente, y el reintento converge.
+  it("borrado que falla una vez: se relanza y el reintento converge (retiro y clear)", async () => {
+    const f = seed({ coverPhotoId: "p", coverPath: "covers/e/p.jpg" });
+    f.files.set("covers/e/p.jpg", { gen: 50, buf: jpeg });
+    f.write("events/e/photos/p", { visible: false });
+    f.faults.failDelete = "covers/e/p.jpg";
+    await expect(syncCoverForPhoto(f.db, f.bucket, "e", "p", visible, hidden)).rejects.toThrow();
+    expect(f.files.has("covers/e/p.jpg")).toBe(true);
+    await syncCoverForPhoto(f.db, f.bucket, "e", "p", visible, hidden); // retry: mismo evento
+    expect(f.docs.get("events/e")!.data.coverPath).toBeUndefined();
+    expect(f.files.has("covers/e/p.jpg")).toBe(false);
+
+    const g = seed({ coverPath: "covers/e/p.jpg" }); // portada quitada (coverPhotoId borrado)
+    g.files.set("covers/e/p.jpg", { gen: 50, buf: jpeg });
+    g.faults.failDelete = "covers/e/p.jpg";
+    const after = { coverPath: "covers/e/p.jpg" };
+    await expect(syncCover(g.db, g.bucket, "e", after)).rejects.toThrow();
+    await syncCover(g.db, g.bucket, "e", after); // retry con el mismo snapshot del disparo
+    expect(g.docs.get("events/e")!.data.coverPath).toBeUndefined();
+    expect(g.files.has("covers/e/p.jpg")).toBe(false);
   });
 });

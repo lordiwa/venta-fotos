@@ -54,6 +54,9 @@ npm run build:functions && npx firebase deploy --only functions:processPhoto,fun
 
 `syncEventCover` (TASK-028) genera la portada dedicada `covers/{eventId}/{photoId}.jpg` al escribirse un evento;
 `syncPhotoCover` la regenera o la retira cuando la foto de portada cambia (ocultar/mostrar, reprocesar).
+Ambas llevan `retry: true` (TASK-028 M-7): un fallo de Firestore/Storage se relanza y Eventarc reintenta
+(hasta ~24 h). Un error que se repite aparece en los logs como `cover.sync failed, se reintenta`; un original
+corrupto NO reintenta (`cover.sync: original no valido`).
 Se exporta siempre (no depende de PayPal).
 
 ## Reglas

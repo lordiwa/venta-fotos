@@ -4,7 +4,7 @@ import type { Bucket } from "@google-cloud/storage";
 import { logger } from "firebase-functions";
 import { makeCover } from "./image";
 import { parseOriginalPath } from "./process";
-import { coverFilePath, coverPrefix, coverSource, coversToDelete, planCover, photoChangeAffectsCover, type CoverFields, type CoverPhoto, type CoverPlan } from "./coverLogic";
+import { coverFilePath, coverPrefix, coverSource, coversToDelete, planCover, photoChangeAffectsCover, validId, type CoverFields, type CoverPhoto, type CoverPlan } from "./coverLogic";
 
 const readCover = async (ref: DocumentReference) => {
   const s = await ref.get();
@@ -42,7 +42,9 @@ const photoData = (s: { exists: boolean; data(): unknown }) => (s.exists ? (s.da
  * disparo (atajo: si no hay nada que hacer no se lee nada); el plan real se toma del documento releido.
  * `recheck` (disparo desde la foto): regenera o retira aunque coverPath ya corresponda.
  * Invariante: coverPath solo se escribe en una transaccion que ve la foto elegible (visible, lista, su original).
- * Nunca lanza: una foto oculta, no lista o sin original deja coverPath ausente y se registra.
+ * Una foto oculta, no lista o sin original no es un error: deja coverPath ausente ("skipped"); un original corrupto
+ * tampoco ("error", sin relanzar). Los fallos de Firestore/Storage SI se relanzan (M-7): los triggers tienen retry y
+ * la reconciliacion es idempotente, asi un borrado fallido no deja publica la portada de una foto oculta.
  */
 export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, after: CoverFields | null, recheck = false): Promise<string> {
   if (!recheck && planCover(eventId, after).kind === "none") return "none";
@@ -54,7 +56,11 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
     if (plan.kind === "none" && recheck && typeof doc?.coverPhotoId === "string") {
       plan = { kind: "generate", photoId: doc.coverPhotoId, path: coverFilePath(eventId, doc.coverPhotoId) }; // L-4
     }
-    if (plan.kind === "none") return "none";
+    if (plan.kind === "none") {
+      // Reintento de un clear cuyo borrado fallo: coverPath ya no esta, pero pueden quedar archivos (M-7).
+      if (!recheck && doc && !validId(doc.coverPhotoId)) await cleanupCovers(ref, bucket, eventId);
+      return "none";
+    }
     if (plan.kind === "purge" || plan.kind === "clear") {
       if (plan.kind === "clear") {
         // Solo si sigue sin portada elegida: si se eligio otra entretanto, su propio disparo la genera.
@@ -88,8 +94,16 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
     }
 
     const [original] = await bucket.file(source).download();
+    let cover: Buffer;
+    try {
+      cover = await makeCover(original);
+    } catch (e) {
+      // Original corrupto: permanente, reintentar no lo arregla. Se registra y no se relanza.
+      logger.error("cover.sync: original no valido, sin portada dedicada", { eventId, photoId: plan.photoId, error: String(e) });
+      return "error";
+    }
     const out = bucket.file(plan.path);
-    await out.save(await makeCover(original), { contentType: "image/jpeg", resumable: false });
+    await out.save(cover, { contentType: "image/jpeg", resumable: false });
     const generation = out.metadata.generation;
     saved = { path: plan.path, generation };
     // R-2: la foto se relee DENTRO de la transaccion; si la ocultaron mientras se generaba, no se publica.
@@ -110,9 +124,15 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
     logger.info("cover.sync", { eventId, photoId: plan.photoId, result: written ? "generated" : "superseded" });
     return written ? "generated" : "superseded";
   } catch (e) {
-    logger.error("cover.sync failed", { eventId, error: String(e) });
-    if (saved) await deleteGeneration(bucket, saved.path, saved.generation).catch(() => undefined);
-    return "error";
+    logger.error("cover.sync failed, se reintenta", { eventId, error: String(e) });
+    if (saved) {
+      // M-6: un commit ambiguo pudo publicar coverPath igual; solo se borra lo guardado si el evento NO le apunta.
+      const s = saved;
+      await ref.get()
+        .then((cur) => (cur.get("coverPath") !== s.path ? deleteGeneration(bucket, s.path, s.generation) : undefined))
+        .catch(() => undefined); // si no se puede releer, no se borra: el reintento reconcilia
+    }
+    throw e;
   }
 }
 

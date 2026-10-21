@@ -22,7 +22,7 @@ export type CoverPlan =
   | { kind: "clear"; removeField: boolean }
   | { kind: "generate"; photoId: string; path: string };
 
-const validId = (v: unknown): v is string => typeof v === "string" && v.length > 0 && !v.includes("/");
+export const validId = (v: unknown): v is string => typeof v === "string" && v.length > 0 && !v.includes("/");
 
 export function planCover(eventId: string, doc: CoverFields | null): CoverPlan {
   if (!doc) return { kind: "purge" };

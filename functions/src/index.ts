@@ -165,14 +165,15 @@ export const cleanupPhotoFiles = onDocumentDeleted("events/{eventId}/photos/{pho
 /**
  * events/{id} escrito -> reconcilia covers/{id}/{coverPhotoId}.jpg (1920px, sin marca) y el campo coverPath.
  * Escribe en el mismo documento que la dispara: planCover devuelve "none" cuando coverPath ya corresponde (sin bucle).
+ * retry: los fallos transitorios se relanzan y se reintentan (la reconciliacion es idempotente).
  */
-export const syncEventCover = onDocumentWritten({ document: "events/{eventId}", memory: "1GiB", timeoutSeconds: 300 }, async (event) => {
+export const syncEventCover = onDocumentWritten({ document: "events/{eventId}", memory: "1GiB", timeoutSeconds: 300, retry: true }, async (event) => {
   const after = event.data?.after;
   await syncCover(admin.firestore(), admin.storage().bucket(), event.params.eventId, after?.exists ? after.data() ?? null : null);
 });
 
 /** Foto actualizada: si es la portada y cambia visible/status/originalPath, se regenera o se retira (ocultarla la saca de la portada). */
-export const syncPhotoCover = onDocumentUpdated({ document: "events/{eventId}/photos/{photoId}", memory: "1GiB", timeoutSeconds: 300 }, async (event) => {
+export const syncPhotoCover = onDocumentUpdated({ document: "events/{eventId}/photos/{photoId}", memory: "1GiB", timeoutSeconds: 300, retry: true }, async (event) => {
   const { eventId, photoId } = event.params;
   const before = event.data?.before.data() ?? {};
   const after = event.data?.after.data() ?? {};
