@@ -1,6 +1,9 @@
 /** Acceso a Firestore del checkout (TASK-017): lectura del catalogo, snapshot pendiente y creacion idempotente del pedido. */
 import { FieldValue, Firestore } from "firebase-admin/firestore";
-import { buildOrderDoc, buildSnapshot, CartInputLine, CatalogProduct, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, StoreSettings } from "./checkout";
+import {
+  buildOrderDoc, buildSnapshot, CartInputLine, CatalogProduct, CheckoutError, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, PRINT_ONLY_MESSAGE, StoreSettings,
+} from "./checkout";
+import { DIGITAL_ID } from "./orderStatus";
 
 type Db = Firestore;
 
@@ -27,10 +30,19 @@ export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: u
     const s = photoSnaps[i];
     return published.has(k.split("/")[0]) && s.exists && s.get("visible") === true && s.get("status") === "ready";
   }));
+  const printOnlyPhotos = new Set(photoKeys.filter((_, i) => photoSnaps[i].exists && photoSnaps[i].get("printOnly") === true));
   return buildSnapshot({
-    lines, buyer, deliveryInput: data.delivery, products, publicPhotos,
+    lines, buyer, deliveryInput: data.delivery, products, publicPhotos, printOnlyPhotos,
     settings: (settingsSnap.data() ?? {}) as StoreSettings,
   });
+}
+
+/** TASK-030: antes de cobrar, rechaza el snapshot si una foto con linea digital se marco printOnly despues de createOrder. */
+export async function assertNoPrintOnlyDigital(db: Db, snap: Pick<CheckoutSnapshot, "lines">): Promise<void> {
+  const digital = snap.lines.filter((l) => l.productId === DIGITAL_ID);
+  if (!digital.length) return;
+  const photos = await db.getAll(...digital.map((l) => db.doc(`events/${l.eventId}/photos/${l.photoId}`)));
+  if (photos.some((s) => s.exists && s.get("printOnly") === true)) throw new CheckoutError("failed-precondition", PRINT_ONLY_MESSAGE);
 }
 
 /** Guarda el snapshot calculado; captureOrder lo lee de aqui y no confia en el cliente. */

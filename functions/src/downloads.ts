@@ -67,6 +67,7 @@ export async function getDownloadLinks(db: Firestore, input: { number?: unknown;
     const snap = await db.doc(`events/${p.eventId}/photos/${p.photoId}`).get();
     const path = snap.get("originalPath");
     if (typeof path !== "string" || !path.startsWith(`originals/${p.eventId}/`)) continue;
+    if (snap.get("printOnly") === true) continue; // TASK-030: una foto solo impresion nunca entrega el original
     const name = String(snap.get("name") ?? p.photoId);
     files.push({ ...p, name, url: await linkFor(bucket, path, name, expiresAt), expiresAt });
   }

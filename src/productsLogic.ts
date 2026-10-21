@@ -68,6 +68,10 @@ export function saveErrorMessage(e: unknown): string {
   return (e as { code?: string } | null)?.code === 'permission-denied' ? PERMISSION_MESSAGE : NETWORK_MESSAGE
 }
 
+/** Productos que se eligen para una foto: nunca paquetes (TASK-029, se aplican solos en el carrito); sin lo digital si la foto es solo impresion (TASK-030). */
+export const offeredProducts = <T extends { kind: string }>(xs: T[], printOnly: boolean): T[] =>
+  xs.filter((p) => (p.kind === 'print' || p.kind === 'digital') && !(printOnly && p.kind === 'digital'))
+
 /** Orden numerico-aware por nombre: "9x13" antes que "20x25". */
 export const sortByName = <T extends { name: string }>(xs: T[]): T[] =>
   [...xs].sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true }))

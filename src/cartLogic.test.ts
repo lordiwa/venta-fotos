@@ -47,6 +47,13 @@ describe('cartLogic', () => {
     expect(r.lines[0].status).toBe('photoUnavailable')
     expect(r.total).toBe(0)
   })
+  // Previene: cobrar (o mandar por WhatsApp) el archivo digital de una foto que el fotografo marco "solo impresion", aunque estuviera guardado antes.
+  it('TASK-030: la linea digital de una foto printOnly queda no disponible y fuera del total; su impresion sigue contando', () => {
+    const lines: CartLine[] = [{ ...ref, productId: 'digital', priceAtAdd: 3, quantity: 1 }, { ...ref, quantity: 2 }]
+    const r = reconcile(lines, [prod('digital', 3, 'digital'), prod('a', 5)], { 'e1/p1': 'printOnly' })
+    expect(r.lines.map((l) => [l.status, l.counted])).toEqual([['printOnly', false], ['ok', true]])
+    expect(r.total).toBe(10)
+  })
   it('CU6: almacenamiento corrupto o ajeno se ignora sin lanzar; lineas validas se conservan y duplicadas se fusionan', () => {
     expect(parseStoredCart(null)).toEqual([])
     expect(parseStoredCart('{no json')).toEqual([])

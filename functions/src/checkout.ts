@@ -90,8 +90,12 @@ export interface BuildInput {
   products: Record<string, CatalogProduct | undefined>;
   /** Claves "eventId/photoId" de fotos publicas (evento publicado, visible y lista). */
   publicPhotos: Set<string>;
+  /** Claves "eventId/photoId" de fotos marcadas printOnly (TASK-030): su archivo digital no se vende. */
+  printOnlyPhotos?: Set<string>;
   settings: StoreSettings;
 }
+
+export const PRINT_ONLY_MESSAGE = "Una foto del carrito solo se vende impresa.";
 
 /** Recalcula todo desde el catalogo: precio y nombre salen de ahi; digital = 1 por foto; lineas no vendibles se rechazan. */
 export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
@@ -101,6 +105,7 @@ export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
       throw new CheckoutError("failed-precondition", "Un producto del carrito ya no está disponible.");
     }
     if (!i.publicPhotos.has(`${l.eventId}/${l.photoId}`)) throw new CheckoutError("failed-precondition", "Una foto del carrito ya no está disponible.");
+    if (p.kind === "digital" && i.printOnlyPhotos?.has(`${l.eventId}/${l.photoId}`)) throw new CheckoutError("failed-precondition", PRINT_ONLY_MESSAGE);
     if (p.kind === "digital" && l.quantity !== 1) throw new CheckoutError("invalid-argument", "El archivo digital se compra de a uno por foto.");
     return { eventId: l.eventId, photoId: l.photoId, productId: l.productId, productName: p.name, unitPrice: p.price, quantity: l.quantity };
   });

@@ -129,5 +129,9 @@ describe("descargas digitales (emuladores)", () => {
     expect(badNumber.error).toEqual(badEmail.error);
     const printOnly = await call("getDownloadLinks", { number: await order("a4d"), email: "ana@mail.com" });
     expect(printOnly.result.files).toEqual([]);
+    // TASK-030: marcada "solo impresion" despues de la compra, ya no entrega el original.
+    await db.doc("events/evd/photos/p1").update({ printOnly: true });
+    const afterPrintOnly = await call("getDownloadLinks", { number: digital, email: "ana@mail.com" });
+    expect(afterPrintOnly.result.files).toEqual([]);
   }, 60000);
 });

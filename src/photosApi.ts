@@ -23,6 +23,9 @@ export function uploadOriginal(eventId: string, item: UploadItem & { file: File 
 export const setPhotoVisible = (eventId: string, photoId: string, visible: boolean) =>
   updateDoc(doc(db, 'events', eventId, 'photos', photoId), { visible })
 
+export const setPhotoPrintOnly = (eventId: string, photoId: string, printOnly: boolean) =>
+  updateDoc(doc(db, 'events', eventId, 'photos', photoId), { printOnly })
+
 /** Borra el documento; la Function cleanupPhotoFiles elimina original, vista previa y miniatura. Si era la portada, la limpia. */
 export async function deletePhoto(eventId: string, photoId: string, wasCover: boolean) {
   await deleteDoc(doc(db, 'events', eventId, 'photos', photoId))

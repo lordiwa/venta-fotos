@@ -11,7 +11,7 @@ import { assertSimulationAllowed, CheckoutError, CheckoutSnapshot, classifyCaptu
 import { getDownloadLinks as buildDownloadLinks } from "./downloads";
 import { clientIp, ttlDays } from "./downloadsLogic";
 import { AdvanceError, isAdmin, planAdvance } from "./orderStatus";
-import { computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
+import { assertNoPrintOnlyDigital, computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
 import { capturePaypalOrder, createPaypalOrder } from "./paypal";
 import { deletePhotoFiles, processOriginal } from "./process";
 import { syncCover, syncCoverForPhoto } from "./cover";
@@ -70,6 +70,9 @@ function buildPaypalFunctions() {
       const checkout = await db.doc(`checkouts/${id}`).get();
       if (!checkout.exists) throw new HttpsError("not-found", "No encontramos esa orden de pago.");
       const snap = checkout.data() as CheckoutSnapshot;
+      // Antes de cobrar: la foto pudo marcarse "solo impresion" despues de createOrder (TASK-030). Un reintento de
+      // un checkout ya cobrado o con pedido no se rechaza: finalizeOrder es idempotente y no debe quedar cobro sin pedido.
+      if (checkout.get("status") === "creado" && !checkout.get("capture")) await assertNoPrintOnlyDigital(db, snap);
       if (id.startsWith(SIMULATED_PREFIX)) {
         assertSimulationAllowed(process.env);
       } else {

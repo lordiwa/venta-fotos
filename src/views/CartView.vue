@@ -41,7 +41,7 @@ async function load() {
       })),
     ])
     products.value = prods
-    photos.value = Object.fromEntries(found.map(([k, p]) => [k, p ? 'available' : 'unavailable'])) as Record<string, PhotoAvailability>
+    photos.value = Object.fromEntries(found.map(([k, p]) => [k, !p ? 'unavailable' : p.printOnly === true ? 'printOnly' : 'available'])) as Record<string, PhotoAvailability>
     thumbs.value = Object.fromEntries(found.map(([k, p]) => [k, p?.thumbPath]))
     eventNames.value = Object.fromEntries([...events].map(([id, e]) => [id, e?.name]))
     photoNames.value = Object.fromEntries(found.map(([k, p]) => [k, p?.name]))

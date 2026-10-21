@@ -1,6 +1,6 @@
 // Prevents: guardar precios/costos invalidos (vacio, 0, negativo, texto) que romperian el total de un pedido.
 import { describe, it, expect, vi } from 'vitest'
-import { withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
+import { offeredProducts, withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
 
 describe('productsLogic', () => {
   it('CU1/CU2: precio valido se normaliza (coma o punto)', () => {
@@ -67,5 +67,12 @@ describe('productsLogic', () => {
         vi.useRealTimers()
       }
     })
+  })
+  // Previene: vender el archivo digital de una foto "solo impresion" desde el lightbox, o elegir un paquete como si fuera un producto por foto.
+  it('TASK-030: una foto printOnly solo ofrece impresiones; los paquetes nunca se ofrecen por foto', () => {
+    const xs = [{ id: 'a4', kind: 'print' }, { id: 'digital', kind: 'digital' }, { id: 'p5', kind: 'pack' }]
+    expect(offeredProducts(xs, false).map((p) => p.id)).toEqual(['a4', 'digital'])
+    expect(offeredProducts(xs, true).map((p) => p.id)).toEqual(['a4'])
+    expect(offeredProducts([{ id: 'digital', kind: 'digital' }], true)).toEqual([])
   })
 })

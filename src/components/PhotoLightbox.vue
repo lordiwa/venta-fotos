@@ -72,7 +72,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
         </figure>
         <button v-if="hasNext" class="round nav r" aria-label="Foto siguiente" @click="emit('next')"><Icon name="siguiente" :size="20" /></button>
       </div>
-      <PurchasePanel v-if="photo" :event-id="photo.eventId" :photo-id="photo.id" :label="tag" :event-name="eventName" :photo-name="photo.name" />
+      <PurchasePanel v-if="photo" :event-id="photo.eventId" :photo-id="photo.id" :label="tag" :event-name="eventName" :photo-name="photo.name" :print-only="photo.printOnly === true" />
     </div>
   </div>
 </template>

@@ -108,6 +108,14 @@ describe('Firestore', () => {
     await assertSucceeds(deleteDoc(doc(db, 'products/a4')))
     await assertSucceeds(deleteDoc(doc(db, 'events/pub')))
   })
+  // Previene: que un comprador se marque fotos como vendibles en digital (o al reves), o un printOnly no booleano que el servidor no reconoce.
+  it('TASK-030 printOnly solo lo escribe el admin y debe ser booleano; la lectura publica no cambia', async () => {
+    for (const ctx of [anon(), user()]) await assertFails(updateDoc(doc(ctx.firestore(), 'events/pub/photos/p1'), { printOnly: true }))
+    const db = admin().firestore()
+    await assertSucceeds(updateDoc(doc(db, 'events/pub/photos/p1'), { printOnly: true }))
+    await assertFails(updateDoc(doc(db, 'events/pub/photos/p1'), { printOnly: 'si' }))
+    await assertSucceeds(getDoc(doc(anon().firestore(), 'events/pub/photos/p1')))
+  })
   it('UC12 datos invalidos rechazados - evita productos gratis/negativos y eventos sin nombre o fecha', async () => {
     const db = admin().firestore()
     await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', kind: 'print', price: 0 }))

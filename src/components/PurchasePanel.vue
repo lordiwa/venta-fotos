@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { getActiveCatalog } from '../productsApi'
-import { formatMoney } from '../productsLogic'
+import { formatMoney, offeredProducts } from '../productsLogic'
 import { getSettings } from '../settingsApi'
 import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappUrl } from '../whatsappLogic'
 import { useCartStore } from '../stores/cart'
@@ -9,7 +9,7 @@ import { Alert, Button, Eyebrow, OptionCard, Stepper } from '../ui'
 import type { Product } from '../types'
 
 /** Selector de producto y cantidad para la foto abierta (CU1, CU3, CU10, CU11). */
-const props = defineProps<{ eventId: string; photoId: string; label?: string; eventName?: string; photoName?: string }>()
+const props = defineProps<{ eventId: string; photoId: string; label?: string; eventName?: string; photoName?: string; printOnly?: boolean }>()
 const cart = useCartStore()
 
 const products = ref<Product[]>([])
@@ -23,7 +23,6 @@ async function load() {
   state.value = 'loading'
   try {
     products.value = await getActiveCatalog(true)
-    productId.value = products.value[0]?.id ?? ''
     state.value = 'ready'
   } catch {
     state.value = 'error'
@@ -33,11 +32,15 @@ onMounted(async () => {
   // Numero de pedidos: si falla la lectura queda el por defecto y el enlace sigue funcionando.
   getSettings().then((s) => { whatsappDigits.value = resolveWhatsappDigits(s?.whatsappPhone) }).catch(() => {})
   // Cache: navegar entre fotos no recarga el catalogo ni parpadea.
-  try { products.value = await getActiveCatalog(); productId.value = products.value[0]?.id ?? ''; state.value = 'ready' } catch { state.value = 'error' }
+  try { products.value = await getActiveCatalog(); state.value = 'ready' } catch { state.value = 'error' }
 })
 watch(() => props.photoId, () => { confirmed.value = false; qty.value = 1 })
 
-const selected = computed(() => products.value.find((p) => p.id === productId.value) ?? null)
+/** TASK-029/030: los paquetes no se eligen por foto; una foto "solo impresión" no ofrece lo digital. */
+const offered = computed(() => offeredProducts(products.value, props.printOnly === true))
+// Al cambiar de foto o de catalogo, si la eleccion ya no se ofrece, se elige el primero.
+watch(offered, (o) => { if (!o.some((p) => p.id === productId.value)) productId.value = o[0]?.id ?? '' }, { immediate: true })
+const selected = computed(() => offered.value.find((p) => p.id === productId.value) ?? null)
 const isDigital = computed(() => selected.value?.kind === 'digital')
 watch(isDigital, (d) => { if (d) qty.value = 1 })
 watch([productId, qty], () => { confirmed.value = false })
@@ -65,7 +68,7 @@ function add() {
       No pudimos cargar los productos.
       <template #action><Button @click="load">Reintentar</Button></template>
     </Alert>
-    <Alert v-else-if="!products.length">Por ahora no hay productos a la venta</Alert>
+    <Alert v-else-if="!offered.length">{{ printOnly ? 'Esta foto solo se vende impresa y por ahora no hay impresiones a la venta' : 'Por ahora no hay productos a la venta' }}</Alert>
     <form v-else novalidate @submit.prevent="add">
       <div class="head">
         <Eyebrow v-if="label">{{ label }}</Eyebrow>
@@ -74,7 +77,7 @@ function add() {
       <fieldset>
         <legend class="sr">Producto</legend>
         <OptionCard
-          v-for="p in products" :key="p.id" v-model="productId" name="producto" :value="p.id"
+          v-for="p in offered" :key="p.id" v-model="productId" name="producto" :value="p.id"
           :label="p.name" :meta="p.kind === 'digital' ? 'Descarga en alta resolución' : 'Copia impresa'" :price="formatMoney(p.price)"
         />
       </fieldset>
@@ -83,6 +86,7 @@ function add() {
         <Stepper v-model="qty" />
       </div>
       <p v-else class="body-sm muted note">Archivo digital: una descarga por foto, sin marca de agua.</p>
+      <p v-if="printOnly" class="body-sm muted note">Esta foto solo se vende impresa.</p>
       <Button type="submit" variant="accent" size="lg" icon="carrito">Agregar al carrito</Button>
       <Button variant="ghost" :href="whatsappHref" target="_blank" rel="noopener">Pedir esta foto por WhatsApp</Button>
       <Alert v-if="confirmed" tone="success">

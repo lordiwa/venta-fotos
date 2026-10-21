@@ -36,6 +36,8 @@ export interface Photo {
   originalPath: string
   previewPath?: string
   thumbPath?: string
+  /** TASK-030: la foto solo se vende impresa (sin archivo digital, ni suelto ni en paquete). Ausente = false. */
+  printOnly?: boolean
   createdAt: Timestamp
 }
 

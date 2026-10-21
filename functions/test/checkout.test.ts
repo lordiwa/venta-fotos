@@ -4,7 +4,7 @@ import {
   type BuildInput, type CatalogProduct,
 } from "../src/checkout";
 import { capturePaypalOrder, createPaypalOrder } from "../src/paypal";
-import { finalizeOrder, saveCheckout, updateCheckout } from "../src/orders";
+import { assertNoPrintOnlyDigital, finalizeOrder, saveCheckout, updateCheckout } from "../src/orders";
 
 const A4: CatalogProduct = { name: "A4", kind: "print", price: 0.1, active: true };
 const DIG: CatalogProduct = { name: "Digital", kind: "digital", price: 10, active: true };
@@ -135,6 +135,20 @@ describe("finalizeOrder", () => {
     expect(store.size).toBe(1);
     expect(b.number).toBe(a.number);
     expect(store.get("orders/PP1")).toMatchObject({ status: "pagado", eventIds: ["e1"] });
+  });
+});
+
+describe("solo impresion (TASK-030)", () => {
+  // Previene: cobrar el archivo digital de una foto que el fotografo marco "solo impresion" (al crear la orden o si la marco antes de capturar).
+  it("createOrder rechaza la linea digital de una foto printOnly y acepta su impresion; captureOrder la rechaza si se marco despues", async () => {
+    const printOnlyPhotos = new Set(["e1/p1"]);
+    const digital = [{ eventId: "e1", photoId: "p1", productId: "digital", quantity: 1 }];
+    expect(code(() => buildSnapshot(base({ lines: digital, products: { digital: DIG }, printOnlyPhotos })))).toBe("failed-precondition");
+    expect(buildSnapshot(base({ printOnlyPhotos })).totalCents).toBe(30);
+    const photo = (printOnly: unknown) => ({ getAll: async () => [{ exists: true, get: (k: string) => (k === "printOnly" ? printOnly : undefined) }], doc: (p: string) => p }) as never;
+    const snap = { lines: digital.map((l) => ({ ...l, productName: "Digital", unitPrice: 10 })) };
+    await expect(assertNoPrintOnlyDigital(photo(true), snap)).rejects.toThrow(CheckoutError);
+    await expect(assertNoPrintOnlyDigital(photo(undefined), snap)).resolves.toBeUndefined();
   });
 });
 

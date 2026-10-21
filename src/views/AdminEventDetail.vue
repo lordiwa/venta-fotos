@@ -7,7 +7,7 @@ import { deleteEvent, getEvent, setCover, setPublished } from '../eventsApi'
 import { dedicatedCoverPath } from '../eventsLogic'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import PhotoUploader from '../components/PhotoUploader.vue'
-import { deletePhoto, setPhotoVisible } from '../photosApi'
+import { deletePhoto, setPhotoPrintOnly, setPhotoVisible } from '../photosApi'
 import { Alert, Badge, Button, Card, Icon } from '../ui'
 import type { Event, Photo } from '../types'
 
@@ -59,6 +59,9 @@ const chooseCover = (photoId: string) => run(() => setCover(id.value, photoId), 
 
 const toggleVisible = (p: Photo) =>
   run(() => setPhotoVisible(id.value, p.id, !p.visible), 'No se pudo cambiar la visibilidad de la foto.')
+
+const togglePrintOnly = (p: Photo) =>
+  run(() => setPhotoPrintOnly(id.value, p.id, p.printOnly !== true), 'No se pudo cambiar "Solo impresión" de la foto.')
 
 async function removePhoto(p: Photo) {
   if (!window.confirm(`¿Eliminar la foto "${p.name ?? p.id}"? Se borran también su vista previa y miniatura.`)) return
@@ -125,7 +128,12 @@ async function remove() {
               </div>
               <span v-if="event.coverPhotoId === p.id" class="tag tag-cover">Portada</span>
               <span v-if="!p.visible" class="tag tag-hidden">Oculta</span>
+              <span v-if="p.printOnly" class="tag tag-print">Solo impresión</span>
             </div>
+            <label class="switch body-sm">
+              <input type="checkbox" role="switch" :checked="p.printOnly === true" @change="togglePrintOnly(p)">
+              Solo impresión
+            </label>
             <div class="btns">
               <Button v-if="p.status === 'ready' && p.visible" :disabled="event.coverPhotoId === p.id" @click="chooseCover(p.id)">
                 {{ event.coverPhotoId === p.id ? 'Es la portada' : 'Usar de portada' }}
@@ -168,6 +176,9 @@ h1 { margin: 0; font-size: 44px; color: var(--on-rail); overflow-wrap: anywhere;
 .tag-cover { background: var(--amber); color: var(--on-amber); }
 .tag-hidden { background: var(--ink); color: var(--on-ink); }
 .tag-cover + .tag-hidden { top: 42px; }
+.tag-print { top: auto; bottom: 10px; background: var(--surface-raised); color: var(--ink); }
+.switch { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; align-self: flex-start; cursor: pointer; }
+.switch input { width: 20px; height: 20px; margin: 0; accent-color: var(--ink); }
 .btns { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 720px) {
   .hero-body { padding: var(--space-5); }

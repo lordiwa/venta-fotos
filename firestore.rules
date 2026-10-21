@@ -35,7 +35,10 @@ service cloud.firestore {
           || (resource.data.visible == true
               && resource.data.status == 'ready'
               && get(/databases/$(database)/documents/events/$(eventId)).data.published == true);
-        allow write: if isAdmin();
+        // printOnly (TASK-030): solo el admin, y booleano; ausente = false.
+        allow create, update: if isAdmin()
+          && (!('printOnly' in request.resource.data) || request.resource.data.printOnly is bool);
+        allow delete: if isAdmin();
       }
     }
 

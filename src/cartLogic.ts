@@ -72,8 +72,9 @@ export function parseStoredCart(raw: string | null): CartLine[] {
   return [...out.values()]
 }
 
-export type LineStatus = 'ok' | 'priceChanged' | 'productUnavailable' | 'photoUnavailable'
-export type PhotoAvailability = 'available' | 'unavailable'
+export type LineStatus = 'ok' | 'priceChanged' | 'productUnavailable' | 'photoUnavailable' | 'printOnly'
+/** 'printOnly' (TASK-030): la foto se vende, pero solo impresa. */
+export type PhotoAvailability = 'available' | 'unavailable' | 'printOnly'
 
 export interface ReconciledLine {
   line: CartLine
@@ -94,9 +95,10 @@ export const STATUS_MESSAGE: Record<LineStatus, string | null> = {
   priceChanged: 'El precio cambió',
   productUnavailable: 'Este producto ya no está disponible',
   photoUnavailable: 'Esta foto ya no está disponible',
+  printOnly: 'Esta foto solo se vende impresa',
 }
 
-/** CU7/CU8/CU9: contrasta las lineas con el catalogo activo y la disponibilidad de la foto. Foto no disponible prevalece. */
+/** CU7/CU8/CU9: contrasta las lineas con el catalogo activo y la disponibilidad de la foto. Foto no disponible prevalece. Lo digital de una foto solo impresion no cuenta (TASK-030). */
 export function reconcile(lines: CartLine[], activeProducts: Product[], photos: Record<string, PhotoAvailability>): { lines: ReconciledLine[]; total: number } {
   const byId = new Map(activeProducts.map((p) => [p.id, p]))
   const out = lines.map((line): ReconciledLine => {
@@ -105,6 +107,7 @@ export function reconcile(lines: CartLine[], activeProducts: Product[], photos: 
     let status: LineStatus = 'ok'
     if (photo === 'unavailable') status = 'photoUnavailable'
     else if (!product) status = 'productUnavailable'
+    else if (photo === 'printOnly' && product.kind === 'digital') status = 'printOnly'
     else if (product.price !== line.priceAtAdd) status = 'priceChanged'
     const counted = status === 'ok' || status === 'priceChanged'
     const unitPrice = product?.price ?? 0
