@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
-  "lifecycle_state": "active",
-  "updated_at": "2026-10-21T16:49:42.187Z",
+  "lifecycle_state": "ended",
+  "updated_at": "2026-10-21T18:48:06.391Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
   "next_action": "Recibir los hand-offs de los developers de TASK-038 y TASK-037; review en contexto fresco; humano despliega functions; backfill de marca 35% con dry-run y OK; UAT de pedidos.",

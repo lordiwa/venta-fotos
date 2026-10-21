@@ -7,14 +7,17 @@
     "Cambia la versión de marca (watermarkVersion) para que el backfill regenere las vistas previas existentes; nombre nuevo por contenido.",
     "El test de opacidad verifica ~20% (y falla con 35% y 50%); tests y build pasan."
   ],
-  "status": "todo",
+  "status": "done",
   "priority": "high",
   "labels": [
     "functions"
   ],
   "assignee": null,
   "depends_on": [],
-  "linked_commits": [],
+  "linked_commits": [
+    "72be55c",
+    "5061906"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -26,9 +29,44 @@
       "author": "reviewer",
       "at": "2026-10-21T16:52:36.622Z",
       "body": "[WARGAMING] Revisión en contexto fresco de 72be55c (transcrita por el orquestador). Código: PASS.\n\nCaminos atacados:\n- AC1: variante o geometría cambiadas, opacidad aplicada dos veces, imágenes diminutas.\n- AC2: documento con logo-dark-1, documento sin versión, documento sin webp, caché del preview anterior al 50%, lib desactualizada en el backfill, processPhoto todavía sin desplegar.\n- AC3: test con 0.5 (falla en la constante y en los píxeles), tolerancia.\n\nTodos sobreviven.\n\nPendientes: MEDIUM docstring de image.ts; LOW falta un test para logo-dark-1 y los textos del runbook."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T17:01:50.066Z",
+      "body": "Cambio pedido por el humano el 2026-10-21, después del commit 72be55c (35%): \"baja la marca de agua a un 20%\". Los 3 AC pasan a 20% y la versión a logo-dark-3, que regenera las fotos con logo-dark-1 y logo-dark-2. Commit 5061906. Revisión en contexto fresco: código aprobado sin cambios. R-1 (registro del pedido) queda abierto hasta que el humano apruebe la muestra wm/sample1-dark-20.jpg antes del deploy."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T17:06:04.857Z",
+      "body": "[FINDING-RESOLVED: R-1] El humano vio la muestra sample1-dark-20.jpg y respondió \"dale si\" (2026-10-21), con lo que aprueba el 20% y el deploy. Casos de uso: los 3 AC del ticket al 20%. Deploy desde un worktree limpio en 5061906."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T18:49:44.904Z",
+      "body": "[WARGAMING] Revisión en contexto fresco de 5061906, transcrita por el orquestador. Código: APPROVE. Se atacaron estos caminos: AC1, opacidad aplicada dos veces (un solo .linear en logoTiles, una sola composición, los tiles no se solapan, el píxel medido da 51=255×0.2); AC1, valores fijos 0.35/0.5 o logo-dark-2 que hayan quedado en el código (ninguno en la ruta de la marca, y lib reconstruido); AC2, fotos con logo-dark-1, logo-dark-2 o sin versión (webpReason devuelve \"watermark\" para todo lo que no sea logo-dark-3); AC2, nombre por hash del contenido (la caché immutable no puede servir la vista previa vieja; la vieja se borra solo después de publicar la nueva); AC2, orden del deploy (el backfill exige --functions-deployed); AC3, el test falla con 0.35 y con 0.5 (constante y píxeles). Todos resisten. R-1 resuelto por el orquestador. LOW: HANDOFF.md desactualizado; el comentario de versión no menciona la 1."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T18:50:10.077Z",
+      "body": "1. CASOS DE USO APROBADOS\nCU1: la vista previa lleva el mosaico del logo (círculo blanco) al 20% de opacidad. CU2: la versión de la marca cambia a logo-dark-3, con nombre nuevo por contenido, para que el backfill regenere las vistas previas. CU3: el test verifica ~20% y falla con 35% y con 50%. Aprobados por el humano: \"baja la marca de agua a un 20%\" y \"dale si\" tras ver la muestra (2026-10-21).\n\n2. RESULTADO\nCommits 72be55c (35%) y 5061906 (20%). Tests: 94 del frontend y 47 de functions; tsc limpio. El humano desplegó las 6 functions desde el worktree limpio en 5061906 (Deploy complete). Backfill real: 485 convertidas, 0 errores; el dry-run posterior da 0 por regenerar.\n\n3. WARGAMING\nCU1: se atacó el camino de fallo de la opacidad aplicada dos veces y el de valores fijos 0.35/0.5 que hayan quedado. CU2: los caminos alternativos de fotos con logo-dark-1, logo-dark-2 o sin versión, el de la caché immutable con la vista previa vieja y el del orden del deploy. CU3: el camino de fallo del test con 0.35 y con 0.5. Todos resisten.\n\n4. UAT\nCU1: PASS. El humano aprobó la muestra al 20% (\"dale si\"). En producción, como anónimo, la vista previa 0CoOgwTmNjqwWul3bt4x.4df814e840fa.webp responde 200 image/webp con la marca al 20%, igual que la muestra.\nCU2: PASS. La consulta pública devuelve watermarkVersion logo-dark-3, la ruta tiene un hash nuevo y el dry-run da 0 por regenerar.\nCU3: PASS. Los tests están en verde.\nPendientes LOW: refrescar HANDOFF.md y mencionar la versión 1 en el comentario de watermark.ts."
     }
   ],
   "created_at": "2026-10-21T16:48:01.158Z",
-  "updated_at": "2026-10-21T16:52:36.622Z",
-  "jira_key": null
+  "updated_at": "2026-10-21T18:50:10.077Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T18:50:10.077Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "72be55c",
+        "state": "verified"
+      },
+      {
+        "sha": "5061906",
+        "state": "verified"
+      }
+    ]
+  }
 }

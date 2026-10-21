@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T16:48:01.158Z",
+  "generated_at": "2026-10-21T18:50:10.077Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -177,8 +177,8 @@
     },
     {
       "key": "TASK-038",
-      "title": "Marca de agua al 35% de opacidad",
-      "status": "todo",
+      "title": "Marca de agua al 20% de opacidad",
+      "status": "done",
       "priority": "high"
     }
   ]

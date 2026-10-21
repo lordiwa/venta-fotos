@@ -1,0 +1,107 @@
+{
+  "schema_version": 2,
+  "session_id": "20261021T184806Z-092f4211",
+  "lifecycle_state": "active",
+  "updated_at": "2026-10-21T18:48:06.391Z",
+  "previous_session_id": "20261003T184652Z-bda20da3",
+  "active_task": "TASK-038",
+  "workflow_step": "update",
+  "handoff_summary": "2026-10-21: TASK-038 pasó a marca al 20% (5061906, logo-dark-3). Review fresco aprobó el código; el humano aprobó la muestra (\"dale si\"). Functions desplegadas desde worktree limpio scratchpad/deploy038 (Deploy complete). Backfill webp real lanzado por el humano. TASK-037 (pedidos WhatsApp) quedó a medias SIN commit en el working tree: backend + APIs del front hechos; faltan formulario del carrito, pestañas Activos/Historial + recordatorio en admin, /pedido/:number enmascarado y tests (CU11). PayPal apagado.",
+  "next_action": "1) Confirmar que el backfill terminó sin errores (dry-run debe dar 0 por regenerar) y verificar como anónimo una vista previa al 20%; cerrar TASK-038 (falta comentario [WARGAMING] del reviewer, linked_commits 72be55c+5061906, in_review). 2) Lanzar developer para terminar TASK-037 sobre el working tree, luego review fresco (usar model opus: Fable sin créditos).",
+  "open_questions": [
+    "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
+    "Credenciales sandbox de PayPal para probar el popup real"
+  ],
+  "blockers": [],
+  "decisions": [
+    {
+      "at": "2026-10-03T18:52:22.115Z",
+      "decision": "Compradores sin cuenta; vistas previas con marca de agua; envío con costo fijo; total recalculado en servidor; admin vía custom claim",
+      "rationale": "Decisión de alcance del humano en la intake"
+    },
+    {
+      "at": "2026-10-03T18:54:30.004Z",
+      "decision": "TASK-010: modelo events/{id}/photos subcolección, settings/store, Storage originals/previews/thumbs, reglas cross-service para previews",
+      "rationale": "Modelo de datos acordado en TASK-010"
+    },
+    {
+      "at": "2026-10-03T20:56:55.609Z",
+      "decision": "Login UAT pospuesto por el humano; prioridad subir/ver fotos (012, 013, 015). Marca de agua por defecto MUESTRA, configurable en settings/store.watermarkText",
+      "rationale": "Prioridad fijada por el humano"
+    },
+    {
+      "at": "2026-10-04T03:24:08.210Z",
+      "decision": "Humano aprueba en bloque subir/ver fotos (\"me gusta como esta\"): marca MUESTRA pixelada aceptada, miniaturas sin marca",
+      "rationale": "Aprobación explícita del humano tras ver la galería"
+    },
+    {
+      "at": "2026-10-14T17:02:58.938Z",
+      "decision": "Marca Martial Photo reemplaza Venta de Fotos en toda la app (TASK-025); correo del fotógrafo para el admin de producción: gulmork@gmail.com",
+      "rationale": "Indicado por el humano el 2026-10-14"
+    },
+    {
+      "at": "2026-10-14T22:30:51.232Z",
+      "decision": "PayPal del fotógrafo: reino182@hotmail.com; Storage de producción creado por API en southamerica-east1; Functions se despliegan por el humano (orquestador sin permiso de deploy a prod)",
+      "rationale": "Datos del humano y bloqueo del clasificador de permisos, 2026-10-14"
+    },
+    {
+      "at": "2026-10-16T17:50:09.302Z",
+      "decision": "Pedido por WhatsApp al +593 99 856 5995 como vía alternativa a PayPal (TASK-026); número configurable en settings/store.whatsappPhone con ese valor por defecto",
+      "rationale": "Pedido del humano el 2026-10-16"
+    },
+    {
+      "at": "2026-10-16T18:36:39.947Z",
+      "decision": "Sin PayPal por ahora: los pagos se acuerdan en persona o por WhatsApp. No se cargan secretos de PayPal ni se despliegan createOrder/captureOrder.",
+      "rationale": "Decisión del humano el 2026-10-16 (\"dejémoslo por pagos en persona o a convenir por el WhatsApp\")"
+    },
+    {
+      "at": "2026-10-16T21:03:30.441Z",
+      "decision": "El humano autoriza al orquestador a correr deploys de producción y bindings IAM de venta-fotos-estudio (procedimiento en .claude/skills/deploy-prod).",
+      "rationale": "\"te doy permiso haz eso skills para el futuro que puedas hacerlo tu\", 2026-10-16"
+    },
+    {
+      "at": "2026-10-17T15:49:36.199Z",
+      "decision": "Galeria movil: dos columnas 4:3 y lightbox opaco (hotfix directo del orquestador, sin ticket, c2afaf6)",
+      "rationale": "Reporte del humano: las imagenes no se veian bien en movil"
+    },
+    {
+      "at": "2026-10-21T03:51:11.107Z",
+      "decision": "Admin movil: SideNav como barra superior compacta bajo 900px y dropzone sin input nativo visible (hotfix sin ticket, 2f2ebcc+aad9070)",
+      "rationale": "Reporte del humano: el admin en movil se veia roto"
+    },
+    {
+      "at": "2026-10-21T04:36:18.156Z",
+      "decision": "TASK-028: portada dedicada de 1920px sin marca solo para la foto elegida; nunca de una foto oculta o no lista",
+      "rationale": "Eleccion del humano: Portada dedicada (Recomendado), 2026-10-20"
+    },
+    {
+      "at": "2026-10-21T09:57:54.019Z",
+      "decision": "Paquetes digitales automaticos en carrito por evento (TASK-029); printOnly por foto (TASK-030); printOnly solo afecta ventas nuevas, quien ya pago conserva la descarga",
+      "rationale": "Elecciones del humano 2026-10-20/21"
+    }
+  ],
+  "subagent_results": [
+    {
+      "at": "2026-10-21T18:48:06.391Z",
+      "agent": "developer",
+      "task": "TASK-038",
+      "summary": "5061906: opacidad 0.2, LAYOUT_VERSION 3 (logo-dark-3), tests 94+47 verdes, muestra wm/sample1-dark-20.jpg."
+    },
+    {
+      "at": "2026-10-21T18:48:06.391Z",
+      "agent": "reviewer",
+      "task": "TASK-038",
+      "summary": "Código APPROVE; R-1 (registro del pedido del 20%) resuelto con comentarios del orquestador. LOW: HANDOFF.md desactualizado, comentario de versión sin la 1."
+    }
+  ],
+  "pending_human_confirmation": null,
+  "mode": "harness",
+  "loop_auth": {
+    "auto_close_on_green_review": true,
+    "uat_delegated_to_orchestrator": true,
+    "auto_consolidate": true,
+    "auto_push_after_close": true,
+    "auto_version_bump_on_milestone": false
+  },
+  "loop_state": null
+}
