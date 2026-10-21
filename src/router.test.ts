@@ -61,11 +61,13 @@ describe('router', () => {
     expect(scrollBehavior(r('/eventos/e1/fotos/p2'), r('/eventos/e1/fotos/p1'), null)).toBe(false)
     expect(scrollBehavior(r('/eventos/e2'), r('/eventos/e1'), null)).toEqual({ top: 0 })
     expect(scrollBehavior(r('/'), r('/carrito'), saved)).toBe(saved)
+    // matchMedia explicito: no depender de que el entorno de test lo tenga o no.
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(prefers-reduced-motion: reduce)' }))
     expect(scrollBehavior(r('/#eventos'), r('/eventos/e1'), null)).toEqual({ el: '#eventos', behavior: 'auto' })
-    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce') }))
-    expect(scrollBehavior(r('/#eventos'), r('/#eventos'), null)).toMatchObject({ behavior: 'auto' })
+    expect(scrollBehavior(r('/#eventos'), r('/#eventos'), null)).toEqual({ el: '#eventos', behavior: 'auto' })
     vi.stubGlobal('matchMedia', () => ({ matches: false }))
-    expect(scrollBehavior(r('/#eventos'), r('/#eventos'), null)).toMatchObject({ el: '#eventos', behavior: 'smooth' })
+    expect(scrollBehavior(r('/#eventos'), r('/eventos/e1'), null)).toEqual({ el: '#eventos', behavior: 'smooth' })
+    expect(scrollBehavior(r('/#eventos'), r('/#eventos'), null)).toEqual({ el: '#eventos', behavior: 'smooth' })
     expect(scrollBehavior(r('/carrito'), r('/'), null)).toEqual({ top: 0 })
   })
 

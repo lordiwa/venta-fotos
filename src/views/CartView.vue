@@ -81,7 +81,7 @@ const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.pack
   </div>
   <Alert v-if="!cart.lines.length">
     Tu carrito está vacío.
-    <template #action><RouterLink to="/">Ver las fotos</RouterLink></template>
+    <template #action><RouterLink to="/#eventos">Ver las fotos</RouterLink></template>
   </Alert>
   <p v-else-if="loading" class="mono-sm muted">Cargando…</p>
   <template v-else-if="error">
@@ -130,7 +130,7 @@ const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.pack
       <p v-else class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
       <Button v-if="paypal" variant="accent" size="lg" to="/checkout">Ir a pagar</Button>
       <Button v-if="view.lines.some((r) => r.counted)" :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
-      <RouterLink to="/" class="more">Seguir viendo fotos</RouterLink>
+      <RouterLink to="/#eventos" class="more">Seguir viendo fotos</RouterLink>
     </Card>
   </div>
 </template>
