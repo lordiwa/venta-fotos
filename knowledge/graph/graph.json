@@ -78,6 +78,12 @@
       "type": "task",
       "ref": "tasks/TASK-027.json",
       "label": "Modo sin pago en línea: WhatsApp como único canal y Functions sin secretos de PayPal"
+    },
+    {
+      "id": "task-028",
+      "type": "task",
+      "ref": "tasks/TASK-028.json",
+      "label": "Portada de evento dedicada en alta resolución sin marca"
     }
   ],
   "edges": []

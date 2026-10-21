@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-21T03:51:11.107Z",
+  "updated_at": "2026-10-21T04:36:18.156Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
-  "next_action": "Humano: cargar tamanos impresos si los vende y probar pedido por WhatsApp en movil. Luego cerrar TASK-025 (decision R-1 + UAT) y UAT de TASK-022/023/024.",
-  "handoff_summary": "2026-10-20: hotfix admin movil (2f2ebcc + fix round aad9070) desplegado a hosting prod y verificado en vivo a 390px: bajo 900px el SideNav es barra superior compacta (~120px, pills con scroll horizontal, acciones solo icono) y la dropzone oculta el input nativo. Reviewer APPROVE tras fix round (LOWs opcionales: centrado ~16px, test tautologico, sin recentrar al redimensionar, title redundante). El humano subio 124 fotos al evento Taikai Noguchi; procesadas sin errores, galeria movil y marca MUESTRA verificadas. Productos: solo Archivo digital 3.00, sin tamanos impresos. TASK-025 sigue in_review (R-1 alt, R-2 UAT).",
+  "next_action": "Humano: cargar tamanos impresos si los vende y probar pedido por WhatsApp en movil. Luego cerrar TASK-025 (decision R-1 + UAT) y UAT de TASK-022/023/024. Backlog posible: deletePhoto atomico (L-8), refresco en vivo de portada en admin, miniaturas de fotos ocultas legibles por ruta.",
+  "handoff_summary": "2026-10-20: TASK-028 cerrado y desplegado. Portada dedicada 1920px sin marca: Functions syncEventCover y syncPhotoCover (retry solo transitorio), reglas storage covers/ y firestore coverPath, hosting; backfill corrido sobre el evento Taikai; portada verificada nitida en vivo. 5 rondas de review (R-1, R-2 HIGH y M-5..M-8 resueltos). Antes: hotfix admin movil (2f2ebcc+aad9070) desplegado y verificado. El humano subio 124 fotos al evento. Productos: solo Archivo digital 3.00. TASK-025 sigue in_review (R-1 alt, R-2 UAT).",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
@@ -67,6 +67,11 @@
       "at": "2026-10-21T03:51:11.107Z",
       "decision": "Admin movil: SideNav como barra superior compacta bajo 900px y dropzone sin input nativo visible (hotfix sin ticket, 2f2ebcc+aad9070)",
       "rationale": "Reporte del humano: el admin en movil se veia roto"
+    },
+    {
+      "at": "2026-10-21T04:36:18.156Z",
+      "decision": "TASK-028: portada dedicada de 1920px sin marca solo para la foto elegida; nunca de una foto oculta o no lista",
+      "rationale": "Eleccion del humano: Portada dedicada (Recomendado), 2026-10-20"
     }
   ],
   "subagent_results": [
@@ -153,6 +158,12 @@
       "agent": "reviewer",
       "task": "hotfix-admin-movil",
       "summary": "REQUEST-CHANGES en 2f2ebcc (HIGH franja 800-899px); re-review aad9070 APPROVE sin HIGH/MEDIUM."
+    },
+    {
+      "at": "2026-10-21T04:36:18.156Z",
+      "agent": "reviewer",
+      "task": "TASK-028",
+      "summary": "5 rondas; final APPROVE en f1908ca tras M-8; wargaming CU1..CU7 PASA."
     }
   ],
   "pending_human_confirmation": null,

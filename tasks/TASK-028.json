@@ -1,0 +1,94 @@
+{
+  "key": "TASK-028",
+  "title": "Portada de evento dedicada en alta resolución sin marca",
+  "description": "La portada del evento (hero de EventGallery, tarjeta de HomeView, hero/lista del admin) usa la miniatura de 400px (thumbs/) y se ve pixelada al estirarse a ~900px+. Decisión del humano 2026-10-20: generar en servidor una portada dedicada de ~1920px (lado largo) SIN marca de agua solo para la foto elegida como portada, a partir del original. Las demás fotos no cambian.",
+  "acceptance_criteria": [
+    "Al fijar o cambiar events/{id}.coverPhotoId, una Function genera desde el original un JPEG de máx. 1920px lado largo, sin marca de agua, en una ruta pública de Storage (p.ej. covers/{eventId}/{photoId}.jpg) y guarda su ruta en el evento (p.ej. coverPath).",
+    "Al quitar la portada (coverPhotoId borrado o foto eliminada) se borra el archivo de portada y el campo coverPath.",
+    "Reglas de Storage: covers/ legible solo si isAdmin() o el evento está publicado; escritura denegada al cliente. Reglas de Firestore: el cliente no puede escribir coverPath.",
+    "La tienda (HomeView, EventGallery) y el admin (AdminEventDetail, AdminEvents) usan coverPath si existe y caen a la miniatura si no.",
+    "El evento existente con portada obtiene su portada dedicada (backfill o re-disparo documentado).",
+    "npm test y builds verdes; tests de la lógica de decisión (cuándo generar/borrar) y de las reglas nuevas."
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "frontend",
+    "functions",
+    "storage"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "0600134",
+    "5ec3a56",
+    "6a6e637",
+    "43af451",
+    "018812e",
+    "f1908ca"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T04:20:02.230Z",
+      "body": "Casos de uso aprobados. El 2026-10-20 el humano eligió la opción \"Portada dedicada (Recomendado)\": al elegir una foto como portada, el servidor genera una versión de unos 1920px sin marca de agua, solo de esa foto, y las demás no cambian. Los 6 criterios de aceptación del ticket se toman como la lista de casos de uso aprobada.\n\nAmpliación derivada de la revisión, dentro de esa misma decisión: una foto oculta o no lista nunca puede ser portada pública. Si se oculta, se retira; si se vuelve a mostrar, se restaura.\n\nHallazgos registrados:\n- [FINDING-HIGH: R-1] syncCover publicaba como portada una foto oculta.\n- [FINDING-HIGH: R-2] Había una carrera entre generar y ocultar."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T04:20:02.289Z",
+      "body": "[FINDING-RESOLVED: R-1] Resuelto en 5ec3a56: coverSource exige que la foto esté ready y visible y que su original sea el suyo, syncPhotoCover hace la re-sincronización y el botón del admin exige que la foto sea visible.\n[FINDING-RESOLVED: R-2] Resuelto en 6a6e637: la transacción relee el evento y la foto antes de escribir coverPath, el borrado usa ifGenerationMatch y no queda reposición ciega. La tercera revisión verificó todas las intercalaciones y el test de orquestación queda rojo con el código anterior."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T04:24:47.484Z",
+      "body": "[WARGAMING] Se atacaron los AC1 a AC6 y el caso \"una foto oculta o no lista nunca es portada pública\". Rutas probadas:\n- cambios rápidos de portada p→q→p\n- ocultar durante la generación (R-2)\n- ocultar → mostrar → ocultar, en tres intercalaciones\n- re-subida de foto\n- borrar la foto o el evento durante la generación\n- despublicar\n- backfill concurrente\n- cliente malicioso que escribe coverPath o lee covers/ de un borrador\n\nTodo PASA, salvo dos MEDIUM: M-6 (un commit ambiguo deja coverPath apuntando a un archivo borrado) y M-7 (un borrado fallido sin retry deja legible covers/ de una foto oculta). Ambos se mandan a arreglar antes del deploy. No hay ningún HIGH. Veredicto de la revisión final sobre 43af451: APPROVE."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T04:31:37.313Z",
+      "body": "Revisión acotada de 018812e: REQUEST-CHANGES, solo por M-8. El reviewer dejó explícito que, con M-8 arreglado y su test, el veredicto pasa a APPROVE.\n\nArreglado en f1908ca, que además resuelve L-8 y L-9. El orquestador lo verificó: el cambio exacto pedido en cover.ts está aplicado, test:functions da 33/33, npm test 79/79 y build:functions sale en verde.\n\nVeredicto final: APPROVE."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T04:35:49.679Z",
+      "body": "1. CASOS DE USO APROBADOS\nEl humano eligió \"Portada dedicada (Recomendado)\" el 2026-10-20.\n- CU1 (AC1): al fijar o cambiar la portada se genera un JPEG de hasta 1920px sin marca y se escribe coverPath.\n- CU2 (AC2): al quitar la portada o borrar la foto o el evento, se limpian el archivo y el campo.\n- CU3 (AC3): las reglas protegen covers/ y coverPath.\n- CU4 (AC4): la tienda y el admin usan coverPath, con la miniatura como respaldo.\n- CU5 (AC5): backfill.\n- CU6 (AC6): tests y builds en verde.\n- CU7: una foto oculta o que no esté lista nunca es portada pública.\n\n2. RESULTADO\nCommits: 0600134, 5ec3a56, 6a6e637, 43af451, 018812e, f1908ca. Functions nuevas: syncEventCover y syncPhotoCover.\n- Tests: npm test 79/79, test:functions 33/33, reglas 17/17 (en puertos aislados). Builds en verde.\n- E2E en emuladores aislados: 10 escenarios.\n- Producción, 2026-10-20: desplegadas las functions, las reglas de storage y firestore y el hosting. Backfill ejecutado sobre rVDKr5GlXJELAIMzr8NE.\n- Comprobado en vivo: la portada sale de covers/ con naturalWidth de 1920.\n- Riesgos pendientes:\n  - L-8: deletePhoto no es atómico (viene de antes).\n  - Las miniaturas y previews de fotos ocultas se pueden leer por una ruta adivinable (diseño anterior).\n  - El admin no refresca la portada en vivo.\n\n3. WARGAMING\nAtacados CU1 a CU7:\n- CU1: cambios rápidos de portada p→q→p, triggers desordenados y camino de fallo por commit ambiguo (M-6, corregido).\n- CU2: borrado de foto o evento durante la generación y camino de fallo de borrado en Storage (M-7 y M-8, corregidos).\n- CU3: camino alternativo de un cliente malicioso.\n- CU5: backfill concurrente.\n- CU7: ocultar durante la generación (R-2) y ocultar→mostrar→ocultar en tres intercalaciones.\nResultado: todo PASA y no queda ningún HIGH abierto.\n\n4. UAT\nUAT no solicitado: el ticket es de tier tests-after y no lleva requires_uat. El orquestador lo comprobó en vivo en producción con el navegador."
+    }
+  ],
+  "created_at": "2026-10-21T03:53:40.568Z",
+  "updated_at": "2026-10-21T04:35:49.679Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "marker": "[EXPLICIT]",
+  "linked_commits_verification": {
+    "at": "2026-10-21T04:35:49.679Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "0600134",
+        "state": "verified"
+      },
+      {
+        "sha": "5ec3a56",
+        "state": "verified"
+      },
+      {
+        "sha": "6a6e637",
+        "state": "verified"
+      },
+      {
+        "sha": "43af451",
+        "state": "verified"
+      },
+      {
+        "sha": "018812e",
+        "state": "verified"
+      },
+      {
+        "sha": "f1908ca",
+        "state": "verified"
+      }
+    ]
+  }
+}
