@@ -1,0 +1,65 @@
+{
+  "key": "TASK-034",
+  "title": "Texto explicativo de paquetes en la página del evento",
+  "description": "Pedido del humano (2026-10-21): \"agregar un texto dentro del evento, entre la portada y la galería, que explique cómo funcionan los paquetes\".\n\nPrecios actuales, cargados por el orquestador en el admin:\n- foto individual digital: 5.00\n- Paquete 3 fotos: 12.00\n- Paquete 5 fotos: 20.00\n\nEl texto debe armarse con los productos activos, para que no quede desactualizado si cambian los precios.",
+  "acceptance_criteria": [
+    "En EventGallery, entre la portada (hero) y la cuadrícula de fotos, aparece un bloque que explica los paquetes digitales.",
+    "El bloque se arma con los productos activos: precio de la foto digital suelta y cada paquete activo (cantidad, precio y ahorro frente a comprarlas sueltas), ordenados por cantidad.",
+    "Explica en lenguaje simple que los paquetes se aplican solos en el carrito al elegir fotos digitales del mismo evento, que se combinan con fotos sueltas para dar siempre el precio más bajo, y que las copias impresas no entran en los paquetes.",
+    "Si no hay paquetes activos o la foto digital está desactivada, el bloque no aparece (o muestra solo lo que aplique sin mencionar paquetes).",
+    "Se ve bien en móvil (390px) y en escritorio, sin scroll horizontal, con el estilo del sitio.",
+    "Test de la lógica que arma el contenido (ahorros, orden, casos sin paquetes); tests y build pasan."
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "frontend"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "1bdd60b",
+    "6b81a5c",
+    "74d57e8"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T14:51:58.488Z",
+      "body": "Casos de uso: son los 6 AC del ticket, que salen del pedido explícito del humano del 2026-10-21 (\"agregar un texto dentro del evento, entre la portada y la galería, que explique cómo funcionan los paquetes\"). Los precios también los pidió el humano y los cargó el orquestador en el admin: digital 5.00, paquete de 3 a 12.00, paquete de 5 a 20.00.\n\nRevisión de 1bdd60b: BLOCK, solo por el proceso (R-1). En el código:\n- R-2 y R-3 (MEDIUM): diferencias con digitalPackPricing.\n- R-6 y R-7: accesibilidad.\n- R-9: copy de \"solo impresión\".\nTodo se mandó al developer."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T14:55:29.135Z",
+      "body": "[WARGAMING] Revisión en contexto fresco, transcrita por el orquestador.\n- Ronda 1 (1bdd60b): BLOCK por proceso. En el código: R-2 y R-3 MEDIUM; R-6, R-7 y R-9 LOW.\n- Ronda 2 (6b81a5c, 74d57e8): PASS. Todo resuelto y sin HIGH ni MEDIUM nuevos.\n\nCaminos atacados:\n- AC1: estados de la página (loading, error, no disponible, vacía).\n- AC2: paquete inactivo, cantidad duplicada, paquete superado por una combinación, empate exacto, cantidad 101, cantidad no entera, precio 0 o NaN, orden, redondeo.\n- AC3: copy contra reconcile, incluidas las fotos de solo impresión.\n- AC4: digital inactivo o sin precio, sin paquetes, falla del catálogo.\n- AC5: 320px y 390px.\n- AC6: vitest 93/93 y build.\n\nResultado: todo sobrevive."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T14:55:41.744Z",
+      "body": "1. CASOS DE USO APROBADOS\nVienen del pedido del humano del 2026-10-21.\n- CU1: bloque entre la portada y la galería.\n- CU2: el contenido sale de los productos activos (precio de la foto suelta, cada paquete con su ahorro, ordenados).\n- CU3: texto simple; el paquete se aplica solo en el carrito, por evento, junto con fotos sueltas, y las impresiones van aparte.\n- CU4: si no hay paquetes o el digital está inactivo, el bloque se oculta.\n- CU5: móvil y escritorio sin scroll horizontal.\n- CU6: tests.\nPrecios pedidos por el humano y cargados en el admin: digital 5.00, paquete de 3 a 12.00, paquete de 5 a 20.00.\n\n2. RESULTADO\nCommits 1bdd60b, 6b81a5c y 74d57e8, desplegados en hosting. packsInfo reutiliza validPack y digitalPackPricing, así que solo muestra los paquetes que el carrito aplica de verdad. Encabezado h2, role=list, separadores ocultos para lectores de pantalla.\n\n3. WARGAMING\nCaminos alternativos y de fallo atacados:\n- CU1: estados loading, error, no disponible y vacío.\n- CU2: paquete inactivo, duplicado, dominado, empate, cantidad 101, cantidad no entera, NaN, orden, redondeo. Dominado y 101 fallaban (R-3, R-2); se corrigió en 6b81a5c y sobrevive.\n- CU3: el copy contra reconcile y las fotos de solo impresión (R-9, corregido).\n- CU4: digital inactivo, sin paquetes, fallo del catálogo.\n- CU5: 320 y 390px.\n- CU6: 93 de 93 tests.\nRe-revisión: PASS.\n\n4. UAT\nUAT no solicitado; lo verificó el orquestador en producción a 390px.\n- CU1, CU2 y CU5 PASS: el bloque muestra '1 foto 5.00 · 3 fotos 12.00 ahorras 3.00 · 5 fotos 20.00 ahorras 5.00' y no hay scroll horizontal.\n- Carrito con 4 fotos: paquete de 3 (12.00) + 1 suelta (5.00) = 17.00, 'Ahorras 3.00'. PASS."
+    }
+  ],
+  "created_at": "2026-10-21T14:46:35.396Z",
+  "updated_at": "2026-10-21T14:55:41.744Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T14:55:41.744Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "1bdd60b",
+        "state": "verified"
+      },
+      {
+        "sha": "6b81a5c",
+        "state": "verified"
+      },
+      {
+        "sha": "74d57e8",
+        "state": "verified"
+      }
+    ]
+  }
+}

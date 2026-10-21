@@ -96,6 +96,24 @@
       "type": "task",
       "ref": "tasks/TASK-030.json",
       "label": "Foto marcada como solo impresión"
+    },
+    {
+      "id": "task-032",
+      "type": "task",
+      "ref": "tasks/TASK-032.json",
+      "label": "Links de \"Eventos\" llevan a la lista de eventos y /eventos existe"
+    },
+    {
+      "id": "task-033",
+      "type": "task",
+      "ref": "tasks/TASK-033.json",
+      "label": "Miniaturas, vistas previas y portada en WebP con caché"
+    },
+    {
+      "id": "task-034",
+      "type": "task",
+      "ref": "tasks/TASK-034.json",
+      "label": "Texto explicativo de paquetes en la página del evento"
     }
   ],
   "edges": []
