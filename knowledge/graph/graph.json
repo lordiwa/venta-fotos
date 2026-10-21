@@ -126,6 +126,12 @@
       "type": "task",
       "ref": "tasks/TASK-035.json",
       "label": "Marca de agua: logo de Martial Photo en mosaico al 50%"
+    },
+    {
+      "id": "task-036",
+      "type": "task",
+      "ref": "tasks/TASK-036.json",
+      "label": "El botón de WhatsApp abre el chat en la app del celular"
     }
   ],
   "edges": []

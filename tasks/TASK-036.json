@@ -10,7 +10,7 @@
     "Al volver a la tienda desde WhatsApp el carrito sigue intacto.",
     "Test de la lógica que decide el destino/target; tests y build pasan."
   ],
-  "status": "in_review",
+  "status": "done",
   "priority": "high",
   "labels": [
     "frontend",
@@ -18,7 +18,9 @@
   ],
   "assignee": null,
   "depends_on": [],
-  "linked_commits": [],
+  "linked_commits": [
+    "23ee5e4"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -30,9 +32,25 @@
       "author": "reviewer",
       "at": "2026-10-21T16:10:05.937Z",
       "body": "[WARGAMING] Fresh-context review of 23ee5e4, transcribed by the orchestrator: PASS, with no HIGH findings in the code.\n\nPaths attacked:\n- AC2: Android phone and tablet, iPadOS in desktop mode, \"desktop site\" on Android, Instagram/Facebook in-app browsers, no window.\n- AC3: desktop with a mouse, touch laptop, Windows tablet mode.\n- AC4: unchanged URL and message, fallback when the app is missing.\n- AC5: cart in localStorage when leaving in the same tab, back/forward cache and reload.\n- AC6: 94/94 tests.\n\nEverything holds. AC1 (the app actually opens) can only be proven on a real phone.\n\nAccepted LOW findings:\n- an iPad with a trackpad is treated as desktop;\n- there is no mount test for the target."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T16:22:08.763Z",
+      "body": "1. CASOS DE USO APROBADOS\nVienen del pedido del humano del 2026-10-21.\n- CU1: en móvil, el botón de WhatsApp abre el chat en la app con el mensaje del pedido.\n- CU2: en móvil se abre en la misma pestaña.\n- CU3: en escritorio se abre en una pestaña nueva.\n- CU4: el mensaje, el número y el link https no cambian.\n- CU5: el carrito se mantiene al volver.\n- CU6: tests.\n\n2. RESULTADO\nCommit 23ee5e4, desplegado en hosting. whatsappLinkAttrs devuelve {} en teléfonos y target=_blank con rel=noopener en escritorio. Se usa en PurchasePanel y en los dos botones de CartView.\n\n3. WARGAMING\nCaminos alternativos y de fallo atacados:\n- CU2: Android teléfono y tablet, iPadOS en modo escritorio, sitio de escritorio en Android, navegadores in-app de Instagram y Facebook, sin window.\n- CU3: mouse, laptop táctil, Windows en modo tablet.\n- CU4: fallback cuando la app no está instalada.\n- CU5: localStorage, bfcache y reload.\nTodos sobreviven. Revisión: PASS. LOW aceptados: iPad con trackpad y falta de test de montaje.\n\n4. UAT\nPASS. El humano probó en su teléfono que \"Pedir por WhatsApp\" abre la app con el pedido escrito: \"si funciona!\" (2026-10-21)."
     }
   ],
   "created_at": "2026-10-21T16:06:01.817Z",
-  "updated_at": "2026-10-21T16:10:06.000Z",
-  "jira_key": null
+  "updated_at": "2026-10-21T16:22:08.763Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T16:22:08.763Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "23ee5e4",
+        "state": "verified"
+      }
+    ]
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T16:10:06.000Z",
+  "generated_at": "2026-10-21T16:22:08.763Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -166,7 +166,7 @@
     {
       "key": "TASK-036",
       "title": "El botón de WhatsApp abre el chat en la app del celular",
-      "status": "in_review",
+      "status": "done",
       "priority": "high"
     }
   ]
