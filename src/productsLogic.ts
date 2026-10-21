@@ -1,4 +1,5 @@
 /** Logica pura de productos y ajustes de tienda (sin Firebase): validacion y normalizacion. */
+import { MAX_PACK_QUANTITY } from './packPricing'
 
 export const PRICE_ERROR = 'El precio debe ser un número mayor que 0'
 export const NAME_ERROR = 'El nombre es obligatorio'
@@ -27,6 +28,30 @@ export function validateProductForm(f: ProductForm, opts: { requireName?: boolea
 
 export function productFields(f: ProductForm) {
   return { name: f.name.trim(), price: parseMoney(f.price) as number }
+}
+
+export const PACK_QUANTITY_ERROR = `La cantidad debe ser un número entero de 2 a ${MAX_PACK_QUANTITY}`
+export const PACK_DUPLICATE_ERROR = 'Ya hay un paquete con esa cantidad de fotos'
+export const packName = (quantity: number) => `Paquete ${quantity} fotos digitales`
+
+export interface PackForm { quantity: string; price: string }
+export type PackErrors = Partial<Record<'quantity' | 'price', string>>
+
+/** TASK-029: cantidad entera 2..100 (sin repetir otra existente) y precio > 0. */
+export function validatePackForm(f: PackForm, otherQuantities: number[] = []): PackErrors {
+  const errors: PackErrors = {}
+  const q = /^\s*\d+\s*$/.test(f.quantity) ? Number(f.quantity) : NaN
+  if (!(q >= 2 && q <= MAX_PACK_QUANTITY)) errors.quantity = PACK_QUANTITY_ERROR
+  else if (otherQuantities.includes(q)) errors.quantity = PACK_DUPLICATE_ERROR
+  const p = parseMoney(f.price)
+  if (p === null || p <= 0) errors.price = PRICE_ERROR
+  return errors
+}
+
+/** Documento del paquete: el nombre sale de la cantidad ("Paquete 5 fotos digitales"). */
+export function packFields(f: PackForm) {
+  const quantity = Number(f.quantity)
+  return { name: packName(quantity), quantity, price: parseMoney(f.price) as number }
 }
 
 export interface SettingsForm { shippingCost: string; pickupInfo: string; whatsappPhone?: string }

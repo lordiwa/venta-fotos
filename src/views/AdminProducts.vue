@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { createPrint, newProductId, listProducts, saveDigital, setProductActive, updateProduct } from '../productsApi'
-import { formatMoney, OFFLINE_NOTICE, PERMISSION_MESSAGE, saveErrorMessage, validateProductForm, withOfflineNotice, type ProductErrors } from '../productsLogic'
+import { createPack, createPrint, deleteProduct, newProductId, listProducts, saveDigital, setProductActive, updatePack, updateProduct } from '../productsApi'
+import {
+  formatMoney, OFFLINE_NOTICE, PERMISSION_MESSAGE, saveErrorMessage, validatePackForm, validateProductForm, withOfflineNotice, type PackErrors, type ProductErrors,
+} from '../productsLogic'
 import { Alert, Badge, Button, Card, Field } from '../ui'
 import type { Product } from '../types'
 
@@ -11,6 +13,7 @@ const loadError = ref<string | null>(null)
 
 const prints = computed(() => products.value.filter((p) => p.kind === 'print'))
 const digital = computed(() => products.value.find((p) => p.kind === 'digital') ?? null)
+const packs = computed(() => products.value.filter((p) => p.kind === 'pack').sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0)))
 const isActive = (p: Product) => p.active === true
 
 async function load() {
@@ -84,6 +87,62 @@ async function submitDigital() {
     digitalSaveError.value = saveErrorMessage(e)
   } finally {
     digitalSaving.value = false
+    offline.value = null
+  }
+}
+
+// Paquetes digitales (TASK-029): cantidad + precio; el carrito elige solo la combinacion mas barata por evento.
+const packEditingId = ref<string | null>(null)
+const packForm = ref({ quantity: '', price: '' })
+const packErrors = ref<PackErrors>({})
+const packSaveError = ref<string | null>(null)
+const packSaving = ref(false)
+let pendingPackId: string | null = null
+/** Precio por foto de un paquete, para comparar con la foto suelta. */
+const perPhoto = (p: Product) => formatMoney(Math.round((p.price / (p.quantity ?? 1)) * 100) / 100)
+
+function startPackEdit(p: Product) {
+  packEditingId.value = p.id
+  packForm.value = { quantity: String(p.quantity ?? ''), price: formatMoney(p.price) }
+  packErrors.value = {}
+  packSaveError.value = null
+}
+function cancelPack() {
+  packEditingId.value = null
+  pendingPackId = null
+  packForm.value = { quantity: '', price: '' }
+  packErrors.value = {}
+  packSaveError.value = null
+}
+async function submitPack() {
+  const others = packs.value.filter((p) => p.id !== packEditingId.value).map((p) => p.quantity ?? 0)
+  packErrors.value = validatePackForm(packForm.value, others)
+  if (Object.keys(packErrors.value).length) return
+  packSaving.value = true
+  packSaveError.value = null
+  try {
+    if (packEditingId.value) await withOfflineNotice(updatePack(packEditingId.value, packForm.value), slow)
+    else await withOfflineNotice(createPack(packForm.value, (pendingPackId ??= newProductId())), slow)
+    cancelPack()
+    await load()
+  } catch (e) {
+    packSaveError.value = saveErrorMessage(e)
+  } finally {
+    packSaving.value = false
+    offline.value = null
+  }
+}
+async function removePack(p: Product) {
+  if (!window.confirm(`¿Borrar "${p.name}"? Los pedidos ya hechos no cambian.`)) return
+  toggleError.value = null
+  try {
+    await withOfflineNotice(deleteProduct(p.id), slow)
+    if (packEditingId.value === p.id) cancelPack()
+    await load()
+  } catch (e) {
+    const m = saveErrorMessage(e)
+    toggleError.value = m === PERMISSION_MESSAGE ? m : 'No se pudo borrar el paquete. Inténtalo de nuevo.'
+  } finally {
     offline.value = null
   }
 }
@@ -165,6 +224,45 @@ async function toggle(p: Product) {
             <div class="btns">
               <Button type="submit" variant="primary" :disabled="digitalSaving">{{ digitalSaving ? 'Guardando…' : 'Guardar' }}</Button>
               <Button v-if="digital" type="button" @click="toggle(digital)">{{ isActive(digital) ? 'Desactivar' : 'Activar' }}</Button>
+            </div>
+          </Card>
+        </Card>
+
+        <Card title="Paquetes digitales">
+          <p class="body-sm note">El carrito aplica solo la combinación más barata de paquetes y fotos sueltas, por evento.</p>
+          <p v-if="!packs.length" class="note">Aún no hay paquetes.</p>
+          <ul v-else class="list">
+            <li v-for="p in packs" :key="p.id">
+              <span class="name">
+                <strong class="display-xs">{{ p.name }}</strong>
+                <span class="mono-sm">{{ formatMoney(p.price) }} · {{ perPhoto(p) }} por foto</span>
+              </span>
+              <Badge :status="isActive(p) ? 'activo' : 'inactivo'" />
+              <span class="btns">
+                <Button type="button" @click="startPackEdit(p)">Editar</Button>
+                <Button type="button" @click="toggle(p)">{{ isActive(p) ? 'Desactivar' : 'Activar' }}</Button>
+                <Button type="button" variant="danger" @click="removePack(p)">Borrar</Button>
+              </span>
+            </li>
+          </ul>
+          <Card as="form" sunken novalidate aria-label="Paquete digital" @submit.prevent="submitPack">
+            <h3>{{ packEditingId ? 'Editar paquete' : 'Nuevo paquete' }}</h3>
+            <div class="fields">
+              <Field label="Fotos" mono :error="packErrors.quantity">
+                <template #default="{ id, describedby, invalid, inputClass }">
+                  <input :id="id" v-model="packForm.quantity" :class="inputClass" :disabled="packSaving" inputmode="numeric" placeholder="5" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
+                </template>
+              </Field>
+              <Field label="Precio" mono :error="packErrors.price">
+                <template #default="{ id, describedby, invalid, inputClass }">
+                  <input :id="id" v-model="packForm.price" :class="inputClass" :disabled="packSaving" inputmode="decimal" placeholder="12.00" :aria-invalid="invalid || undefined" :aria-describedby="describedby">
+                </template>
+              </Field>
+            </div>
+            <Alert v-if="packSaveError" tone="danger">{{ packSaveError }}</Alert>
+            <div class="btns">
+              <Button type="submit" variant="primary" :disabled="packSaving">{{ packSaving ? 'Guardando…' : 'Guardar' }}</Button>
+              <Button v-if="packEditingId" type="button" @click="cancelPack">Cancelar</Button>
             </div>
           </Card>
         </Card>

@@ -1,5 +1,6 @@
 /** Logica pura del checkout (TASK-017): validacion, recalculo del total en centavos enteros y verificacion de la captura. Sin Firebase ni red. */
 import { randomInt } from "crypto";
+import { digitalPackPricing } from "./packPricing";
 
 /** Moneda unica de la tienda (codigo ISO 4217). Se usa en la orden de PayPal y al verificar la captura. */
 export const CURRENCY = "USD";
@@ -16,13 +17,19 @@ export class CheckoutError extends Error {
 export interface CartInputLine { eventId: string; photoId: string; productId: string; quantity: number }
 export interface Buyer { name: string; email: string; phone: string }
 export type Delivery = { method: "retiro" } | { method: "envio"; address: string; cost: number };
-export interface CatalogProduct { name: string; kind: "print" | "digital"; price: number; active?: boolean }
+export interface CatalogProduct { name: string; kind: "print" | "digital" | "pack"; price: number; active?: boolean; quantity?: number }
+/** Paquete digital activo (TASK-029), con su id de documento. */
+export type CatalogPack = CatalogProduct & { id: string };
 export interface StoreSettings { shippingCost?: number; pickupInfo?: string }
 export interface SnapshotLine { eventId: string; photoId: string; productId: string; productName: string; unitPrice: number; quantity: number }
+/** Paquete aplicado (TASK-029): las lineas siguen por foto a precio suelto y esto explica el descuento. */
+export interface SnapshotPack { eventId: string; productId: string; name: string; quantity: number; price: number; times: number }
 
 /** Lo que createOrder guarda en checkouts/{paypalOrderId}: captureOrder usa esto y nunca datos del cliente. */
 export interface CheckoutSnapshot {
   lines: SnapshotLine[];
+  /** Solo si se aplicaron paquetes (pedidos anteriores no lo tienen). totalCents = lineas - ahorro + envio. */
+  packs?: SnapshotPack[];
   eventIds: string[];
   buyer: Buyer;
   delivery: Delivery;
@@ -92,7 +99,23 @@ export interface BuildInput {
   publicPhotos: Set<string>;
   /** Claves "eventId/photoId" de fotos marcadas printOnly (TASK-030): su archivo digital no se vende. */
   printOnlyPhotos?: Set<string>;
+  /** Paquetes digitales activos (TASK-029). */
+  packs?: CatalogPack[];
   settings: StoreSettings;
+}
+
+/** TASK-029: por evento, las lineas digitales se cobran con la combinacion mas barata de paquetes + sueltas (misma funcion que el carrito). */
+export function applyPacks(lines: SnapshotLine[], products: Record<string, CatalogProduct | undefined>, packs: CatalogPack[]): { packs: SnapshotPack[]; savingsCents: number } {
+  const byEvent = new Map<string, SnapshotLine[]>();
+  for (const l of lines) if (products[l.productId]?.kind === "digital") byEvent.set(l.eventId, [...(byEvent.get(l.eventId) ?? []), l]);
+  const used: SnapshotPack[] = [];
+  let savingsCents = 0;
+  for (const [eventId, ls] of byEvent) {
+    const r = digitalPackPricing(ls.length, packs, ls[0].unitPrice);
+    savingsCents += r.savingsCents;
+    for (const u of r.packs) used.push({ eventId, productId: u.pack.id, name: u.pack.name, quantity: u.pack.quantity, price: u.pack.price, times: u.times });
+  }
+  return { packs: used, savingsCents };
 }
 
 export const PRINT_ONLY_MESSAGE = "Una foto del carrito solo se vende impresa.";
@@ -101,7 +124,7 @@ export const PRINT_ONLY_MESSAGE = "Una foto del carrito solo se vende impresa.";
 export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
   const lines: SnapshotLine[] = i.lines.map((l) => {
     const p = i.products[l.productId];
-    if (!p || p.active !== true || typeof p.price !== "number" || !(p.price > 0)) {
+    if (!p || p.active !== true || p.kind === "pack" || typeof p.price !== "number" || !(p.price > 0)) {
       throw new CheckoutError("failed-precondition", "Un producto del carrito ya no está disponible.");
     }
     if (!i.publicPhotos.has(`${l.eventId}/${l.photoId}`)) throw new CheckoutError("failed-precondition", "Una foto del carrito ya no está disponible.");
@@ -112,12 +135,14 @@ export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
   const hasPrints = i.lines.some((l) => i.products[l.productId]?.kind === "print");
   const { delivery, shippingCents } = resolveDelivery(i.deliveryInput, hasPrints, i.settings);
   const linesCents = lines.reduce((s, l) => s + toCents(l.unitPrice) * l.quantity, 0);
+  const { packs, savingsCents } = applyPacks(lines, i.products, i.packs ?? []);
   return {
     lines,
+    ...(packs.length ? { packs } : {}),
     eventIds: [...new Set(lines.map((l) => l.eventId))],
     buyer: i.buyer,
     delivery,
-    totalCents: linesCents + shippingCents,
+    totalCents: linesCents - savingsCents + shippingCents,
     currency: CURRENCY,
   };
 }
@@ -162,6 +187,7 @@ export function buildOrderDoc(snap: CheckoutSnapshot, paypalOrderId: string, num
     number,
     status: "pagado" as const,
     lines: snap.lines,
+    ...(snap.packs?.length ? { packs: snap.packs } : {}),
     eventIds: [...new Set(snap.lines.map((l) => l.eventId))],
     total: snap.totalCents / 100,
     delivery: snap.delivery,

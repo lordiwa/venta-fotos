@@ -72,11 +72,15 @@ describe("checkout simulado (emuladores)", () => {
     const db = admin.firestore();
     await db.doc("events/evc").set({ name: "E", date: admin.firestore.Timestamp.now(), published: true });
     await db.doc("events/evc/photos/p1").set({ visible: true, status: "ready" });
+    await db.doc("events/evc/photos/p2").set({ visible: true, status: "ready" });
     await db.doc("products/a4c").set({ name: "A4", kind: "print", price: 5, active: true });
+    // TASK-029: 2 digitales del mismo evento con un paquete de 2 activo = 4.00 en vez de 6.00.
+    await db.doc("products/digital").set({ name: "Digital", kind: "digital", price: 3, active: true });
+    await db.doc("products/pk2").set({ name: "Paquete 2 fotos digitales", kind: "pack", quantity: 2, price: 4, active: true });
     await db.doc("settings/store").set({ shippingCost: 3 }, { merge: true });
     const created = await call("createOrder", {
       simulated: true,
-      lines: [{ eventId: "evc", photoId: "p1", productId: "a4c", quantity: 2 }],
+      lines: [{ eventId: "evc", photoId: "p1", productId: "a4c", quantity: 2 }, ...["p1", "p2"].map((photoId) => ({ eventId: "evc", photoId, productId: "digital", quantity: 1 }))],
       buyer: { name: "Ana", email: "a@b.co", phone: "1234567" },
       delivery: { method: "envio", address: "Calle 1" },
     });
@@ -86,10 +90,10 @@ describe("checkout simulado (emuladores)", () => {
     const a = await call("captureOrder", { paypalOrderId: id });
     const b = await call("captureOrder", { paypalOrderId: id });
     expect(a.result.number).toBe(b.result.number);
-    expect(a.result.total).toBe(13);
+    expect(a.result.total).toBe(17);
     const orders = await db.collection("orders").where("paypalOrderId", "==", id).get();
     expect(orders.size).toBe(1);
-    expect(orders.docs[0].data()).toMatchObject({ status: "pagado", eventIds: ["evc"], total: 13 });
+    expect(orders.docs[0].data()).toMatchObject({ status: "pagado", eventIds: ["evc"], total: 17, packs: [{ eventId: "evc", productId: "pk2", times: 1 }] });
   }, 60000);
 });
 

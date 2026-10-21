@@ -4,8 +4,8 @@ import PhotoThumb from '../components/PhotoThumb.vue'
 import { listActiveProducts } from '../productsApi'
 import { getPublicPhoto, getPublishedEvent } from '../publicApi'
 import { getSettings } from '../settingsApi'
-import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappUrl, type WhatsAppLine } from '../whatsappLogic'
-import { reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
+import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappFromCart, whatsappUrl, type WhatsAppLine } from '../whatsappLogic'
+import { packBreakdown, reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { currentPaymentMode } from '../paymentMode'
 import { useCartStore } from '../stores/cart'
@@ -64,15 +64,14 @@ const whatsappHref = computed(() => {
   const name = (eventId: string, photoId: string) => photoNames.value[`${eventId}/${photoId}`] ?? photoId
   const msg = error.value
     ? buildWhatsAppMessage({ lines: cart.lines.map((l): WhatsAppLine => ({ photo: l.photoId, product: l.productName ?? 'Producto', quantity: l.quantity })) })
-    : buildWhatsAppMessage({
-      lines: view.value.lines.filter((r) => r.counted).map((r): WhatsAppLine => ({
-        event: eventNames.value[r.line.eventId], photo: name(r.line.eventId, r.line.photoId),
-        product: r.product?.name ?? r.line.productName ?? 'Producto', quantity: r.quantity, subtotal: r.subtotal,
-      })),
-      total: view.value.total,
-    })
+    : buildWhatsAppMessage(whatsappFromCart(view.value, (id) => eventNames.value[id], name))
   return whatsappUrl(whatsappDigits.value, msg)
 })
+
+/** TASK-029: desglose por evento de las digitales cobradas con paquetes (el resto del resumen va linea por linea). */
+const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.packs.length).map((g) => ({
+  eventId: g.eventId, event: eventNames.value[g.eventId], items: packBreakdown(g), savings: g.pricing.savingsCents / 100,
+})))
 </script>
 
 <template>
@@ -110,14 +109,22 @@ const whatsappHref = computed(() => {
         </div>
         <Stepper v-if="r.counted && r.product?.kind !== 'digital'" :model-value="r.quantity" @update:model-value="cart.setQuantity(r.key, String($event))" />
         <span v-else-if="r.counted" class="mono-sm muted">× 1</span>
-        <span class="mono-md sub">{{ r.counted ? formatMoney(r.subtotal) : '—' }}</span>
+        <span v-if="r.inPack" class="mono-sm muted sub">en paquete</span>
+        <span v-else class="mono-md sub">{{ r.counted ? formatMoney(r.subtotal) : '—' }}</span>
         <Button variant="ghost" icon="quitar" icon-only :label="`Quitar ${r.product?.name ?? r.line.productName ?? 'producto'}`" @click="cart.remove(r.key)" />
       </li>
     </ul>
     <Card as="aside" title="Resumen" aria-label="Resumen" class="summary">
       <dl class="sum">
-        <div v-for="r in view.lines.filter((x) => x.counted)" :key="r.key"><dt>{{ r.product?.name ?? r.line.productName ?? 'Producto' }} × {{ r.quantity }}</dt><dd class="mono-md">{{ formatMoney(r.subtotal) }}</dd></div>
+        <div v-for="r in view.lines.filter((x) => x.counted && !x.inPack)" :key="r.key"><dt>{{ r.product?.name ?? r.line.productName ?? 'Producto' }} × {{ r.quantity }}</dt><dd class="mono-md">{{ formatMoney(r.subtotal) }}</dd></div>
       </dl>
+      <section v-for="g in packGroups" :key="g.eventId" class="pack" :aria-label="`Paquetes digitales${g.event ? ` de ${g.event}` : ''}`">
+        <span v-if="g.event" class="mono-sm muted">{{ g.event }}</span>
+        <dl class="sum">
+          <div v-for="i in g.items" :key="i.label"><dt>{{ i.label }} × {{ i.quantity }}</dt><dd class="mono-md">{{ formatMoney(i.subtotal) }}</dd></div>
+        </dl>
+        <p class="body-sm saving">Ahorras {{ formatMoney(g.savings) }} con paquetes</p>
+      </section>
       <p class="total"><strong>Total estimado:</strong> <span class="display-md amount">{{ formatMoney(view.total) }}</span></p>
       <p v-if="paypal" class="caption muted">El envío, si lo eliges, se suma al pagar.</p>
       <p v-else class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
@@ -146,6 +153,8 @@ const whatsappHref = computed(() => {
 .sum div { display: flex; justify-content: space-between; gap: var(--space-3); }
 .sum dt { min-width: 0; overflow-wrap: anywhere; }
 .sum dd { margin: 0; }
+.pack { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px dashed var(--line); }
+.saving { margin: 0; color: var(--success); font-weight: 600; }
 .total { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--line); }
 .amount { font-size: 30px; }
 .summary .caption { margin: 0; }

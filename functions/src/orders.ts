@@ -1,7 +1,7 @@
 /** Acceso a Firestore del checkout (TASK-017): lectura del catalogo, snapshot pendiente y creacion idempotente del pedido. */
 import { FieldValue, Firestore } from "firebase-admin/firestore";
 import {
-  buildOrderDoc, buildSnapshot, CartInputLine, CatalogProduct, CheckoutError, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, PRINT_ONLY_MESSAGE, StoreSettings,
+  buildOrderDoc, buildSnapshot, CartInputLine, CatalogPack, CatalogProduct, CheckoutError, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, PRINT_ONLY_MESSAGE, StoreSettings,
 } from "./checkout";
 import { DIGITAL_ID } from "./orderStatus";
 
@@ -17,12 +17,14 @@ export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: u
   const eventIds = [...new Set(lines.map((l) => l.eventId))];
   const photoKeys = [...new Set(lines.map((l) => `${l.eventId}/${l.photoId}`))];
 
-  const [productSnaps, eventSnaps, photoSnaps, settingsSnap] = await Promise.all([
+  const [productSnaps, eventSnaps, photoSnaps, settingsSnap, activeSnap] = await Promise.all([
     db.getAll(...productIds.map((id) => db.doc(`products/${id}`))),
     db.getAll(...eventIds.map((id) => db.doc(`events/${id}`))),
     db.getAll(...photoKeys.map((k) => { const [e, p] = k.split("/"); return db.doc(`events/${e}/photos/${p}`); })),
     db.doc("settings/store").get(),
+    db.collection("products").where("active", "==", true).get(),
   ]);
+  const packs = activeSnap.docs.filter((d) => d.get("kind") === "pack").map((d) => ({ id: d.id, ...d.data() }) as CatalogPack);
   const products: Record<string, CatalogProduct | undefined> = {};
   productSnaps.forEach((s, i) => { products[productIds[i]] = s.exists ? (s.data() as CatalogProduct) : undefined; });
   const published = new Set(eventIds.filter((_, i) => eventSnaps[i].exists && eventSnaps[i].get("published") === true));
@@ -32,7 +34,7 @@ export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: u
   }));
   const printOnlyPhotos = new Set(photoKeys.filter((_, i) => photoSnaps[i].exists && photoSnaps[i].get("printOnly") === true));
   return buildSnapshot({
-    lines, buyer, deliveryInput: data.delivery, products, publicPhotos, printOnlyPhotos,
+    lines, buyer, deliveryInput: data.delivery, products, publicPhotos, printOnlyPhotos, packs,
     settings: (settingsSnap.data() ?? {}) as StoreSettings,
   });
 }

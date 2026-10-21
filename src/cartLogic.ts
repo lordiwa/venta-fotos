@@ -1,5 +1,6 @@
 /** Logica pura del carrito (TASK-016): sin Firebase ni DOM. */
 import type { Product } from './types'
+import { digitalPackPricing, type PackPricing } from './packPricing'
 
 export const MAX_QTY = 99
 export const CART_KEY = 'venta-fotos:cart'
@@ -88,6 +89,26 @@ export interface ReconciledLine {
   /** Importe de la linea; 0 si esta excluida del total. */
   subtotal: number
   counted: boolean
+  /** TASK-029: digital de un evento cuyo precio sale de paquetes (el importe real esta en el desglose del grupo). */
+  inPack: boolean
+}
+
+/** Fotos digitales vendibles de un evento con su mejor combinacion de paquetes (TASK-029). */
+export interface DigitalGroup {
+  eventId: string
+  keys: string[]
+  unitPrice: number
+  pricing: PackPricing<Product>
+}
+
+export interface BreakdownItem { label: string; quantity: number; subtotal: number }
+export const SINGLES_LABEL = 'Fotos digitales sueltas'
+
+/** Desglose de un grupo: un renglon por paquete usado y uno por las sueltas. Suma = total del grupo. */
+export function packBreakdown(g: DigitalGroup): BreakdownItem[] {
+  const items = g.pricing.packs.map((u) => ({ label: u.pack.name, quantity: u.times, subtotal: (Math.round(u.pack.price * 100) * u.times) / 100 }))
+  if (g.pricing.singles) items.push({ label: SINGLES_LABEL, quantity: g.pricing.singles, subtotal: (Math.round(g.unitPrice * 100) * g.pricing.singles) / 100 })
+  return items
 }
 
 export const STATUS_MESSAGE: Record<LineStatus, string | null> = {
@@ -99,8 +120,9 @@ export const STATUS_MESSAGE: Record<LineStatus, string | null> = {
 }
 
 /** CU7/CU8/CU9: contrasta las lineas con el catalogo activo y la disponibilidad de la foto. Foto no disponible prevalece. Lo digital de una foto solo impresion no cuenta (TASK-030). */
-export function reconcile(lines: CartLine[], activeProducts: Product[], photos: Record<string, PhotoAvailability>): { lines: ReconciledLine[]; total: number } {
-  const byId = new Map(activeProducts.map((p) => [p.id, p]))
+export function reconcile(lines: CartLine[], activeProducts: Product[], photos: Record<string, PhotoAvailability>): { lines: ReconciledLine[]; groups: DigitalGroup[]; total: number } {
+  // Un paquete no se compra como linea: si una linea vieja apunta a uno, queda "no disponible".
+  const byId = new Map(activeProducts.filter((p) => p.kind !== 'pack').map((p) => [p.id, p]))
   const out = lines.map((line): ReconciledLine => {
     const product = byId.get(line.productId) ?? null
     const photo = photos[`${line.eventId}/${line.photoId}`]
@@ -112,7 +134,18 @@ export function reconcile(lines: CartLine[], activeProducts: Product[], photos: 
     const counted = status === 'ok' || status === 'priceChanged'
     const unitPrice = product?.price ?? 0
     const quantity = product?.kind === 'digital' ? 1 : line.quantity
-    return { line, key: lineKey(line), status, product, unitPrice, quantity, subtotal: counted ? round2(unitPrice * quantity) : 0, counted }
+    return { line, key: lineKey(line), status, product, unitPrice, quantity, subtotal: counted ? round2(unitPrice * quantity) : 0, counted, inPack: false }
   })
-  return { lines: out, total: round2(out.reduce((s, l) => s + l.subtotal, 0)) }
+  // TASK-029: por evento, las digitales vendibles se cobran con la combinacion mas barata de paquetes activos + sueltas.
+  const packs = activeProducts.filter((p) => p.kind === 'pack')
+  const byEvent = new Map<string, ReconciledLine[]>()
+  for (const r of out) if (r.counted && r.product?.kind === 'digital') byEvent.set(r.line.eventId, [...(byEvent.get(r.line.eventId) ?? []), r])
+  const groups = [...byEvent].map(([eventId, rs]): DigitalGroup => {
+    const pricing = digitalPackPricing(rs.length, packs, rs[0].unitPrice)
+    if (pricing.packs.length) for (const r of rs) r.inPack = true
+    return { eventId, keys: rs.map((r) => r.key), unitPrice: rs[0].unitPrice, pricing }
+  })
+  const savingsCents = groups.reduce((s, g) => s + g.pricing.savingsCents, 0)
+  const linesCents = out.reduce((s, l) => s + Math.round(l.subtotal * 100), 0)
+  return { lines: out, groups, total: (linesCents - savingsCents) / 100 }
 }

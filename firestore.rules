@@ -16,8 +16,10 @@ service cloud.firestore {
     function validProduct() {
       let d = request.resource.data;
       return d.name is string && d.name.size() > 0
-        && d.kind in ['print', 'digital']
-        && d.price is number && d.price > 0;
+        && d.kind in ['print', 'digital', 'pack']
+        && d.price is number && d.price > 0
+        // Paquete digital (TASK-029): cantidad entera de fotos, 2..100 (MAX_PACK_QUANTITY).
+        && (d.kind != 'pack' || (d.quantity is int && d.quantity >= 2 && d.quantity <= 100));
     }
 
     // Eventos: el publico solo lee los publicados (las consultas deben filtrar por published == true).

@@ -1,6 +1,6 @@
 // Prevents: guardar precios/costos invalidos (vacio, 0, negativo, texto) que romperian el total de un pedido.
 import { describe, it, expect, vi } from 'vitest'
-import { offeredProducts, withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
+import { offeredProducts, packFields, validatePackForm, PACK_DUPLICATE_ERROR, PACK_QUANTITY_ERROR, withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
 
 describe('productsLogic', () => {
   it('CU1/CU2: precio valido se normaliza (coma o punto)', () => {
@@ -74,5 +74,13 @@ describe('productsLogic', () => {
     expect(offeredProducts(xs, false).map((p) => p.id)).toEqual(['a4', 'digital'])
     expect(offeredProducts(xs, true).map((p) => p.id)).toEqual(['a4'])
     expect(offeredProducts([{ id: 'digital', kind: 'digital' }], true)).toEqual([])
+  })
+  // Previene: guardar paquetes de 1 foto, fraccionarios o gratis, o dos paquetes de la misma cantidad que vuelven ambiguo el desglose.
+  it('TASK-029: paquete con cantidad entera 2..100 sin repetir y precio > 0; el nombre sale de la cantidad', () => {
+    expect(validatePackForm({ quantity: '5', price: '12' })).toEqual({})
+    for (const q of ['1', '2.5', '', 'cinco', '101']) expect(validatePackForm({ quantity: q, price: '12' }).quantity).toBe(PACK_QUANTITY_ERROR)
+    expect(validatePackForm({ quantity: '5', price: '12' }, [3, 5]).quantity).toBe(PACK_DUPLICATE_ERROR)
+    expect(validatePackForm({ quantity: '5', price: '0' }).price).toBe(PRICE_ERROR)
+    expect(packFields({ quantity: ' 5 ', price: '12,5' })).toEqual({ name: 'Paquete 5 fotos digitales', quantity: 5, price: 12.5 })
   })
 })

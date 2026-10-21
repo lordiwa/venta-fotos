@@ -36,6 +36,8 @@ const view = computed(() => reconcile(cart.lines, products.value, {}))
 const hasPrints = computed(() => view.value.lines.some((l) => l.counted && l.product?.kind === 'print'))
 const blocked = computed(() => view.value.lines.some((l) => !l.counted))
 const shippingCost = computed(() => settings.value?.shippingCost ?? 0)
+/** TASK-029: las lineas van a precio suelto; el ahorro de paquetes se resta aparte (igual que en el servidor). */
+const packSavings = computed(() => view.value.groups.reduce((s, g) => s + g.pricing.savingsCents, 0) / 100)
 const total = computed(() => totalWithShipping(view.value.total, form.method, hasPrints.value, shippingCost.value))
 const errors = computed(() => validateCheckoutForm(form, hasPrints.value))
 const shown = computed(() => (submitted.value ? errors.value : {}))
@@ -169,6 +171,7 @@ onMounted(async () => {
           <span v-if="r.counted" class="mono-sm">{{ formatMoney(r.subtotal) }}</span>
           <span v-else class="caption warn">no disponible</span>
         </li>
+        <li v-if="packSavings"><span class="lname">Ahorro por paquetes digitales</span><span class="mono-sm">−{{ formatMoney(packSavings) }}</span></li>
       </ul>
       <p class="total"><strong>Total:</strong> <span class="display-md amount">{{ formatMoney(total) }} <span class="label muted">{{ CURRENCY }}</span></span></p>
       <Alert v-if="message" :tone="message === PENDING_NOTICE ? 'neutral' : 'danger'">{{ message }}</Alert>

@@ -1,6 +1,6 @@
 // Prevents: cobrar/mostrar un total equivocado por lineas duplicadas, cantidades invalidas, precios viejos o productos/fotos ya no vendibles.
 import { describe, it, expect } from 'vitest'
-import { addToCart, parseQuantity, parseStoredCart, reconcile, setLineQuantity, removeLine, cartCount, lineKey, type CartLine } from './cartLogic'
+import { addToCart, packBreakdown, parseQuantity, parseStoredCart, reconcile, setLineQuantity, removeLine, cartCount, lineKey, type CartLine } from './cartLogic'
 import type { Product } from './types'
 
 const ref = { eventId: 'e1', photoId: 'p1', productId: 'a', priceAtAdd: 5 }
@@ -53,6 +53,20 @@ describe('cartLogic', () => {
     const r = reconcile(lines, [prod('digital', 3, 'digital'), prod('a', 5)], { 'e1/p1': 'printOnly' })
     expect(r.lines.map((l) => [l.status, l.counted])).toEqual([['printOnly', false], ['ok', true]])
     expect(r.total).toBe(10)
+  })
+  // Previene: armar un paquete con fotos de eventos distintos, contar en el paquete fotos no vendibles, o cambiar el precio cuando no hay paquetes.
+  it('TASK-029: los paquetes se aplican por evento, solo a digitales vendibles; sin paquetes activos el total es el de siempre', () => {
+    const dig = (eventId: string, photoId: string): CartLine => ({ eventId, photoId, productId: 'digital', priceAtAdd: 3, quantity: 1 })
+    const lines = [dig('e1', 'a'), dig('e1', 'b'), dig('e2', 'c'), dig('e1', 'x')]
+    const catalog = [prod('digital', 3, 'digital')]
+    const p2: Product = { id: 'p2', name: 'Paquete 2 fotos digitales', kind: 'pack', quantity: 2, price: 5, active: true }
+    expect(reconcile(lines, catalog, {}).total).toBe(12)
+    const r = reconcile(lines, [...catalog, p2], { 'e1/x': 'unavailable' })
+    expect(r.groups.map((g) => [g.eventId, g.keys.length])).toEqual([['e1', 2], ['e2', 1]])
+    expect(r.total).toBe(8) // e1: paquete 2 = 5.00; e2: suelta 3.00 (no se combina con e1); e1/x no cuenta
+    expect(packBreakdown(r.groups[0])).toEqual([{ label: 'Paquete 2 fotos digitales', quantity: 1, subtotal: 5 }])
+    expect(r.groups[0].pricing.savingsCents).toBe(100)
+    expect(r.lines.map((l) => l.inPack)).toEqual([true, true, false, false])
   })
   it('CU6: almacenamiento corrupto o ajeno se ignora sin lanzar; lineas validas se conservan y duplicadas se fusionan', () => {
     expect(parseStoredCart(null)).toEqual([])

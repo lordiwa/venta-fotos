@@ -1,7 +1,7 @@
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Product } from './types'
-import { DIGITAL_ID, DIGITAL_NAME, productFields, sortByName, type ProductForm } from './productsLogic'
+import { DIGITAL_ID, DIGITAL_NAME, packFields, productFields, sortByName, type PackForm, type ProductForm } from './productsLogic'
 
 const toProduct = (id: string, d: Record<string, unknown>) => ({ id, ...d }) as Product
 
@@ -27,6 +27,14 @@ export async function createPrint(f: ProductForm, id: string = newProductId()): 
 
 export const updateProduct = (id: string, f: ProductForm) => updateDoc(doc(db, 'products', id), productFields(f))
 export const setProductActive = (id: string, active: boolean) => updateDoc(doc(db, 'products', id), { active })
+
+/** TASK-029: paquete de N fotos digitales (nace activo). Los pedidos guardan su propia copia, asi que borrarlo no los afecta. */
+export async function createPack(f: PackForm, id: string = newProductId()): Promise<string> {
+  await setDoc(doc(db, 'products', id), { ...packFields(f), kind: 'pack', active: true })
+  return id
+}
+export const updatePack = (id: string, f: PackForm) => updateDoc(doc(db, 'products', id), packFields(f))
+export const deleteProduct = (id: string) => deleteDoc(doc(db, 'products', id))
 
 /** CU6: un unico producto digital (id fijo). Si ya existe solo cambia el precio (conserva `active`); si no, nace activo. */
 export async function saveDigital(f: ProductForm) {

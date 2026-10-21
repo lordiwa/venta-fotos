@@ -18,6 +18,9 @@ async function token(c: PaypalConfig): Promise<string> {
 export async function createPaypalOrder(c: PaypalConfig, snap: CheckoutSnapshot): Promise<string> {
   const f = c.fetchFn ?? fetch;
   const shippingCents = snap.delivery.method === "envio" ? toCents(snap.delivery.cost) : 0;
+  // Los items van a precio suelto; el ahorro por paquetes (TASK-029) es el descuento que cuadra con el total del servidor.
+  const itemCents = snap.lines.reduce((s, l) => s + toCents(l.unitPrice) * l.quantity, 0);
+  const discountCents = itemCents + shippingCents - snap.totalCents;
   const body = {
     intent: "CAPTURE",
     purchase_units: [{
@@ -25,8 +28,9 @@ export async function createPaypalOrder(c: PaypalConfig, snap: CheckoutSnapshot)
         currency_code: snap.currency,
         value: centsToString(snap.totalCents),
         breakdown: {
-          item_total: { currency_code: snap.currency, value: centsToString(snap.totalCents - shippingCents) },
+          item_total: { currency_code: snap.currency, value: centsToString(itemCents) },
           shipping: { currency_code: snap.currency, value: centsToString(shippingCents) },
+          ...(discountCents > 0 ? { discount: { currency_code: snap.currency, value: centsToString(discountCents) } } : {}),
         },
       },
       items: snap.lines.map((l) => ({

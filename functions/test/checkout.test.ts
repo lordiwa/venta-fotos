@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   assertSimulationAllowed, buildOrderDoc, buildSnapshot, centsToString, CheckoutError, classifyCapture, newOrderNumber, parseBuyer, parseCartInput,
-  type BuildInput, type CatalogProduct,
+  type BuildInput, type CatalogPack, type CatalogProduct,
 } from "../src/checkout";
 import { capturePaypalOrder, createPaypalOrder } from "../src/paypal";
 import { assertNoPrintOnlyDigital, finalizeOrder, saveCheckout, updateCheckout } from "../src/orders";
@@ -184,6 +184,22 @@ describe("cliente PayPal", () => {
     expect(body.intent).toBe("CAPTURE");
     expect(body.purchase_units[0].amount).toMatchObject({ value: "4.80", breakdown: { item_total: { value: "0.30" }, shipping: { value: "4.50" } } });
     expect(calls[0].init.headers).toMatchObject({ Authorization: `Basic ${Buffer.from("id:sec").toString("base64")}` });
+  });
+
+  // Previene: que PayPal rechace la orden (items que no suman el total) o cobre sin el ahorro de paquetes; pedidos sin el desglose del descuento.
+  it("TASK-029 con paquetes el total resta el ahorro y PayPal recibe el descuento que cuadra con items + envio", async () => {
+    const { calls, cfg } = mock([tok, { status: 201, body: { id: "PP9" } }]);
+    const pk: CatalogPack = { id: "pk2", name: "Paquete 2 fotos digitales", kind: "pack", quantity: 2, price: 15, active: true };
+    const lines = ["p1", "p2"].map((photoId) => ({ eventId: "e1", photoId, productId: "dig", quantity: 1 }));
+    const snap = buildSnapshot(base({ lines: [...lines, base().lines[0]], packs: [pk], deliveryInput: { method: "envio", address: "x" } }));
+    expect(snap.totalCents).toBe(1500 + 30 + 450);
+    expect(snap.packs).toEqual([{ eventId: "e1", productId: "pk2", name: "Paquete 2 fotos digitales", quantity: 2, price: 15, times: 1 }]);
+    expect(buildOrderDoc(snap, "PP9", "N").packs).toEqual(snap.packs);
+    expect(buildOrderDoc(buildSnapshot(base()), "PP9", "N")).not.toHaveProperty("packs");
+    await createPaypalOrder(cfg, snap);
+    const amount = JSON.parse(calls[1].init.body as string).purchase_units[0].amount;
+    expect(amount).toMatchObject({ value: "19.80", breakdown: { item_total: { value: "20.30" }, shipping: { value: "4.50" }, discount: { value: "5.00" } } });
+    expect(code(() => buildSnapshot(base({ lines: [{ eventId: "e1", photoId: "p1", productId: "pk2", quantity: 1 }], products: { pk2: pk } })))).toBe("failed-precondition");
   });
 
   // Previene: pedido pagado cuando PayPal rechazo el pago; doble cobro por reintento sin idempotencia.

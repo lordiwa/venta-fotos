@@ -116,6 +116,15 @@ describe('Firestore', () => {
     await assertFails(updateDoc(doc(db, 'events/pub/photos/p1'), { printOnly: 'si' }))
     await assertSucceeds(getDoc(doc(anon().firestore(), 'events/pub/photos/p1')))
   })
+  // Previene: paquetes de 1 foto, fraccionarios o sin cantidad, que el carrito y el servidor no sabrian aplicar.
+  it('TASK-029 paquete digital: solo admin, con cantidad entera 2..100', async () => {
+    const pk = { name: 'Paquete 5 fotos digitales', kind: 'pack', price: 12, quantity: 5 }
+    await assertFails(setDoc(doc(user().firestore(), 'products/pk'), pk))
+    const db = admin().firestore()
+    await assertSucceeds(setDoc(doc(db, 'products/pk'), pk))
+    for (const quantity of [1, 2.5, '5', 101]) await assertFails(setDoc(doc(db, 'products/pk'), { ...pk, quantity }))
+    await assertFails(setDoc(doc(db, 'products/pk2'), { name: 'P', kind: 'pack', price: 12 }))
+  })
   it('UC12 datos invalidos rechazados - evita productos gratis/negativos y eventos sin nombre o fecha', async () => {
     const db = admin().firestore()
     await assertFails(setDoc(doc(db, 'products/b'), { name: 'B', kind: 'print', price: 0 }))

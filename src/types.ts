@@ -41,15 +41,27 @@ export interface Photo {
   createdAt: Timestamp
 }
 
-export type ProductKind = 'print' | 'digital'
+export type ProductKind = 'print' | 'digital' | 'pack'
 
-/** products/{productId}: tamano de impresion o archivo digital. */
+/** products/{productId}: tamano de impresion, archivo digital o paquete de N fotos digitales (TASK-029). */
 export interface Product {
   id: string
   name: string
   kind: ProductKind
   price: number
   active?: boolean
+  /** Solo en paquetes: cantidad de fotos digitales del mismo evento (entero 2..100). */
+  quantity?: number
+}
+
+/** Paquete aplicado en un pedido (TASK-029): las OrderLine siguen siendo por foto a precio suelto; esto explica el descuento. */
+export interface OrderPack {
+  eventId: string
+  productId: string
+  name: string
+  quantity: number
+  price: number
+  times: number
 }
 
 /** settings/store */
@@ -88,6 +100,8 @@ export interface Order {
   /** Ids de evento de las lineas, sin repetir (desnormalizado al crear el pedido). Permite `eventIds array-contains <id>`; TASK-012 lo usa para bloquear la baja de eventos con pedidos. */
   eventIds: string[]
   total: number
+  /** TASK-029: solo si se aplicaron paquetes digitales; total = suma de lineas - ahorro + envio. Ausente en pedidos anteriores. */
+  packs?: OrderPack[]
   status: OrderStatus
   delivery: Delivery
   buyer: { name: string; email: string; phone?: string }
