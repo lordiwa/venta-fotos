@@ -42,7 +42,10 @@ export const routes: RouteRecordRaw[] = [
 ]
 
 const inEvent = (r: RouteLocationNormalized) => r.matched.some((m) => m.name === 'event')
-const smooth = () => (typeof matchMedia === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto')
+const smooth = (): ScrollBehavior => (typeof matchMedia === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto')
+
+// Con /#eventos el scrollBehavior corre mientras la lista dice "Cargando…" (pagina corta): al terminar se baja otra vez.
+export const listScrollAfterLoad = (hash: string): ScrollBehavior | null => (hash === '#eventos' ? smooth() : null)
 
 // Abrir/cerrar/pasar fotos del mismo evento no mueve la galeria; atras restaura; ancla hace scroll; lo demas va arriba.
 // Un click al ancla en la que ya se esta tambien pasa por aqui: vue-router re-dispara el scroll en la navegacion duplicada.

@@ -1,7 +1,7 @@
 // Prevents: ruta inexistente que deja pantalla en blanco en vez de la 404 del layout publico (UC1/UC2).
 import { afterEach, describe, it, expect, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { routes, scrollBehavior } from './router'
+import { listScrollAfterLoad, routes, scrollBehavior } from './router'
 
 describe('router', () => {
   afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
@@ -69,6 +69,11 @@ describe('router', () => {
     expect(scrollBehavior(r('/#eventos'), r('/eventos/e1'), null)).toEqual({ el: '#eventos', behavior: 'smooth' })
     expect(scrollBehavior(r('/#eventos'), r('/#eventos'), null)).toEqual({ el: '#eventos', behavior: 'smooth' })
     expect(scrollBehavior(r('/carrito'), r('/'), null)).toEqual({ top: 0 })
+    // Daño: /eventos o "← Eventos" se quedan arriba porque el scroll corrio con la lista en "Cargando…".
+    expect(listScrollAfterLoad('#eventos')).toBe('smooth')
+    expect(listScrollAfterLoad('')).toBeNull()
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(prefers-reduced-motion: reduce)' }))
+    expect(listScrollAfterLoad('#eventos')).toBe('auto')
   })
 
   // Daño: el comprador sin PayPal llega a un /checkout roto ("PayPal no configurado") desde un enlace viejo o URL escrita.

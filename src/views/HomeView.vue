@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import PhotoThumb from '../components/PhotoThumb.vue'
+import { listScrollAfterLoad } from '../router'
 import { listPublishedEvents, type PublicEvent } from '../publicApi'
 import { eventPath } from '../galleryLogic'
 import { Alert, Eyebrow, Icon } from '../ui'
 
+const route = useRoute()
 const events = ref<PublicEvent[]>([])
 const loading = ref(true)
 const failed = ref(false)
@@ -16,6 +19,8 @@ const fmt = (e: PublicEvent) => e.date.toDate().toLocaleDateString('es', { day: 
 onMounted(async () => {
   try { events.value = await listPublishedEvents() } catch { failed.value = true }
   loading.value = false
+  const behavior = listScrollAfterLoad(route.hash)
+  if (behavior) { await nextTick(); document.getElementById('eventos')?.scrollIntoView({ behavior }) }
 })
 </script>
 
