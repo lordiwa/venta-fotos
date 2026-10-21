@@ -10,6 +10,10 @@
 // el documento en una transaccion y recien despues borra el .jpg viejo; la portada la regenera syncCover (mismas
 // invariantes que el trigger). Idempotente: lo ya convertido se salta. Sin bucles: cambiar thumbPath/previewPath no
 // dispara syncPhotoCover (no cambia visible/status/originalPath) y el coverPath webp deja planCover en "none".
+// TASK-035: tambien regenera las vistas previas hechas con otra marca de agua (watermarkVersion distinto del actual
+// o ausente). Los originales solo se leen. La miniatura no cambia (mismo contenido -> misma ruta, no se borra).
+// En produccion, --functions-deployed = ya estan desplegadas las Functions con la marca actual (si no, un reproceso
+// de las viejas volveria a escribir la marca anterior; una nueva corrida lo corrige).
 import { createRequire } from 'node:module'
 
 const fail = (msg) => { console.error(msg); process.exit(1) }
@@ -42,6 +46,7 @@ const { publishDerivatives } = require('./lib/process.js')
 const { syncCover } = require('./lib/cover.js')
 const { planCover } = require('./lib/coverLogic.js')
 const { needsWebp, legacyToDelete } = require('./lib/derived.js')
+const { WATERMARK_VERSION } = require('./lib/watermark.js')
 const bucketName = process.env.STORAGE_BUCKET || (fsHost ? `${projectId}.appspot.com` : `${projectId}.firebasestorage.app`)
 console.log(fsHost ? `Destino: emuladores (${fsHost}, ${stHost}), bucket ${bucketName}` : `Destino: PRODUCCION, proyecto ${projectId}, bucket ${bucketName}`)
 if (dry) console.log('--dry-run: no se sube, escribe ni borra nada.')
@@ -55,7 +60,6 @@ async function pool(items, n, fn) {
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]) }))
 }
 
-const watermark = (await db.doc('settings/store').get()).get('watermarkText')
 const events = only
   ? (await Promise.all(only.map((id) => db.doc(`events/${id}`).get()))).filter((d) => d.exists || void console.warn(`events/${d.id} no existe`))
   : (await db.collection('events').get()).docs
@@ -64,7 +68,7 @@ const totals = { converted: 0, skipped: 0, failed: 0, covers: 0, coversSkipped: 
 for (const e of events) {
   const photos = (await e.ref.collection('photos').get()).docs
   const todo = photos.filter((d) => needsWebp(d.data(), e.id, d.id))
-  console.log(`events/${e.id}: ${todo.length} de ${photos.length} foto(s) por convertir`)
+  console.log(`events/${e.id}: ${todo.length} de ${photos.length} foto(s) por convertir o regenerar (marca ${WATERMARK_VERSION})`)
   let done = 0
   if (!dry) {
     await pool(todo, CONCURRENCY, async (d) => {
@@ -73,7 +77,7 @@ for (const e of events) {
       try {
         const [original] = await bucket.file(originalPath).download()
         // Solo si la foto sigue lista con el mismo original (no se pisa un reproceso en curso).
-        const ok = await publishDerivatives(db, bucket, e.id, d.id, original, watermark, (cur) => cur.status === 'ready' && cur.originalPath === originalPath)
+        const ok = await publishDerivatives(db, bucket, e.id, d.id, original, undefined, (cur) => cur.status === 'ready' && cur.originalPath === originalPath)
         res = ok ? 'convertida' : 'saltada (cambio mientras se convertia)'
         totals[ok ? 'converted' : 'skipped']++
       } catch (err) {

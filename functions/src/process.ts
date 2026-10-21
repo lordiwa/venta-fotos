@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import type { Bucket } from "@google-cloud/storage";
 import { logger } from "firebase-functions";
 import { makeDerivatives } from "./image";
+import { WATERMARK_LOGO, watermarkVersion, type LogoVariant } from "./watermark";
 import { DERIVED_SAVE, derivedPath, derivedPrefix, ownsPath, type DerivedPhoto } from "./derived";
 
 const ORIGINAL_RE = /^originals\/([^/]+)\/([^/]+)\.(jpe?g|png)$/i;
@@ -33,6 +34,7 @@ export async function deletePhotoFiles(bucket: Bucket, eventId: string, photoId:
  * un archivo borrado. `accept`: condicion sobre el documento releido (el backfill no pisa una foto reprocesada
  * entretanto); si no se cumple no se publica y lo subido NO se borra: otra escritura con el mismo contenido tiene la
  * misma ruta y puede estar por publicarla (R-3); a lo sumo queda un huerfano. Lanza si la foto ya no existe.
+ * TASK-035: anota `watermarkVersion` (la marca con que se hizo la vista previa) para que el backfill regenere las viejas.
  */
 export async function publishDerivatives(
   db: Firestore,
@@ -40,10 +42,10 @@ export async function publishDerivatives(
   eventId: string,
   photoId: string,
   original: Buffer,
-  watermarkText: unknown,
+  logo: LogoVariant = WATERMARK_LOGO,
   accept?: (cur: DerivedPhoto) => boolean,
 ): Promise<boolean> {
-  const { thumb, preview, width, height } = await makeDerivatives(original, watermarkText);
+  const { thumb, preview, width, height } = await makeDerivatives(original, logo);
   const out = { thumbPath: derivedPath("thumbs", eventId, photoId, thumb), previewPath: derivedPath("previews", eventId, photoId, preview) };
   await Promise.all([bucket.file(out.previewPath).save(preview, DERIVED_SAVE), bucket.file(out.thumbPath).save(thumb, DERIVED_SAVE)]);
   const ref = db.doc(`events/${eventId}/photos/${photoId}`);
@@ -52,7 +54,7 @@ export async function publishDerivatives(
     if (!snap.exists) throw new Error(`La foto events/${eventId}/photos/${photoId} ya no existe`);
     const data = (snap.data() ?? {}) as DerivedPhoto;
     if (accept && !accept(data)) return { cur: data, written: false };
-    tx.update(ref, { status: "ready", ...out, width, height });
+    tx.update(ref, { status: "ready", ...out, width, height, watermarkVersion: watermarkVersion(logo) });
     return { cur: data, written: true };
   });
   if (!written) return false;
@@ -102,8 +104,7 @@ export async function processOriginal(
 
   try {
     const [original] = await bucket.file(path).download();
-    const settings = await db.doc("settings/store").get();
-    await publishDerivatives(db, bucket, eventId, photoId, original, settings.get("watermarkText"));
+    await publishDerivatives(db, bucket, eventId, photoId, original);
     return "ready";
   } catch (err) {
     console.error(`Fallo al procesar ${path}`, err);

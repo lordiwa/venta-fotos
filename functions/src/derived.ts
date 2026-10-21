@@ -5,6 +5,7 @@
  * version vieja. Mismo contenido -> mismo nombre (regenerar es idempotente).
  */
 import { createHash } from "crypto";
+import { WATERMARK_VERSION } from "./watermark";
 
 export const CACHE_CONTROL = "public, max-age=31536000, immutable";
 export type DerivedDir = "thumbs" | "previews" | "covers";
@@ -38,13 +39,21 @@ export interface DerivedPhoto {
   originalPath?: unknown;
   thumbPath?: unknown;
   previewPath?: unknown;
+  watermarkVersion?: unknown;
 }
 
-/** Backfill: foto lista con original cuya miniatura o vista previa no esta aun en webp versionado. */
+/**
+ * Backfill: foto lista con original cuya miniatura o vista previa no esta aun en webp versionado, o (TASK-035) cuya
+ * vista previa se hizo con otra marca de agua (`watermarkVersion` distinto del actual o ausente).
+ */
 export const needsWebp = (photo: DerivedPhoto, eventId: string, photoId: string) =>
   photo.status === "ready" &&
   typeof photo.originalPath === "string" &&
-  !(isDerivedPath(photo.thumbPath, "thumbs", eventId, photoId) && isDerivedPath(photo.previewPath, "previews", eventId, photoId));
+  !(
+    isDerivedPath(photo.thumbPath, "thumbs", eventId, photoId) &&
+    isDerivedPath(photo.previewPath, "previews", eventId, photoId) &&
+    photo.watermarkVersion === WATERMARK_VERSION
+  );
 
 /**
  * Backfill: .jpg viejos de thumbs/, previews/ o covers/ que ningun documento referencia (los que dejo una conversion
