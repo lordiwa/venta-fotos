@@ -6,6 +6,7 @@ import { formatMoney } from '../productsLogic'
 import { CURRENCY, loadSummary } from '../checkoutLogic'
 import { downloadErrorMessage, getDownloadLinks } from '../downloadsApi'
 import { hasDigital, type DownloadResult } from '../downloadsLogic'
+import { packSavings } from '../ordersLogic'
 import { Alert, Button, Card, Icon, OrderNumber } from '../ui'
 
 const route = useRoute()
@@ -14,6 +15,7 @@ const number = computed(() => String(route.params.number))
 const order = computed(() => loadSummary(number.value))
 
 // CU1: si el pedido trae archivos digitales, se piden los enlaces con numero + correo del resumen.
+const savings = computed(() => (order.value ? packSavings(order.value) : 0))
 const wantsLinks = computed(() => !!order.value?.email && hasDigital(order.value.lines))
 const links = ref<DownloadResult | null>(null)
 const linksError = ref('')
@@ -48,6 +50,8 @@ onMounted(() => { if (wantsLinks.value) void loadLinks() })
       <Card aria-label="Detalle del pedido">
         <ul class="rows">
           <li v-for="(l, i) in order.lines" :key="i"><span>{{ l.productName }} × {{ l.quantity }}</span><span class="mono-md">{{ formatMoney(l.unitPrice * l.quantity) }}</span></li>
+          <li v-for="(p, i) in order.packs ?? []" :key="`pk${i}`" class="muted"><span>{{ p.name }} × {{ p.times }} ({{ formatMoney(p.price) }} c/u)</span><span class="mono-md">—</span></li>
+          <li v-if="savings"><span>Ahorro por paquetes</span><span class="mono-md">−{{ formatMoney(savings) }}</span></li>
           <li v-if="order.delivery.method === 'envio'"><span>Envío a domicilio: {{ order.delivery.address }}</span><span class="mono-md">+ {{ formatMoney(order.delivery.cost) }}</span></li>
           <li v-else class="muted"><span>Retiro en persona.</span><span class="mono-md">—</span></li>
         </ul>

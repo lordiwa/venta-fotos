@@ -1,5 +1,5 @@
 /** Logica pura de pedidos (TASK-018): estados, filtros y lista de impresion. Sin Firebase ni DOM. */
-import type { Delivery, OrderLine, OrderStatus } from './types'
+import type { Delivery, OrderLine, OrderPack, OrderStatus } from './types'
 import { DIGITAL_ID } from './productsLogic'
 
 export interface OrderRow {
@@ -10,6 +10,7 @@ export interface OrderRow {
   lines: OrderLine[]
   eventIds: string[]
   total: number
+  packs?: OrderPack[]
   buyer: { name: string; email: string; phone?: string }
   createdAt: Date | null
 }
@@ -18,6 +19,17 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   pagado: 'Pagado', impreso: 'Impreso', listo_retiro: 'Listo para retiro', enviado: 'Enviado', entregado: 'Entregado',
 }
 export const STATUSES = Object.keys(STATUS_LABEL) as OrderStatus[]
+
+/**
+ * TASK-029: ahorro por paquetes de un pedido = lineas (a precio suelto) + envio - total, como el descuento enviado a PayPal.
+ * 0 si el pedido no tiene paquetes (pedidos anteriores incluidos).
+ */
+export function packSavings(o: { lines: { unitPrice: number; quantity: number }[]; total: number; delivery: Delivery; packs?: unknown[] }): number {
+  if (!o.packs?.length) return 0
+  const lines = o.lines.reduce((s, l) => s + Math.round(l.unitPrice * 100) * l.quantity, 0)
+  const ship = o.delivery.method === 'envio' ? Math.round(o.delivery.cost * 100) : 0
+  return Math.max(0, lines + ship - Math.round(o.total * 100)) / 100
+}
 
 export const isPrintLine = (l: Pick<OrderLine, 'productId'>) => l.productId !== DIGITAL_ID
 export const hasPrints = (o: Pick<OrderRow, 'lines'>) => o.lines.some(isPrintLine)

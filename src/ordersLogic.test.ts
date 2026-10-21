@@ -1,6 +1,6 @@
 // Prevents: despachar mal los pedidos (saltar estados, imprimir lo digital, mezclar filtros) y que la copia del servidor se desvie de la del cliente.
 import { describe, it, expect } from 'vitest'
-import { downloadName, filterOrders, nextStatus, printList, type OrderRow } from './ordersLogic'
+import { downloadName, filterOrders, nextStatus, packSavings, printList, type OrderRow } from './ordersLogic'
 import { isAdmin, nextStatus as serverNext, planAdvance } from '../functions/src/orderStatus'
 import type { OrderStatus } from './types'
 
@@ -64,5 +64,12 @@ describe('ordersLogic', () => {
     expect(downloadName('e1', 'IMG_1.png')).toBe('e1-IMG_1.png')
     expect(downloadName('e1', 'p1')).toBe('e1-p1.jpg')
     expect(downloadName('e1', 'a/b:c')).toBe('e1-a_b_c.jpg')
+  })
+  // Previene: un recibo o un detalle de admin cuyas lineas no cuadran con el total cuando hubo paquetes (M-1, TASK-029).
+  it('TASK-029: ahorro por paquetes = lineas + envio - total; sin packs (pedidos anteriores) es 0', () => {
+    const pk = { eventId: 'e1', productId: 'pk2', name: 'Paquete 2 fotos digitales', quantity: 2, price: 15, times: 1 }
+    const lines = [line('digital', 1, 'p1'), line('digital', 1, 'p2')].map((l) => ({ ...l, unitPrice: 10 }))
+    expect(packSavings(order({ lines, total: 16, delivery: envio, packs: [pk] }))).toBe(5)
+    expect(packSavings(order({ lines, total: 20 }))).toBe(0)
   })
 })

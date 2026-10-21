@@ -1,6 +1,6 @@
 /** Logica pura del checkout (TASK-017): espejo de la validacion del servidor (functions/src/checkout.ts), que es la que manda. */
 import type { CartLine } from './cartLogic'
-import type { Delivery } from './types'
+import type { Delivery, OrderPack } from './types'
 
 /** Debe coincidir con CURRENCY de functions/src/checkout.ts. */
 export const CURRENCY = 'USD'
@@ -35,6 +35,8 @@ export interface OrderSummary {
   lines: { productId?: string; productName: string; unitPrice: number; quantity: number }[]
   total: number
   delivery: Delivery
+  /** TASK-029: paquetes aplicados; ausente en pedidos sin paquetes o anteriores. */
+  packs?: OrderPack[]
 }
 
 /** Quita el sufijo tecnico de codigo HTTP ("[404]") que algunos mensajes de error traen al final. */

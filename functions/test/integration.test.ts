@@ -91,6 +91,7 @@ describe("checkout simulado (emuladores)", () => {
     const b = await call("captureOrder", { paypalOrderId: id });
     expect(a.result.number).toBe(b.result.number);
     expect(a.result.total).toBe(17);
+    expect(a.result.packs).toMatchObject([{ eventId: "evc", productId: "pk2", times: 1 }]); // M-1: el recibo explica el descuento
     const orders = await db.collection("orders").where("paypalOrderId", "==", id).get();
     expect(orders.size).toBe(1);
     expect(orders.docs[0].data()).toMatchObject({ status: "pagado", eventIds: ["evc"], total: 17, packs: [{ eventId: "evc", productId: "pk2", times: 1 }] });

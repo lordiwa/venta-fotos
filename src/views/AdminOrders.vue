@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { listEvents } from '../eventsApi'
 import { advanceOrder, getPhoto, listOrders } from '../ordersApi'
-import { filterOrders, nextStatus, STATUS_LABEL, STATUSES, type OrderFilters, type OrderRow } from '../ordersLogic'
+import { filterOrders, nextStatus, packSavings, STATUS_LABEL, STATUSES, type OrderFilters, type OrderRow } from '../ordersLogic'
 import { formatMoney } from '../productsLogic'
 import { Alert, Badge, Button, Field, OrderNumber } from '../ui'
 import type { Event } from '../types'
@@ -149,6 +149,8 @@ async function advance(o: OrderRow) {
             <div><dt class="table-head">Contacto</dt><dd>{{ open.buyer.name }}<br><span class="muted">{{ open.buyer.email }}<template v-if="open.buyer.phone"> · {{ open.buyer.phone }}</template></span></dd></div>
             <div v-if="open.delivery.method === 'envio'"><dt class="table-head">Dirección</dt><dd>{{ open.delivery.address }}</dd></div>
             <div><dt class="table-head">Entrega</dt><dd>{{ open.delivery.method === 'envio' ? 'Envío a domicilio' : 'Retiro en persona' }}</dd></div>
+            <div v-if="open.packs?.length"><dt class="table-head">Paquetes digitales</dt><dd><template v-for="(p, i) in open.packs" :key="i">{{ p.name }} × {{ p.times }} ({{ formatMoney(p.price) }} c/u) · {{ eventName(p.eventId) }}<br></template></dd></div>
+            <div v-if="packSavings(open)"><dt class="table-head">Ahorro por paquetes</dt><dd class="mono-md">−{{ formatMoney(packSavings(open)) }}</dd></div>
             <div><dt class="table-head">Total</dt><dd class="mono-md">{{ formatMoney(open.total) }}</dd></div>
           </dl>
           <div v-if="nextStatus(open) || actionError" class="foot">

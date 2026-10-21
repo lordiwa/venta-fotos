@@ -9,7 +9,7 @@ export const ORDERS_LIMIT = 200
 
 function toRow(d: QueryDocumentSnapshot): OrderRow {
   const o = d.data() as Order
-  return { id: d.id, number: o.number ?? d.id, status: o.status, delivery: o.delivery, lines: o.lines, eventIds: o.eventIds ?? [], total: o.total, buyer: o.buyer, createdAt: o.createdAt?.toDate() ?? null }
+  return { id: d.id, number: o.number ?? d.id, status: o.status, delivery: o.delivery, lines: o.lines, eventIds: o.eventIds ?? [], total: o.total, ...(o.packs?.length ? { packs: o.packs } : {}), buyer: o.buyer, createdAt: o.createdAt?.toDate() ?? null }
 }
 
 /** Los pedidos mas recientes (solo admin lo permite). Se filtra en el cliente: sin indices compuestos. `capped`: puede haber mas de ORDERS_LIMIT. */
