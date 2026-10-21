@@ -4,7 +4,7 @@ import type { Bucket } from "@google-cloud/storage";
 import { logger } from "firebase-functions";
 import { makeCover } from "./image";
 import { parseOriginalPath } from "./process";
-import { coverFilePath, coverPrefix, coverSource, coversToDelete, planCover, photoChangeAffectsCover, validId, type CoverFields, type CoverPhoto, type CoverPlan } from "./coverLogic";
+import { coverFilePath, coverPrefix, coverSource, coversToDelete, planCover, photoChangeAffectsCover, isPermanentError, type CoverFields, type CoverPhoto, type CoverPlan } from "./coverLogic";
 
 const readCover = async (ref: DocumentReference) => {
   const s = await ref.get();
@@ -57,8 +57,9 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
       plan = { kind: "generate", photoId: doc.coverPhotoId, path: coverFilePath(eventId, doc.coverPhotoId) }; // L-4
     }
     if (plan.kind === "none") {
-      // Reintento de un clear cuyo borrado fallo: coverPath ya no esta, pero pueden quedar archivos (M-7).
-      if (!recheck && doc && !validId(doc.coverPhotoId)) await cleanupCovers(ref, bucket, eventId);
+      // Reintento tras un fallo de limpieza (clear, o generate ya publicado): el plan ya es "none" pero pueden quedar
+      // archivos viejos (M-7/M-8). Solo se llega aqui si el atajo de `after` no era "none".
+      if (!recheck && doc) await cleanupCovers(ref, bucket, eventId);
       return "none";
     }
     if (plan.kind === "purge" || plan.kind === "clear") {
@@ -124,7 +125,7 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
     logger.info("cover.sync", { eventId, photoId: plan.photoId, result: written ? "generated" : "superseded" });
     return written ? "generated" : "superseded";
   } catch (e) {
-    logger.error("cover.sync failed, se reintenta", { eventId, error: String(e) });
+    logger.error("cover.sync failed", { eventId, error: String(e) });
     if (saved) {
       // M-6: un commit ambiguo pudo publicar coverPath igual; solo se borra lo guardado si el evento NO le apunta.
       const s = saved;
@@ -132,6 +133,11 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
         .then((cur) => (cur.get("coverPath") !== s.path ? deleteGeneration(bucket, s.path, s.generation) : undefined))
         .catch(() => undefined); // si no se puede releer, no se borra: el reintento reconcilia
     }
+    if (isPermanentError(e)) {
+      logger.error("cover.sync error permanente", { eventId, error: String(e) }); // L-9: reintentar no lo arregla
+      return "error";
+    }
+    logger.warn("cover.sync: fallo transitorio, se reintenta", { eventId });
     throw e;
   }
 }

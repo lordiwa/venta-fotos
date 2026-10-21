@@ -18,6 +18,7 @@ function fakes() {
   const hooks: { beforeGet?: Hook; beforeSave?: Hook; beforeList?: Hook } = {};
   /** Fallos de un solo uso: commit ambiguo (aplica y lanza) y borrado transitorio de un archivo. */
   const faults: { ambiguousCommit?: boolean; failDelete?: string } = {};
+  const calls = { getFiles: 0 };
   const once = async (k: keyof typeof hooks, name: string) => { const h = hooks[k]; if (h) await h(name); };
 
   const isDelete = (v: unknown) => v instanceof FieldValue && v.isEqual(FieldValue.delete());
@@ -71,12 +72,12 @@ function fakes() {
   };
   const bucket = {
     file,
-    getFiles: async ({ prefix }: { prefix: string }) => { await once("beforeList", prefix); return [
+    getFiles: async ({ prefix }: { prefix: string }) => { calls.getFiles++; await once("beforeList", prefix); return [
       [...files.entries()].filter(([n]) => n.startsWith(prefix)).map(([n, v]) => ({ ...file(n), metadata: { generation: String(v.gen) } })),
     ]; },
   };
   const set = (path: string, data: Data) => docs.set(path, { data: { ...data }, t: ++clock });
-  return { db: db as unknown as Firestore, bucket: bucket as unknown as Bucket, docs, files, hooks, faults, set, write };
+  return { db: db as unknown as Firestore, bucket: bucket as unknown as Bucket, docs, files, hooks, faults, calls, set, write };
 }
 
 let jpeg: Buffer;
@@ -174,5 +175,27 @@ describe("syncCover orquestacion (TASK-028)", () => {
     await syncCover(g.db, g.bucket, "e", after); // retry con el mismo snapshot del disparo
     expect(g.docs.get("events/e")!.data.coverPath).toBeUndefined();
     expect(g.files.has("covers/e/p.jpg")).toBe(false);
+  });
+
+  // Previene (M-8): que tras publicar la nueva portada falle el borrado de la anterior y el reintento (plan "none")
+  // nunca la limpie: covers/e/a.jpg seguiria legible aunque despues se oculte esa foto.
+  it("publicada la nueva y fallido el borrado de la anterior: el reintento la borra", async () => {
+    const f = seed({ coverPhotoId: "p", coverPath: "covers/e/a.jpg" });
+    f.files.set("covers/e/a.jpg", { gen: 40, buf: jpeg });
+    f.faults.failDelete = "covers/e/a.jpg";
+    const after = { coverPhotoId: "p", coverPath: "covers/e/a.jpg" };
+    await expect(syncCover(f.db, f.bucket, "e", after)).rejects.toThrow();
+    expect(f.docs.get("events/e")!.data.coverPath).toBe("covers/e/p.jpg");
+    await syncCover(f.db, f.bucket, "e", after); // retry de syncEventCover con el mismo disparo
+    expect(f.files.has("covers/e/a.jpg")).toBe(false);
+    expect(f.files.has("covers/e/p.jpg")).toBe(true);
+  });
+
+  // Previene: que cada escritura normal de un evento (editar, publicar) liste Storage: coste y latencia en cada guardado.
+  it("una escritura normal de un evento sin portada (o con la portada al dia) no lista Storage", async () => {
+    const f = seed({});
+    expect(await syncCover(f.db, f.bucket, "e", { name: "E2" })).toBe("none");
+    expect(await syncCover(f.db, f.bucket, "e", { coverPhotoId: "p", coverPath: "covers/e/p.jpg" })).toBe("none");
+    expect(f.calls.getFiles).toBe(0);
   });
 });

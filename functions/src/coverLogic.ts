@@ -22,7 +22,17 @@ export type CoverPlan =
   | { kind: "clear"; removeField: boolean }
   | { kind: "generate"; photoId: string; path: string };
 
-export const validId = (v: unknown): v is string => typeof v === "string" && v.length > 0 && !v.includes("/");
+/** Id de documento seguro para usar en una ruta de Storage (L-8): ids automaticos de Firestore y newPhotoId. */
+export const validId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(v) && !/^__.*__$/.test(v);
+
+/**
+ * Error que un reintento no arregla (L-9): gRPC INVALID_ARGUMENT(3), PERMISSION_DENIED(7), FAILED_PRECONDITION(9)
+ * de Firestore; HTTP 400/403 de Storage. Se registra y no se relanza (si no, el trigger reintentaria ~24 h).
+ */
+export function isPermanentError(e: unknown): boolean {
+  const code = (e as { code?: unknown } | null)?.code;
+  return code === 3 || code === 7 || code === 9 || code === 400 || code === 403;
+}
 
 export function planCover(eventId: string, doc: CoverFields | null): CoverPlan {
   if (!doc) return { kind: "purge" };

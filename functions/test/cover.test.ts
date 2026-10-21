@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
-import { coverSource, coversToDelete, photoChangeAffectsCover, planCover } from "../src/coverLogic";
+import { coverSource, coversToDelete, isPermanentError, photoChangeAffectsCover, planCover, validId } from "../src/coverLogic";
 import { parseOriginalPath } from "../src/process";
 import { makeCover } from "../src/image";
 
@@ -46,6 +46,18 @@ describe("planCover (TASK-028)", () => {
     expect(coversToDelete(files, "e", { coverPhotoId: "a" }, "covers/e/a.jpg")).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
     // M-5: drop no borra la portada si coverPath releido vuelve a apuntarle (la mostraron y ya se regenero)
     expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/a.jpg" }, "covers/e/a.jpg")).toEqual(["covers/e/b.jpg", "covers/e/c.jpg"]);
+  });
+});
+
+describe("validId / isPermanentError (TASK-028)", () => {
+  // Previene: rutas de Storage armadas con ids hostiles (../, puntos, ids reservados __x__) y reintentos de ~24 h por
+  // errores que reintentar no arregla (permisos, argumento invalido).
+  it("acepta ids automaticos de Firestore y rechaza ids de ruta peligrosos; clasifica errores permanentes", () => {
+    expect(validId("Xy3kP9qLmN0aBcDeFgHi")).toBe(true); // forma de doc().id / newPhotoId (20 alfanumericos)
+    expect(validId("foto_1-b")).toBe(true);
+    for (const bad of ["", "a/b", "../x", "a.b", "__x__", "x".repeat(129), 5]) expect(validId(bad)).toBe(false);
+    for (const code of [3, 7, 9, 400, 403]) expect(isPermanentError({ code })).toBe(true);
+    for (const code of [4, 10, 14, 429, 500, 503, undefined]) expect(isPermanentError({ code })).toBe(false);
   });
 });
 
