@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T16:04:39.703Z",
+  "generated_at": "2026-10-21T16:10:06.000Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -161,6 +161,12 @@
       "key": "TASK-035",
       "title": "Marca de agua: logo de Martial Photo en mosaico al 50%",
       "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-036",
+      "title": "El botón de WhatsApp abre el chat en la app del celular",
+      "status": "in_review",
       "priority": "high"
     }
   ]
