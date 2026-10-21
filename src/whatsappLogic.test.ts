@@ -1,7 +1,7 @@
 // Prevents: que un pedido por WhatsApp llegue a un numero equivocado, con el texto mal codificado o con lineas no vendibles.
 import { describe, it, expect } from 'vitest'
 import { settingsToForm } from './productsLogic'
-import { buildWhatsAppMessage, DEFAULT_WHATSAPP_PHONE, normalizePhone, phoneToStore, resolveWhatsappDigits, validateWhatsappPhone, whatsappUrl } from './whatsappLogic'
+import { buildWhatsAppMessage, DEFAULT_WHATSAPP_PHONE, normalizePhone, phoneToStore, resolveWhatsappDigits, validateWhatsappPhone, whatsappLinkAttrs, whatsappUrl } from './whatsappLogic'
 
 describe('whatsappLogic', () => {
   it('normalizePhone: acepta +, espacios y guiones y devuelve solo digitos (8 a 15); rechaza letras y largos fuera de rango', () => {
@@ -61,5 +61,15 @@ describe('whatsappLogic', () => {
     expect(u).not.toContain('wa.me/+')
     expect(u.split('?text=')[1]).not.toMatch(/[ \n&#]/)
     expect(decodeURIComponent(u.split('?text=')[1])).toBe('Fiesta & más #1\nok')
+  })
+  it('whatsappLinkAttrs: en movil misma pestaña sin target; en escritorio o sin window, pestaña nueva con noopener', () => {
+    // Daño: abrir wa.me en pestaña nueva en el celular muestra "Descargar WhatsApp" en vez del chat con el pedido.
+    const blank = { target: '_blank', rel: 'noopener' }
+    expect(whatsappLinkAttrs({ coarsePointer: true, noHover: true, userAgent: 'Mozilla/5.0 (Linux; Android 14)' })).toEqual({})
+    expect(whatsappLinkAttrs({ coarsePointer: false, noHover: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' })).toEqual({})
+    expect(whatsappLinkAttrs({ coarsePointer: true, noHover: true, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' })).toEqual({}) // iPad "modo escritorio"
+    expect(whatsappLinkAttrs({ coarsePointer: false, noHover: false, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' })).toEqual(blank)
+    expect(whatsappLinkAttrs({ coarsePointer: true, noHover: false, userAgent: 'Mozilla/5.0 (Windows NT 10.0)' })).toEqual(blank) // laptop tactil con mouse
+    expect(whatsappLinkAttrs(undefined)).toEqual(blank)
   })
 })

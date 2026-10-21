@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { getActiveCatalog } from '../productsApi'
 import { formatMoney, offeredProducts } from '../productsLogic'
 import { getSettings } from '../settingsApi'
-import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappUrl } from '../whatsappLogic'
+import { buildWhatsAppMessage, currentLinkEnv, resolveWhatsappDigits, whatsappLinkAttrs, whatsappUrl } from '../whatsappLogic'
 import { useCartStore } from '../stores/cart'
 import { Alert, Button, Eyebrow, OptionCard, Stepper } from '../ui'
 import type { Product } from '../types'
@@ -18,6 +18,8 @@ const productId = ref('')
 const qty = ref(1) // el Stepper acota 1..99 (CU10): no hay valores invalidos que corregir
 const confirmed = ref(false)
 const whatsappDigits = ref(resolveWhatsappDigits(null))
+// Movil: misma pestaña para que el sistema abra la app de WhatsApp (TASK-036); escritorio: pestaña nueva.
+const waLink = whatsappLinkAttrs(currentLinkEnv())
 
 async function load() {
   state.value = 'loading'
@@ -88,7 +90,7 @@ function add() {
       <p v-else class="body-sm muted note">Archivo digital: una descarga por foto, sin marca de agua.</p>
       <p v-if="printOnly" class="body-sm muted note">Esta foto solo se vende impresa.</p>
       <Button type="submit" variant="accent" size="lg" icon="carrito">Agregar al carrito</Button>
-      <Button variant="ghost" :href="whatsappHref" target="_blank" rel="noopener">Pedir esta foto por WhatsApp</Button>
+      <Button variant="ghost" :href="whatsappHref" v-bind="waLink">Pedir esta foto por WhatsApp</Button>
       <Alert v-if="confirmed" tone="success">
         Agregado al carrito
         <template #action><RouterLink to="/carrito" class="cart-link">Ver carrito</RouterLink></template>

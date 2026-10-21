@@ -91,3 +91,26 @@ export function whatsappFromCart(
 /** wa.me exige solo digitos en el numero (sin "+" ni espacios) y el texto codificado. */
 export const whatsappUrl = (digits: string, message: string): string =>
   `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+
+/** Lo que el navegador dice del dispositivo; ausente cuando no hay window (SSR, tests). */
+export interface LinkEnv { coarsePointer?: boolean; noHover?: boolean; userAgent?: string }
+
+/**
+ * Atributos del enlace a WhatsApp (TASK-036). En movil va en la misma pestaña y sin target: los universal/app links
+ * no se disparan al abrir una pestaña nueva y el celular muestra la pagina de "Descargar WhatsApp" en vez del chat.
+ * En escritorio (o sin informacion del dispositivo) se abre WhatsApp Web en una pestaña nueva, con rel=noopener.
+ */
+export function whatsappLinkAttrs(env?: LinkEnv): { target?: '_blank'; rel?: 'noopener' } {
+  const mobile = !!env && ((env.coarsePointer && env.noHover) || /Android|iPhone|iPad|iPod/i.test(env.userAgent ?? ''))
+  return mobile ? {} : { target: '_blank', rel: 'noopener' }
+}
+
+/** Lee el dispositivo actual; sin window o sin matchMedia devuelve undefined (=> pestaña nueva). */
+export function currentLinkEnv(): LinkEnv | undefined {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+  return {
+    coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+    noHover: window.matchMedia('(hover: none)').matches,
+    userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+  }
+}

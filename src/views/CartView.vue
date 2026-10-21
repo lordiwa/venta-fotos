@@ -4,7 +4,7 @@ import PhotoThumb from '../components/PhotoThumb.vue'
 import { listActiveProducts } from '../productsApi'
 import { getPublicPhoto, getPublishedEvent } from '../publicApi'
 import { getSettings } from '../settingsApi'
-import { buildWhatsAppMessage, resolveWhatsappDigits, whatsappFromCart, whatsappUrl, type WhatsAppLine } from '../whatsappLogic'
+import { buildWhatsAppMessage, currentLinkEnv, resolveWhatsappDigits, whatsappFromCart, whatsappLinkAttrs, whatsappUrl, type WhatsAppLine } from '../whatsappLogic'
 import { packBreakdown, reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { currentPaymentMode } from '../paymentMode'
@@ -20,6 +20,8 @@ const thumbs = ref<Record<string, string | undefined>>({})
 const eventNames = ref<Record<string, string | undefined>>({})
 const photoNames = ref<Record<string, string | undefined>>({})
 const whatsappDigits = ref(resolveWhatsappDigits(null))
+// Movil: misma pestaña para que el sistema abra la app de WhatsApp (TASK-036); escritorio: pestaña nueva.
+const waLink = whatsappLinkAttrs(currentLinkEnv())
 const loading = ref(true)
 const error = ref(false) // red u otro fallo: NUNCA se interpreta como "no disponible"
 
@@ -96,7 +98,7 @@ const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.pack
       </li>
     </ul>
     <p v-if="!paypal" class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
-    <Button :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
+    <Button :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
   </template>
   <div v-else class="cols">
     <ul class="lines">
@@ -129,7 +131,7 @@ const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.pack
       <p v-if="paypal" class="caption muted">El envío, si lo eliges, se suma al pagar.</p>
       <p v-else class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
       <Button v-if="paypal" variant="accent" size="lg" to="/checkout">Ir a pagar</Button>
-      <Button v-if="view.lines.some((r) => r.counted)" :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" target="_blank" rel="noopener">Pedir por WhatsApp</Button>
+      <Button v-if="view.lines.some((r) => r.counted)" :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
       <RouterLink to="/#eventos" class="more">Seguir viendo fotos</RouterLink>
     </Card>
   </div>
