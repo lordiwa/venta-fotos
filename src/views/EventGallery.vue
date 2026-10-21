@@ -137,7 +137,7 @@ onBeforeUnmount(() => observer?.disconnect())
   <div v-else-if="state === 'unavailable'" class="stack">
     <h1 class="display-lg">Evento no disponible</h1>
     <p class="muted">Este evento no existe o todavía no fue publicado.</p>
-    <Button variant="secondary" to="/">Ver todos los eventos</Button>
+    <Button variant="secondary" to="/#eventos">Ver todos los eventos</Button>
   </div>
   <template v-else>
     <section class="hero">
