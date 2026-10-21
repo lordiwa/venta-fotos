@@ -6,14 +6,15 @@ import { swipeAction } from '../galleryLogic'
 import { Icon } from '../ui'
 import type { Photo } from '../types'
 
-/** Vista ampliada: SOLO previewPath (con marca de agua). Nunca originalPath. */
-const props = defineProps<{ photo: Photo | null; loading: boolean; hasPrev: boolean; hasNext: boolean; caption?: string; tag?: string; eventName?: string }>()
+/** Vista ampliada: SOLO previewPath (con marca de agua). Nunca originalPath. Con `src` (portafolio, TASK-039) muestra esa imagen publica sin panel de compra. */
+const props = defineProps<{ photo: Photo | null; loading: boolean; hasPrev: boolean; hasNext: boolean; caption?: string; tag?: string; eventName?: string; src?: string; alt?: string }>()
 const emit = defineEmits<{ prev: []; next: []; close: [] }>()
 const url = ref<string | null>(null)
 const failed = ref(false)
 
 watchEffect(async () => {
   url.value = null; failed.value = false
+  if (props.src) { url.value = props.src; return }
   const path = props.photo?.previewPath
   if (!path) return
   try { url.value = await publicUrl(path) } catch { failed.value = true }
@@ -66,7 +67,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
       <div class="viewer">
         <button v-if="hasPrev" class="round nav l" aria-label="Foto anterior" @click="emit('prev')"><Icon name="anterior" :size="20" /></button>
         <figure class="photo">
-          <img v-if="url" :src="url" :width="photo?.width" :height="photo?.height" alt="Foto del evento" />
+          <img v-if="url" :src="url" :width="photo?.width" :height="photo?.height" :alt="alt ?? 'Foto del evento'" />
           <p v-else-if="loading || (photo && !failed)" class="mono-sm msg">Cargando…</p>
           <p v-else class="mono-sm msg">Foto no disponible</p>
         </figure>

@@ -30,6 +30,14 @@ describe('router', () => {
     expect(router.resolve('/descargas').name).toBe('downloads')
   })
 
+  // Daño: el enlace "El fotógrafo" del menu y del pie lleva a la 404 (TASK-039).
+  it('/fotografo resuelve a photographer bajo el layout publico', () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    const r = router.resolve('/fotografo')
+    expect(r.name).toBe('photographer')
+    expect(r.matched[0].path).toBe('/')
+  })
+
   // Prevents: link compartido a una foto que no resuelve (o que monta otra vista) en vez de la galeria del evento.
   it('/eventos/:id y /eventos/:id/fotos/:photoId resuelven con sus params bajo el layout publico', () => {
     const router = createRouter({ history: createMemoryHistory(), routes })

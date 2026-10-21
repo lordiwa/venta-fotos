@@ -144,9 +144,10 @@ textarea.es-input { padding: 12px 14px; resize: vertical; line-height: 1.5; }
 /* Martial Photo: controles tocables >= 44px y topbar compacta en movil */
 .es-topbar-link { display: inline-flex; align-items: center; min-height: var(--control-md); }
 .es-topbar-link.router-link-exact-active { color: var(--ink); }
+.es-topbar-nav { margin-left: auto; }
 @media (max-width: 720px) {
-  .es-topbar { padding: var(--space-4); gap: var(--space-3); }
-  .es-topbar-nav { gap: var(--space-4); }
+  .es-topbar { padding: var(--space-4); gap: 0 var(--space-3); }
+  .es-topbar-nav { order: 1; flex-basis: 100%; margin-left: 0; gap: var(--space-5); }
 }
 
 /* Admin en movil: el rail pasa a barra superior compacta (marca + acciones, y nav en pills con scroll horizontal) */

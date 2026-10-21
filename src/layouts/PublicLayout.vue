@@ -12,6 +12,7 @@ const cart = useCartStore()
     <footer class="foot">
       <Wordmark to="/" class="foot-mark" />
       <nav class="foot-links" aria-label="Pie">
+        <RouterLink to="/fotografo">Sobre el fotógrafo</RouterLink>
         <RouterLink to="/descargas">Mis descargas</RouterLink>
         <RouterLink to="/admin">Acceso del fotógrafo</RouterLink>
       </nav>
