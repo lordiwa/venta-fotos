@@ -96,7 +96,7 @@ describe("pedido por WhatsApp", () => {
     // M-1: el 0 de discado nacional despues del 593 se quita (wa.me no abre 5930...); solo uno, y solo tras el 593.
     expect(normalizePhone("+593 099 856 5995")).toBe("593998565995");
     expect(normalizePhone("+1 0555 123 4567")).toBe("105551234567");
-    const now = Date.now();
+    const now = Date.UTC(2026, 9, 21, 15); // fijo: el test no depende del reloj real
     const noMail = { name: "Ana", phone: "+593998565995" };
     expect(await codeOf(createWhatsappOrder(memDb(catalog()).db, { lines: [line("p1", "digital")], customer: noMail }, "3.3.3.3", now))).toBe("invalid-argument");
     expect(await codeOf(createWhatsappOrder(memDb(catalog()).db, { lines: [line("p1", "a4")], customer: noMail }, "3.3.3.3", now))).toBe("none");
@@ -107,7 +107,7 @@ describe("pedido por WhatsApp", () => {
   it("CU10 limita por telefono (5) y por IP (20) en la ventana; un carrito rechazado no gasta cupo", async () => {
     expect([ORDER_RATE_MAX_PER_PHONE, ORDER_RATE_MAX_PER_IP, ORDER_RATE_WINDOW_MS]).toEqual([5, 20, 10 * 60 * 1000]);
     const { db } = memDb(catalog());
-    const now = Date.now();
+    const now = Date.UTC(2026, 9, 21, 15); // fijo: el test no depende del reloj real
     const order = (ip: string, phone: string, lines = [line("p1", "a4")]) => createWhatsappOrder(db, { lines, customer: { name: "A", phone } }, ip, now);
     for (let i = 0; i < 10; i++) expect(await codeOf(order("6.6.6.6", "+593994444444", [line("oculta", "a4")]))).toBe("failed-precondition");
     for (let i = 0; i < ORDER_RATE_MAX_PER_PHONE; i++) expect(await codeOf(order(`8.8.8.${i}`, "+593994444444"))).toBe("none");
