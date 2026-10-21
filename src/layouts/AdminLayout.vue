@@ -39,6 +39,12 @@ const items = computed<SideNavItem[]>(() => NAV.map((i) => ({
 @media (min-width: 900px) {
   .admin-rail { position: sticky; top: 0; height: 100vh; max-width: var(--rail-width); }
 }
+/* Bajo 900 el rail es la barra superior: siempre fila completa (si no, entre ~800 y 899 queda como columna de 240px),
+   y las filas no se estiran a la altura de la ventana (la barra mide lo que su contenido). */
+@media (max-width: 899.98px) {
+  .admin { align-content: flex-start; }
+  .admin-rail { flex-basis: 100%; }
+}
 @media (max-width: 720px) {
   .admin-main { padding: var(--space-6) var(--space-4) var(--space-12); }
 }
