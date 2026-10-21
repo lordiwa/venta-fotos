@@ -63,5 +63,8 @@ export async function deleteEventGuarded(id: string, deps: DeleteDeps): Promise<
  * genera la nueva (o si no pudo), devuelve undefined y la vista cae a la miniatura en lugar de mostrar la anterior.
  */
 export function dedicatedCoverPath(e: { id: string; coverPhotoId?: string; coverPath?: string }): string | undefined {
-  return e.coverPhotoId && e.coverPath === `covers/${e.id}/${e.coverPhotoId}.jpg` ? e.coverPath : undefined
+  if (!e.coverPhotoId || !e.coverPath) return undefined
+  const pre = `covers/${e.id}/${e.coverPhotoId}.`
+  // TASK-033: {hash}.webp (version actual) o .jpg (anterior al backfill).
+  return e.coverPath.startsWith(pre) && /^([0-9a-f]{12}\.webp|jpg)$/.test(e.coverPath.slice(pre.length)) ? e.coverPath : undefined
 }

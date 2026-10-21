@@ -1,6 +1,8 @@
 /** TASK-028: logica pura de la portada dedicada (sin Firebase). */
+import { derivedPath, isDerivedPath } from "./derived";
 
-export const coverFilePath = (eventId: string, photoId: string) => `covers/${eventId}/${photoId}.jpg`;
+/** TASK-033: covers/{eventId}/{photoId}.{hash}.webp (el nombre cambia con el contenido: cache largo seguro). */
+export const coverFilePath = (eventId: string, photoId: string, cover: Buffer) => derivedPath("covers", eventId, photoId, cover);
 export const coverPrefix = (eventId: string) => `covers/${eventId}/`;
 
 export interface CoverFields {
@@ -14,13 +16,14 @@ export interface CoverFields {
  * propia Function produce "none" (sin bucle) y disparos desordenados convergen al estado final.
  * - purge: evento borrado -> borrar todo covers/{eventId}/.
  * - clear: sin portada -> borrar los archivos y, si existe, el campo coverPath.
- * - generate: la portada elegida no tiene su archivo dedicado (o coverPath apunta a otra) -> generarlo.
+ * - generate: la portada elegida no tiene su archivo dedicado (o coverPath apunta a otra, o es el .jpg viejo) -> generarlo.
+ *   La ruta sale del contenido generado (TASK-033), por eso el plan no la trae.
  */
 export type CoverPlan =
   | { kind: "none" }
   | { kind: "purge" }
   | { kind: "clear"; removeField: boolean }
-  | { kind: "generate"; photoId: string; path: string };
+  | { kind: "generate"; photoId: string };
 
 /** Id de documento seguro para usar en una ruta de Storage (L-8): ids automaticos de Firestore y newPhotoId. */
 export const validId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(v) && !/^__.*__$/.test(v);
@@ -39,8 +42,7 @@ export function planCover(eventId: string, doc: CoverFields | null): CoverPlan {
   if (!validId(doc.coverPhotoId)) {
     return doc.coverPath === undefined ? { kind: "none" } : { kind: "clear", removeField: true };
   }
-  const path = coverFilePath(eventId, doc.coverPhotoId);
-  return doc.coverPath === path ? { kind: "none" } : { kind: "generate", photoId: doc.coverPhotoId, path };
+  return isDerivedPath(doc.coverPath, "covers", eventId, doc.coverPhotoId) ? { kind: "none" } : { kind: "generate", photoId: doc.coverPhotoId };
 }
 
 export interface CoverPhoto {
@@ -76,14 +78,13 @@ export function photoChangeAffectsCover(before: CoverPhoto, after: CoverPhoto): 
 }
 
 /**
- * Archivos de covers/{eventId}/ a borrar: nunca la portada vigente (coverPath y la de coverPhotoId, releidos despues
- * de listar). Quien llama borra con ifGenerationMatch del listado, asi un archivo regenerado despues no se toca (M-1).
- * `drop`: archivo de una foto que ya no puede ser portada (oculta, no lista): se borra aunque siga elegida, salvo que
- * coverPath releido vuelva a apuntarle (la mostraron y otra invocacion ya la regenero y publico: M-5).
+ * Archivos de covers/{eventId}/ a borrar: nunca la portada vigente (coverPath y las webp de coverPhotoId, releidos
+ * despues de listar: una puede estar recien guardada y por publicarse). Quien llama borra con ifGenerationMatch del
+ * listado, asi un archivo regenerado despues no se toca (M-1). El .jpg viejo de coverPhotoId cae salvo que sea coverPath.
+ * `drop`: archivos que ya no deben quedar aunque sean de coverPhotoId (foto oculta/no lista, o la version que la nueva
+ * reemplazo), salvo que coverPath releido vuelva a apuntarles (la mostraron y otra invocacion ya la publico: M-5).
  */
-export function coversToDelete(files: { name: string }[], eventId: string, doc: CoverFields | null, drop?: string): string[] {
-  const keep = new Set<unknown>([doc?.coverPath]);
-  if (validId(doc?.coverPhotoId)) keep.add(coverFilePath(eventId, doc.coverPhotoId));
-  if (drop && doc?.coverPath !== drop) keep.delete(drop);
-  return files.filter((f) => !keep.has(f.name)).map((f) => f.name);
+export function coversToDelete(files: { name: string }[], eventId: string, doc: CoverFields | null, drop?: (name: string) => boolean): string[] {
+  const pending = (n: string) => validId(doc?.coverPhotoId) && isDerivedPath(n, "covers", eventId, doc.coverPhotoId) && !drop?.(n);
+  return files.map((f) => f.name).filter((n) => n !== doc?.coverPath && !pending(n));
 }

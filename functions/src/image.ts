@@ -5,6 +5,10 @@ import { buildWatermarkSvg } from "./watermark";
 export const MAX_INPUT_PIXELS = 80e6;
 export const THUMB_SIZE = 400;
 export const PREVIEW_SIZE = 1600;
+/** TASK-033: calidad WebP; la miniatura un poco mas alta para que siga nitida en pantallas densas. */
+export const THUMB_QUALITY = 80;
+export const PREVIEW_QUALITY = 76;
+export const COVER_QUALITY = 78;
 
 export interface Derivatives {
   thumb: Buffer;
@@ -14,7 +18,7 @@ export interface Derivatives {
   height: number;
 }
 
-/** Miniatura (~400px lado largo) y vista previa (~1600px) con marca de agua, ambas JPEG. Lanza si el archivo no es una imagen valida. */
+/** Miniatura (~400px lado largo) y vista previa (~1600px) con marca de agua, ambas WebP (TASK-033). Lanza si el archivo no es una imagen valida. */
 export async function makeDerivatives(input: Buffer, watermarkText: unknown): Promise<Derivatives> {
   const base = sharp(input, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS }).rotate(); // aplica EXIF y lo descarta
   const meta = await base.metadata();
@@ -26,7 +30,7 @@ export async function makeDerivatives(input: Buffer, watermarkText: unknown): Pr
   const thumb = await base
     .clone()
     .resize(THUMB_SIZE, THUMB_SIZE, { fit: "inside", withoutEnlargement: true })
-    .jpeg({ quality: 80 })
+    .webp({ quality: THUMB_QUALITY })
     .toBuffer();
 
   const resized = await base
@@ -36,7 +40,7 @@ export async function makeDerivatives(input: Buffer, watermarkText: unknown): Pr
   const { width: pw, height: ph } = resized.info;
   const preview = await sharp(resized.data)
     .composite([{ input: Buffer.from(buildWatermarkSvg(watermarkText, pw, ph)), top: 0, left: 0 }])
-    .jpeg({ quality: 78 })
+    .webp({ quality: PREVIEW_QUALITY })
     .toBuffer();
 
   return { thumb, preview, width, height };
@@ -44,11 +48,11 @@ export async function makeDerivatives(input: Buffer, watermarkText: unknown): Pr
 
 export const COVER_SIZE = 1920;
 
-/** TASK-028: portada dedicada del evento, ~1920px lado largo, SIN marca de agua. Lanza si el archivo no es una imagen valida. */
+/** TASK-028: portada dedicada del evento, ~1920px lado largo, SIN marca de agua, WebP. Lanza si el archivo no es una imagen valida. */
 export function makeCover(input: Buffer): Promise<Buffer> {
   return sharp(input, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
     .rotate()
     .resize(COVER_SIZE, COVER_SIZE, { fit: "inside", withoutEnlargement: true })
-    .jpeg({ quality: 82 })
+    .webp({ quality: COVER_QUALITY })
     .toBuffer();
 }

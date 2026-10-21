@@ -10,7 +10,7 @@ export interface Event {
   place?: string
   description?: string
   coverPhotoId?: string
-  /** Portada dedicada (~1920px, sin marca) en covers/{eventId}/{coverPhotoId}.jpg. Solo la escribe la Function syncEventCover (TASK-028). */
+  /** Portada dedicada (~1920px, sin marca) en covers/{eventId}/{coverPhotoId}.{hash}.webp (TASK-033; .jpg antes del backfill). Solo la escribe la Function syncEventCover (TASK-028). */
   coverPath?: string
 }
 

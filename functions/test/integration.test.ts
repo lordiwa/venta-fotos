@@ -43,8 +43,12 @@ describe("pipeline de fotos (emuladores)", () => {
     expect(bad).toMatchObject({ status: "error", visible: true });
     expect(good).toMatchObject({
       status: "ready", visible: true, name: "good.jpg", width: 2400, height: 1600,
-      thumbPath: `thumbs/${EVENT}/good.jpg`, previewPath: `previews/${EVENT}/good.jpg`,
     });
+    // TASK-033: webp versionado con cache largo
+    expect(good!.thumbPath).toMatch(/^thumbs\/ev1\/good\.[0-9a-f]{12}\.webp$/);
+    expect(good!.previewPath).toMatch(/^previews\/ev1\/good\.[0-9a-f]{12}\.webp$/);
+    const [meta] = await bucket.file(good!.thumbPath).getMetadata();
+    expect(meta).toMatchObject({ contentType: "image/webp", cacheControl: "public, max-age=31536000, immutable" });
     const [prev] = await bucket.file(good!.previewPath).download();
     expect((await sharp(prev).metadata()).width).toBe(1600);
     expect((await bucket.file(good!.thumbPath).exists())[0]).toBe(true);
@@ -52,7 +56,7 @@ describe("pipeline de fotos (emuladores)", () => {
     await db.doc(`events/${EVENT}/photos/good`).delete();
     await waitFor(async () => {
       const gone = await Promise.all(
-        [`originals/${EVENT}/good.jpg`, `previews/${EVENT}/good.jpg`, `thumbs/${EVENT}/good.jpg`].map(async (p) => !(await bucket.file(p).exists())[0]),
+        [`originals/${EVENT}/good.jpg`, good!.previewPath, good!.thumbPath].map(async (p) => !(await bucket.file(p).exists())[0]),
       );
       return gone.every(Boolean) || undefined;
     });

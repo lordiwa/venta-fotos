@@ -2,7 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import type { Bucket } from "@google-cloud/storage";
 import { makeDerivatives } from "./image";
-import { coverFilePath } from "./coverLogic";
+import { DERIVED_SAVE, derivedPath, derivedPrefix, ownsPath, type DerivedPhoto } from "./derived";
 
 const ORIGINAL_RE = /^originals\/([^/]+)\/([^/]+)\.(jpe?g|png)$/i;
 
@@ -14,18 +14,53 @@ export function parseOriginalPath(path: string): { eventId: string; photoId: str
   return m ? { eventId: m[1], photoId: m[2] } : null;
 }
 
-export const previewPath = (eventId: string, photoId: string) => `previews/${eventId}/${photoId}.jpg`;
-export const thumbPath = (eventId: string, photoId: string) => `thumbs/${eventId}/${photoId}.jpg`;
-
-/** Borra previews/thumbs/originals de una foto y su portada dedicada si la tenia (ignora los que no existan). */
+/**
+ * Borra originals/previews/thumbs de una foto y su portada dedicada si la tenia (ignora los que no existan).
+ * TASK-033: por prefijo `{photoId}.`, asi caen el .jpg viejo y toda version .webp.
+ */
 export async function deletePhotoFiles(bucket: Bucket, eventId: string, photoId: string): Promise<void> {
-  const [originals] = await bucket.getFiles({ prefix: `originals/${eventId}/${photoId}.` });
-  await Promise.all([
-    ...originals.map((f) => f.delete({ ignoreNotFound: true })),
-    bucket.file(previewPath(eventId, photoId)).delete({ ignoreNotFound: true }),
-    bucket.file(thumbPath(eventId, photoId)).delete({ ignoreNotFound: true }),
-    bucket.file(coverFilePath(eventId, photoId)).delete({ ignoreNotFound: true }),
-  ]);
+  const lists = await Promise.all(
+    [`originals/${eventId}/${photoId}.`, ...(["previews", "thumbs", "covers"] as const).map((d) => derivedPrefix(d, eventId, photoId))]
+      .map((prefix) => bucket.getFiles({ prefix })),
+  );
+  await Promise.all(lists.flatMap(([files]) => files.map((f) => f.delete({ ignoreNotFound: true }))));
+}
+
+/**
+ * TASK-033: genera miniatura y vista previa WebP versionadas, las sube y las publica en el documento (transaccion);
+ * recien despues borra las que reemplazo (jpg viejo o version anterior), nunca antes. Asi el documento nunca apunta a
+ * un archivo borrado. `accept`: condicion sobre el documento releido (el backfill no pisa una foto reprocesada
+ * entretanto); si no se cumple no se publica y se borra lo subido. Lanza si la foto ya no existe.
+ */
+export async function publishDerivatives(
+  db: Firestore,
+  bucket: Bucket,
+  eventId: string,
+  photoId: string,
+  original: Buffer,
+  watermarkText: unknown,
+  accept?: (cur: DerivedPhoto) => boolean,
+): Promise<boolean> {
+  const { thumb, preview, width, height } = await makeDerivatives(original, watermarkText);
+  const out = { thumbPath: derivedPath("thumbs", eventId, photoId, thumb), previewPath: derivedPath("previews", eventId, photoId, preview) };
+  await Promise.all([bucket.file(out.previewPath).save(preview, DERIVED_SAVE), bucket.file(out.thumbPath).save(thumb, DERIVED_SAVE)]);
+  const ref = db.doc(`events/${eventId}/photos/${photoId}`);
+  const { cur, written } = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error(`La foto events/${eventId}/photos/${photoId} ya no existe`);
+    const data = (snap.data() ?? {}) as DerivedPhoto;
+    if (accept && !accept(data)) return { cur: data, written: false };
+    tx.update(ref, { status: "ready", ...out, width, height });
+    return { cur: data, written: true };
+  });
+  const live = written ? [out.thumbPath, out.previewPath] : [cur.thumbPath, cur.previewPath];
+  const doomed = written ? [cur.thumbPath, cur.previewPath] : [out.thumbPath, out.previewPath];
+  await Promise.all(
+    doomed
+      .filter((p) => !live.includes(p) && (ownsPath(p, "thumbs", eventId, photoId) || ownsPath(p, "previews", eventId, photoId)))
+      .map((p) => bucket.file(p as string).delete({ ignoreNotFound: true })),
+  );
+  return written;
 }
 
 /**
@@ -64,18 +99,7 @@ export async function processOriginal(
   try {
     const [original] = await bucket.file(path).download();
     const settings = await db.doc("settings/store").get();
-    const { thumb, preview, width, height } = await makeDerivatives(original, settings.get("watermarkText"));
-    await Promise.all([
-      bucket.file(previewPath(eventId, photoId)).save(preview, { contentType: "image/jpeg", resumable: false }),
-      bucket.file(thumbPath(eventId, photoId)).save(thumb, { contentType: "image/jpeg", resumable: false }),
-    ]);
-    await ref.update({
-      status: "ready",
-      previewPath: previewPath(eventId, photoId),
-      thumbPath: thumbPath(eventId, photoId),
-      width,
-      height,
-    });
+    await publishDerivatives(db, bucket, eventId, photoId, original, settings.get("watermarkText"));
     return "ready";
   } catch (err) {
     console.error(`Fallo al procesar ${path}`, err);

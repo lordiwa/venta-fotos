@@ -45,5 +45,9 @@ describe('eventsLogic', () => {
     expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p2', coverPath: 'covers/e/p1.jpg' })).toBeUndefined()
     expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p1' })).toBeUndefined()
     expect(dedicatedCoverPath({ id: 'e', coverPath: 'covers/e/p1.jpg' })).toBeUndefined()
+    // TASK-033: la version webp con hash (y el .jpg hasta el backfill); no la de otra foto ni una ruta rara
+    expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p1', coverPath: 'covers/e/p1.0123456789ab.webp' })).toBe('covers/e/p1.0123456789ab.webp')
+    expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p1', coverPath: 'covers/e/p10.0123456789ab.webp' })).toBeUndefined()
+    expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p1', coverPath: 'covers/e/p1.x/y.webp' })).toBeUndefined()
   })
 })

@@ -18,8 +18,9 @@ describe("makeDerivatives", () => {
   it("CU4 genera miniatura ~400px y vista previa ~1600px, y reporta el tamano original", async () => {
     const r = await makeDerivatives(await gray(3000, 2000), "MUESTRA");
     expect(r).toMatchObject({ width: 3000, height: 2000 });
-    expect(await sharp(r.thumb).metadata()).toMatchObject({ width: 400, height: 267, format: "jpeg" });
-    expect(await sharp(r.preview).metadata()).toMatchObject({ width: 1600, height: 1067, format: "jpeg" });
+    // TASK-033: ambas en WebP, mismos tamanos.
+    expect(await sharp(r.thumb).metadata()).toMatchObject({ width: 400, height: 267, format: "webp" });
+    expect(await sharp(r.preview).metadata()).toMatchObject({ width: 1600, height: 1067, format: "webp" });
   });
 
   // Previene: publicar vistas previas SIN marca de agua (la gente copiaria la foto sin pagar), incluso con texto vacio.

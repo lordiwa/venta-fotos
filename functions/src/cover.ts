@@ -4,6 +4,7 @@ import type { Bucket } from "@google-cloud/storage";
 import { logger } from "firebase-functions";
 import { makeCover } from "./image";
 import { parseOriginalPath } from "./process";
+import { DERIVED_SAVE, ownsPath } from "./derived";
 import { coverFilePath, coverPrefix, coverSource, coversToDelete, planCover, photoChangeAffectsCover, isPermanentError, type CoverFields, type CoverPhoto, type CoverPlan } from "./coverLogic";
 
 const readCover = async (ref: DocumentReference) => {
@@ -29,7 +30,7 @@ async function deleteGeneration(bucket: Bucket, name: string, generation: unknow
  * Borra covers/{eventId}/* salvo la portada vigente (releida despues de listar). Cada borrado va condicionado a la
  * generacion listada, asi que nunca borra un archivo que otra invocacion regenero entretanto (M-1).
  */
-async function cleanupCovers(ref: DocumentReference, bucket: Bucket, eventId: string, drop?: string) {
+async function cleanupCovers(ref: DocumentReference, bucket: Bucket, eventId: string, drop?: (name: string) => boolean) {
   const [files] = await bucket.getFiles({ prefix: coverPrefix(eventId) });
   const doomed = new Set(coversToDelete(files, eventId, await readCover(ref), drop));
   await Promise.all(files.filter((f) => doomed.has(f.name)).map((f) => deleteGeneration(bucket, f.name, f.metadata.generation)));
@@ -54,7 +55,7 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
     const doc = await readCover(ref);
     let plan: CoverPlan = planCover(eventId, doc);
     if (plan.kind === "none" && recheck && typeof doc?.coverPhotoId === "string") {
-      plan = { kind: "generate", photoId: doc.coverPhotoId, path: coverFilePath(eventId, doc.coverPhotoId) }; // L-4
+      plan = { kind: "generate", photoId: doc.coverPhotoId }; // L-4
     }
     if (plan.kind === "none") {
       // Reintento tras un fallo de limpieza (clear, o generate ya publicado): el plan ya es "none" pero pueden quedar
@@ -90,7 +91,8 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
       });
       logger.warn("cover.sync: foto oculta, no lista o sin original, sin portada dedicada", { eventId, photoId: plan.photoId, retired });
       if (!retired) return "superseded";
-      await cleanupCovers(ref, bucket, eventId, plan.path);
+      const photoId = plan.photoId;
+      await cleanupCovers(ref, bucket, eventId, (n) => ownsPath(n, "covers", eventId, photoId));
       return "skipped";
     }
 
@@ -103,24 +105,30 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
       logger.error("cover.sync: original no valido, sin portada dedicada", { eventId, photoId: plan.photoId, error: String(e) });
       return "error";
     }
-    const out = bucket.file(plan.path);
-    await out.save(cover, { contentType: "image/jpeg", resumable: false });
+    // TASK-033: la ruta lleva el hash del contenido; mismo contenido -> mismo archivo (regenerar es idempotente).
+    const path = coverFilePath(eventId, plan.photoId, cover);
+    const out = bucket.file(path);
+    await out.save(cover, DERIVED_SAVE);
     const generation = out.metadata.generation;
-    saved = { path: plan.path, generation };
+    saved = { path, generation };
+    let prev: unknown; // coverPath que se reemplaza (releido en la transaccion)
     // R-2: la foto se relee DENTRO de la transaccion; si la ocultaron mientras se generaba, no se publica.
     const written = await db.runTransaction(async (tx) => {
       const [cur, p] = await Promise.all([tx.get(ref), tx.get(photoRef)]);
+      prev = cur.exists ? cur.get("coverPath") : undefined;
       if (!cur.exists || cur.get("coverPhotoId") !== plan.photoId) return false;
       if (coverSource(photoData(p), eventId, plan.photoId, parseOriginalPath) !== source) return false;
-      tx.update(ref, { coverPath: plan.path });
+      tx.update(ref, { coverPath: path });
       return true;
     });
     saved = undefined;
     if (written) {
-      await cleanupCovers(ref, bucket, eventId);
-    } else {
+      // La version anterior de la MISMA foto (otro hash o el .jpg viejo) se borra tambien: ya no es la vigente.
+      await cleanupCovers(ref, bucket, eventId, (n) => n === prev && n !== path);
+    } else if (prev !== path) {
       // El archivo recien guardado no se publica: se borra esa generacion (cleanupCovers lo conservaria si sigue elegida).
-      await deleteGeneration(bucket, plan.path, generation);
+      // Si coverPath ya le apunta (otra invocacion publico el mismo contenido), no se toca.
+      await deleteGeneration(bucket, path, generation);
     }
     logger.info("cover.sync", { eventId, photoId: plan.photoId, result: written ? "generated" : "superseded" });
     return written ? "generated" : "superseded";

@@ -161,7 +161,7 @@ export const processPhoto = onObjectFinalized({ memory: "2GiB", timeoutSeconds: 
   await processOriginal(admin.firestore(), admin.storage().bucket(event.data.bucket), name, metadata?.originalName);
 });
 
-/** Documento photo borrado (desde el panel o al borrar el evento) -> se borran original, vista previa y miniatura. */
+/** Documento photo borrado (desde el panel o al borrar el evento) -> se borran original, vista previa, miniatura y portada (jpg viejos y webp). */
 export const cleanupPhotoFiles = onDocumentDeleted("events/{eventId}/photos/{photoId}", async (event) => {
   const { eventId, photoId } = event.params;
   await deletePhotoFiles(admin.storage().bucket(), eventId, photoId);
@@ -170,7 +170,7 @@ export const cleanupPhotoFiles = onDocumentDeleted("events/{eventId}/photos/{pho
 // ---- TASK-028: portada dedicada del evento ----
 
 /**
- * events/{id} escrito -> reconcilia covers/{id}/{coverPhotoId}.jpg (1920px, sin marca) y el campo coverPath.
+ * events/{id} escrito -> reconcilia covers/{id}/{coverPhotoId}.{hash}.webp (1920px, sin marca) y el campo coverPath.
  * Escribe en el mismo documento que la dispara: planCover devuelve "none" cuando coverPath ya corresponde (sin bucle).
  * retry: los fallos transitorios se relanzan y se reintentan (la reconciliacion es idempotente).
  */
