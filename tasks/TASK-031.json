@@ -1,0 +1,32 @@
+{
+  "key": "TASK-031",
+  "title": "Zoom con dos dedos en el visor de fotos en móviles",
+  "description": "Pedido del humano (2026-10-21): \"asegurate de que todos los previews funcionen en moviles\". El orquestador revisó en vivo a 390px y todo carga: las 501 miniaturas de la galería, la vista previa del visor (horizontal y vertical), la portada, el carrito y las 502 imágenes del admin. Las 501 fotos tienen previewPath y thumbPath válidos en Storage.\n\nÚnico defecto: PhotoLightbox.vue tiene .lb { touch-action: pan-y }, que bloquea el zoom con dos dedos. Por eso en el celular no se puede ampliar la vista previa para ver el detalle.",
+  "acceptance_criteria": [
+    "En el visor de fotos (PhotoLightbox), el zoom con dos dedos del navegador funciona en móviles: touch-action deja de bloquear pinch-zoom.",
+    "El deslizamiento horizontal con un dedo sigue cambiando de foto cuando la página no está ampliada.",
+    "Con la página ampliada (visualViewport.scale > 1), mover la imagen con un dedo NO cambia de foto.",
+    "Un gesto con varios dedos nunca cambia de foto (se mantiene el comportamiento actual).",
+    "Test unitario de la lógica que decide si un gesto cambia de foto (incluye el caso ampliado)."
+  ],
+  "status": "in_review",
+  "priority": "medium",
+  "labels": [
+    "frontend",
+    "mobile"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T12:30:08.828Z",
+      "body": "Casos de uso: los criterios de aceptación salen del pedido del humano del 2026-10-21 (\"asegurate de que todos los previews funcionen en moviles\").\n\nCommits:\n- 79ab9b5: pinch-zoom y swipeAction.\n- 8c6946c (M-1 y L-1 de la revisión): touch-action manipulation, overscroll-behavior-x contain y pruebas del límite 1.01.\n\nRevisión en contexto fresco: APPROVE, sin HIGH. M-1 y L-1 resueltos en 8c6946c. L-2 (cableado del componente sin test) y L-3 (escala residual de 1.02 bloquea el swipe) se aceptan.\n\n[WARGAMING] Caminos atacados por criterio:\n- AC1: pinch sobre la imagen, sobre los campos de PurchasePanel y sobre los botones.\n- AC2: swipe con escala 1, sin hasNext/hasPrev y sin visualViewport.\n- AC3: arrastre con un dedo estando ampliada, con escala residual de 1.005 y de 1.02.\n- AC4: pinch soltando los dedos en cualquier orden, con 3 dedos, con A abajo/B abajo/A arriba y B deslizando, y con touchcancel.\n\nTodos sobreviven.\n\nVerificado en vivo tras el deploy de hosting: .lb tiene touch-action manipulation y overscroll-behavior-x contain, y la vista previa carga (1600px).\n\nBarrido a 390px antes del cambio:\n- Galería: las 501 miniaturas cargan, ninguna rota.\n- Visor: vistas previas horizontales y verticales.\n- Portada, inicio y carrito, más las 502 imágenes del admin.\n- Las 501 fotos tienen previewPath y thumbPath presentes en Storage.\n\nPendiente: UAT del humano en un teléfono real.\n- Zoom con dos dedos.\n- Mover la foto ampliada con un dedo sin que cambie de foto.\n- Swipe normal que cambia de foto."
+    }
+  ],
+  "created_at": "2026-10-21T12:25:13.338Z",
+  "updated_at": "2026-10-21T12:30:08.886Z",
+  "jira_key": null
+}
