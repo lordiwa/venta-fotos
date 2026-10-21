@@ -1,0 +1,70 @@
+{
+  "key": "TASK-035",
+  "title": "Marca de agua: logo de Martial Photo en mosaico al 50%",
+  "description": "Pedido del humano (2026-10-21): \"en lugar de la palabra muestra quiero usar el logo de martial photo como marca de agua en forma de mosaico y con el 50% de opacidad sobre las fotos\".\n\nHoy las vistas previas (1600px) llevan el texto de buildWatermarkSvg (functions/src/watermark.ts, configurable en settings). Las miniaturas y la portada no llevan marca.\n\nLogos disponibles, de 500px PNG con transparencia:\n- src/assets/logo-light-bg.png: círculo negro con el luchador rojo.\n- src/assets/logo-dark-bg.png: líneas blancas con el luchador rojo.\n\nAntes de regenerar las 501 vistas previas, el humano elige la variante viendo muestras sobre fotos reales del evento.",
+  "acceptance_criteria": [
+    "La vista previa lleva el logo de Martial Photo repetido en mosaico sobre toda la imagen, con 50% de opacidad, en lugar del texto MUESTRA.",
+    "El tamaño y separación del mosaico es proporcional a la imagen (se ve igual en fotos horizontales y verticales) y la marca no se puede recortar dejando una zona grande limpia.",
+    "La descarga del cliente sigue siendo el original sin marca a calidad y tamaño completos; miniatura y portada no cambian.",
+    "processPhoto genera las vistas previas nuevas con el logo; el backfill permite regenerar las vistas previas existentes por cambio de marca (sin tocar originales), idempotente y con --dry-run.",
+    "El logo viaja con las Functions (no depende del frontend) y el cambio de versión de marca invalida la caché (nombre nuevo por contenido).",
+    "Tests de la composición (opacidad, cobertura del mosaico, dimensiones) y del plan de regeneración; tests y build pasan."
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "functions"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "f15aa16",
+    "be7085c",
+    "cde5666",
+    "5aa898f"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T15:30:32.440Z",
+      "body": "[FINDING-RESOLVED: P-1] Use cases: the 6 acceptance criteria in the ticket. They come straight from the human's explicit request of 2026-10-21 (\"en lugar de la palabra muestra quiero usar el logo de martial photo como marca de agua en forma de mosaico y con el 50% de opacidad sobre las fotos\"). The human then chose the variant by looking at real samples (AskUserQuestion): \"Círculo blanco\" (dark variant, cde5666).\n\nReview of f15aa16, be7085c: code PASS, no HIGH findings.\n- M-1 (dead code) and M-2 (runbook): sent to the developer.\n- L-1 (tiny images) and L-5 (dry-run per reason): sent to the developer.\n- L-2 (thin bands) and L-4 (thumb hash across platforms, safe): accepted."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T16:01:57.560Z",
+      "body": "[WARGAMING] Fresh-context review of f15aa16 and be7085c, transcribed by the orchestrator. Code: PASS, no HIGH findings. M-1, M-2, L-1 and L-5 were resolved in 5aa898f.\n\nPaths attacked:\n- AC1: both variants on white and on black, halo from premultiplied alpha, unknown variant, image 8px or smaller (L-1, fixed).\n- AC2: landscape, portrait, 8:1 and 20:1 panoramas, 1:8, images under 1600px, 30px, all four edges. The largest clean area is about 16% of the short side.\n- AC3: cover, download and thumbnail without a watermark.\n- AC4: re-run, reprocessing during the backfill, missing original, error/processing status, failed delete, old Functions, light/dark ordering (M-2).\n- AC5: packaging and __dirname from lib/ (emulator), new hash name.\n- AC6: 46/46, 93/93, integration 3/3.\n\nEverything survives."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T16:02:10.337Z",
+      "body": "1. CASOS DE USO APROBADOS\nSalen del pedido del humano del 2026-10-21. La variante \"Círculo blanco\" la eligió el humano mirando muestras reales.\n- CU1: logo en mosaico al 50% en lugar de MUESTRA.\n- CU2: tamaño proporcional y sin zonas limpias grandes.\n- CU3: la descarga, la miniatura y la portada no cambian.\n- CU4: processPhoto y backfill de regeneración idempotente con --dry-run.\n- CU5: el logo viaja con las Functions y cada versión de la marca usa un nombre nuevo.\n- CU6: tests.\n\n2. RESULTADO\nCommits f15aa16, be7085c, cde5666 y 5aa898f.\n- Functions desplegadas por el humano.\n- Backfill: 501 vistas previas regeneradas con la marca logo-dark-1 y 0 errores. Un segundo dry-run dio 0 por regenerar.\n- Verificado como anónimo: 501 de 501 vistas previas en image/webp, de unos 101 KB de promedio. Miniaturas sin cambios (11 KB). Originales sin tocar.\n\n3. WARGAMING\nCaminos alternativos y de fallo atacados:\n- CU1: las dos variantes, fondos blanco y negro, halo, variante desconocida, imágenes de 8px o menos (fallaba: L-1, corregido).\n- CU2: panoramas 8:1 y 20:1, formato 1:8, imágenes de menos de 1600px y los cuatro bordes.\n- CU3: descarga, miniatura y portada.\n- CU4: segunda corrida, reproceso durante el backfill, original ausente, borrado fallido, orden light/dark (M-2, documentado).\n- CU5: empaquetado en el emulador.\n- CU6: suites en verde.\nRevisión: PASS de código; M-1, M-2, L-1 y L-5 resueltos en 5aa898f.\n\n4. UAT\nPASS. El humano eligió la variante viendo las muestras reales. Verificado en producción a 390px: el visor muestra la vista previa WebP de 1600px con el logo de círculo blanco en mosaico."
+    }
+  ],
+  "created_at": "2026-10-21T15:00:34.023Z",
+  "updated_at": "2026-10-21T16:02:10.337Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T16:02:10.337Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "f15aa16",
+        "state": "verified"
+      },
+      {
+        "sha": "be7085c",
+        "state": "verified"
+      },
+      {
+        "sha": "cde5666",
+        "state": "verified"
+      },
+      {
+        "sha": "5aa898f",
+        "state": "verified"
+      }
+    ]
+  }
+}

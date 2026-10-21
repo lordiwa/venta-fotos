@@ -114,6 +114,12 @@
       "type": "task",
       "ref": "tasks/TASK-034.json",
       "label": "Texto explicativo de paquetes en la página del evento"
+    },
+    {
+      "id": "task-035",
+      "type": "task",
+      "ref": "tasks/TASK-035.json",
+      "label": "Marca de agua: logo de Martial Photo en mosaico al 50%"
     }
   ],
   "edges": []

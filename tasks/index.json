@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T14:55:41.744Z",
+  "generated_at": "2026-10-21T16:02:10.337Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -154,6 +154,12 @@
     {
       "key": "TASK-034",
       "title": "Texto explicativo de paquetes en la página del evento",
+      "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-035",
+      "title": "Marca de agua: logo de Martial Photo en mosaico al 50%",
       "status": "done",
       "priority": "high"
     }
