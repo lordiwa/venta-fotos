@@ -14,7 +14,7 @@ const cart = useCartStore()
       <nav class="foot-links" aria-label="Pie">
         <RouterLink to="/fotografo">Sobre el fotógrafo</RouterLink>
         <RouterLink to="/descargas">Mis descargas</RouterLink>
-        <RouterLink to="/admin">Acceso del fotógrafo</RouterLink>
+        <RouterLink to="/admin">Acceso de administración</RouterLink>
       </nav>
     </footer>
   </div>

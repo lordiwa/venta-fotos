@@ -45,7 +45,7 @@ async function submit() {
     <main class="pane">
       <form novalidate @submit.prevent="submit">
         <div class="intro">
-          <h1 class="display-md">Acceso del fotógrafo</h1>
+          <h1 class="display-md">Acceso de administración</h1>
           <p class="body-sm">Entra con el correo y la contraseña de tu cuenta.</p>
         </div>
         <Field v-model="email" label="Correo" type="email" autocomplete="username" :error="emailError ?? undefined" />
