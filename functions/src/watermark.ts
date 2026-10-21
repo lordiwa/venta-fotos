@@ -106,7 +106,7 @@ export function buildWatermarkSvg(rawText: unknown, width: number, height: numbe
 export type LogoVariant = "light" | "dark";
 export const LOGO_VARIANTS: readonly LogoVariant[] = ["light", "dark"];
 /** Variante en uso. Cambiarla cambia WATERMARK_VERSION y el backfill regenera las vistas previas. */
-export const WATERMARK_LOGO: LogoVariant = "light";
+export const WATERMARK_LOGO: LogoVariant = "dark";
 /** Version del diseno de la marca (subirla si cambia tamano, separacion u opacidad). */
 const LAYOUT_VERSION = 1;
 export const watermarkVersion = (logo: LogoVariant) => `logo-${logo}-${LAYOUT_VERSION}`;
