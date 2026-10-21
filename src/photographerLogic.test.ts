@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { EDUCATION, PORTFOLIO, PORTRAIT, QUOTE_MESSAGE, contactLinks, displayPhone, mobileSolo, photoSources } from './photographerLogic'
+import { EDUCATION, PORTFOLIO, PORTRAIT, QUOTE_MESSAGE, contactLinks, displayPhone, mobileRows, photoSources } from './photographerLogic'
 import { resolveWhatsappDigits } from './whatsappLogic'
 
 // Archivos reales en public/fotografo (lo que sirve el hosting).
@@ -31,12 +31,13 @@ describe('photographerLogic', () => {
     expect(EDUCATION[0]).toMatchObject({ when: '2025', org: expect.stringContaining('New York Institute of Photography') })
   })
 
-  // Daño: en movil una horizontal queda achicada al lado de otra foto, o una vertical queda sola a media pantalla.
-  it('mobileSolo: horizontales solas, verticales de a dos y la que sobra sola', () => {
+  // Daño: en movil una horizontal queda achicada al lado de otra foto, una vertical queda sola a media pantalla, o 4+ verticales se apretan en una fila.
+  it('mobileRows: horizontales solas, verticales de a dos y la que sobra sola', () => {
     const v = { width: 4, height: 5 }, h = { width: 3, height: 2 }, sq = { width: 1, height: 1 }
-    expect(mobileSolo([h, h])).toEqual([true, true])
-    expect(mobileSolo([v, v, h])).toEqual([false, false, true])
-    expect(mobileSolo([v, v, sq])).toEqual([false, false, true])
-    expect(mobileSolo([v, h, v])).toEqual([true, true, true])
+    expect(mobileRows([h, h])).toEqual([[0], [1]])
+    expect(mobileRows([v, v, h])).toEqual([[0, 1], [2]])
+    expect(mobileRows([v, v, sq])).toEqual([[0, 1], [2]])
+    expect(mobileRows([v, h, v])).toEqual([[0], [1], [2]])
+    expect(mobileRows([v, v, v, v, v])).toEqual([[0, 1], [2, 3], [4]])
   })
 })

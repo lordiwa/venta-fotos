@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import PhotoLightbox from '../PhotoLightbox.vue'
-import { PORTFOLIO, mobileSolo, photoSources } from '../../photographerLogic'
+import { PORTFOLIO, mobileRows, photoSources } from '../../photographerLogic'
 
 const num = (i: number) => String(i + 1).padStart(2, '0')
 const categories = PORTFOLIO.map((c) => {
-  const solo = mobileSolo(c.photos)
-  return { ...c, tiles: c.photos.map((p, i) => ({ ...p, ...photoSources(p), solo: solo[i] })) }
+  const tiles = c.photos.map((p) => ({ ...p, ...photoSources(p) }))
+  return { ...c, tiles, rows: mobileRows(c.photos).map((r) => r.map((i) => tiles[i])) }
 })
 // El visor recorre todo el portafolio, en orden de categorias.
 const all = categories.flatMap((c, ci) => c.tiles.map((t, i) => ({ ...t, caption: `${num(ci)} · ${c.name} · ${i + 1} de ${c.tiles.length}` })))
@@ -30,13 +30,16 @@ const step = (d: number) => { if (open.value !== null) open.value = Math.min(all
         <h3 :id="`${c.id}-t`" class="display-sm cat-name">{{ c.name }}</h3>
         <p class="blurb">{{ c.blurb }}</p>
       </header>
-      <ul class="row">
-        <li v-for="t in c.tiles" :key="t.slug" class="tile" :class="{ solo: t.solo }" :style="{ flexGrow: t.width / t.height, aspectRatio: `${t.width} / ${t.height}` }">
-          <button type="button" class="open" :aria-label="`Ampliar: ${t.alt}`" @click="show(t.slug)">
-            <img :src="t.src" :srcset="t.srcset" sizes="(max-width: 720px) 100vw, 50vw" :alt="t.alt" :width="t.width" :height="t.height" loading="lazy" decoding="async" />
-          </button>
-        </li>
-      </ul>
+      <!-- Escritorio: una sola fila (las filas de movil son display: contents). Movil: una fila por grupo de mobileRows. -->
+      <div class="row">
+        <div v-for="(r, ri) in c.rows" :key="ri" class="mrow">
+          <div v-for="t in r" :key="t.slug" class="tile" :style="{ flexGrow: t.width / t.height, aspectRatio: `${t.width} / ${t.height}` }">
+            <button type="button" class="open" :aria-label="`Ampliar: ${t.alt}`" @click="show(t.slug)">
+              <img :src="t.src" :srcset="t.srcset" sizes="(max-width: 720px) 100vw, 50vw" :alt="t.alt" :width="t.width" :height="t.height" loading="lazy" decoding="async" />
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
     <PhotoLightbox
       v-if="current && open !== null" :photo="null" :src="current.full" :alt="current.alt" :caption="current.caption" :loading="false"
@@ -57,15 +60,16 @@ const step = (d: number) => { if (open.value !== null) open.value = Math.min(all
 .cat-name { margin: 0; font-size: clamp(26px, 3.4vw, 34px); font-weight: 800; }
 .blurb { margin: 0 0 0 auto; color: var(--ink-muted); font-style: italic; }
 /* Cada celda tiene la proporcion de su foto y crece segun ella: en una fila todas quedan de la misma altura y nada se recorta. */
-.row { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-3); }
+.row { display: flex; gap: var(--space-3); }
+.mrow { display: contents; }
 .tile { flex-shrink: 1; flex-basis: 0; min-width: 0; overflow: hidden; border-radius: var(--radius-sm); background: var(--surface-sunken); }
 .open { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
 .open img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .7s cubic-bezier(.2, .8, .2, 1); }
 .open:hover img { transform: scale(1.03); }
 .open:focus-visible { outline: 3px solid var(--amber); outline-offset: -3px; }
 @media (max-width: 720px) {
-  .row { flex-wrap: wrap; gap: var(--space-2); }
-  .tile.solo { flex-basis: 100%; }
+  .row { flex-direction: column; gap: var(--space-2); }
+  .mrow { display: flex; gap: var(--space-2); }
   .blurb { flex-basis: 100%; margin-left: 0; }
   .cat { margin-top: var(--space-10); }
 }

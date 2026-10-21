@@ -22,6 +22,6 @@ const cartLabel = computed(() => `Carrito, ${props.cartCount ? `${props.cartCoun
       <RouterLink v-for="l in links" :key="l.label" :to="l.to" class="es-topbar-link">{{ l.label }}</RouterLink>
     </nav>
     <!-- Fuera del nav: en movil el carrito sube a la fila de la marca y los enlaces quedan en una sola fila debajo. -->
-    <RouterLink :to="cartTo" class="es-cart" :aria-label="cartLabel"><Icon name="carrito" />Carrito<span class="es-cart-count" data-testid="cart-badge">{{ cartCount }}</span></RouterLink>
+    <RouterLink :to="cartTo" class="es-cart" :aria-label="cartLabel"><Icon name="carrito" /><span class="es-cart-text">Carrito</span><span class="es-cart-count" data-testid="cart-badge">{{ cartCount }}</span></RouterLink>
   </header>
 </template>

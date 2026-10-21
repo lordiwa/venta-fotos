@@ -80,19 +80,17 @@ export function photoSources(p: PortfolioPhoto): { src: string; srcset?: string;
 }
 
 /**
- * Movil: que fotos van solas a lo ancho. Las horizontales (proporcion > 1.2) siempre; las verticales/cuadradas se emparejan
- * de a dos seguidas y la que queda sin pareja va sola. Nunca se recorta: cada celda tiene la proporcion de su foto.
+ * Movil: filas de fotos (indices). Las horizontales (proporcion > 1.2) van solas; las verticales/cuadradas seguidas se
+ * emparejan de a dos y la que queda sin pareja va sola. Nunca se recorta: cada celda tiene la proporcion de su foto.
  */
-export function mobileSolo(photos: Pick<PortfolioPhoto, 'width' | 'height'>[]): boolean[] {
-  const solo = photos.map((p) => p.width / p.height > 1.2)
-  let pending = -1 // indice de una vertical que espera pareja
-  solo.forEach((wide, i) => {
-    if (wide) { if (pending >= 0) solo[pending] = true; pending = -1 }
-    else if (pending >= 0) pending = -1
-    else pending = i
-  })
-  if (pending >= 0) solo[pending] = true
-  return solo
+export function mobileRows(photos: Pick<PortfolioPhoto, 'width' | 'height'>[]): number[][] {
+  const rows: number[][] = []
+  const wide = (i: number) => photos[i].width / photos[i].height > 1.2
+  for (let i = 0; i < photos.length; i++) {
+    if (!wide(i) && i + 1 < photos.length && !wide(i + 1)) { rows.push([i, i + 1]); i++ }
+    else rows.push([i])
+  }
+  return rows
 }
 
 /** CU5: mensaje ya escrito de "Cotizar una sesión". */
