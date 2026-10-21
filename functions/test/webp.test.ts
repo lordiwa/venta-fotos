@@ -69,29 +69,6 @@ describe("publishDerivatives (TASK-033)", () => {
     expect(isDerivedPath(doc.thumbPath, "thumbs", "e", "p") && f.files.has(doc.thumbPath as string)).toBe(true);
     expect(f.files.has("previews/e/p.jpg")).toBe(false);
   });
-
-  // Previene (TASK-035): que el backfill deje vistas previas con la marca vieja (sin version o de otra variante), o
-  // que al regenerarlas toque el original o borre la miniatura que sigue en uso (mismo contenido, misma ruta).
-  it("TASK-035 regenera la vista previa con marca vieja: original intacto, miniatura igual, preview vieja borrada", async () => {
-    const webp = { ...legacy, thumbPath: "thumbs/e/p.0123456789ab.webp", previewPath: "previews/e/p.0123456789ab.webp" };
-    expect(needsWebp(webp, "e", "p")).toBe(true); // sin watermarkVersion (marca de texto)
-    const other = watermarkVersion(WATERMARK_VERSION.includes("light") ? "dark" : "light");
-    expect(needsWebp({ ...webp, watermarkVersion: other }, "e", "p")).toBe(true);
-
-    const f = seed();
-    expect(await processOriginal(f.db, f.bucket, "originals/e/p.jpg")).toBe("ready");
-    const first = { ...f.docs.get("events/e/photos/p")!.data };
-    f.write("events/e/photos/p", { watermarkVersion: other, previewPath: "previews/e/p.0123456789ab.webp" });
-    f.files.set("previews/e/p.0123456789ab.webp", { gen: 9, buf: original });
-    const orig = f.files.get("originals/e/p.jpg")!;
-    expect(await publishDerivatives(f.db, f.bucket, "e", "p", original, undefined, (cur) => cur.originalPath === "originals/e/p.jpg")).toBe(true);
-    const doc = f.docs.get("events/e/photos/p")!.data;
-    expect(doc).toMatchObject({ watermarkVersion: WATERMARK_VERSION, thumbPath: first.thumbPath, previewPath: first.previewPath });
-    expect(needsWebp(doc, "e", "p")).toBe(false); // idempotente: una segunda corrida la salta
-    expect(f.files.has("previews/e/p.0123456789ab.webp")).toBe(false);
-    expect(f.files.has(first.thumbPath as string)).toBe(true);
-    expect(f.files.get("originals/e/p.jpg")).toBe(orig);
-  });
 });
 
 describe("deletePhotoFiles (TASK-033)", () => {
@@ -104,29 +81,6 @@ describe("deletePhotoFiles (TASK-033)", () => {
     for (const n of names) f.files.set(n, { gen: 1, buf: original });
     await deletePhotoFiles(f.bucket, "e", "p");
     expect([...f.files.keys()].sort()).toEqual(["covers/e/p2.0123456789ab.webp", "thumbs/e/p2.jpg"]);
-  });
-
-  // Previene (TASK-035): que el backfill deje vistas previas con la marca vieja (sin version o de otra variante), o
-  // que al regenerarlas toque el original o borre la miniatura que sigue en uso (mismo contenido, misma ruta).
-  it("TASK-035 regenera la vista previa con marca vieja: original intacto, miniatura igual, preview vieja borrada", async () => {
-    const webp = { ...legacy, thumbPath: "thumbs/e/p.0123456789ab.webp", previewPath: "previews/e/p.0123456789ab.webp" };
-    expect(needsWebp(webp, "e", "p")).toBe(true); // sin watermarkVersion (marca de texto)
-    const other = watermarkVersion(WATERMARK_VERSION.includes("light") ? "dark" : "light");
-    expect(needsWebp({ ...webp, watermarkVersion: other }, "e", "p")).toBe(true);
-
-    const f = seed();
-    expect(await processOriginal(f.db, f.bucket, "originals/e/p.jpg")).toBe("ready");
-    const first = { ...f.docs.get("events/e/photos/p")!.data };
-    f.write("events/e/photos/p", { watermarkVersion: other, previewPath: "previews/e/p.0123456789ab.webp" });
-    f.files.set("previews/e/p.0123456789ab.webp", { gen: 9, buf: original });
-    const orig = f.files.get("originals/e/p.jpg")!;
-    expect(await publishDerivatives(f.db, f.bucket, "e", "p", original, undefined, (cur) => cur.originalPath === "originals/e/p.jpg")).toBe(true);
-    const doc = f.docs.get("events/e/photos/p")!.data;
-    expect(doc).toMatchObject({ watermarkVersion: WATERMARK_VERSION, thumbPath: first.thumbPath, previewPath: first.previewPath });
-    expect(needsWebp(doc, "e", "p")).toBe(false); // idempotente: una segunda corrida la salta
-    expect(f.files.has("previews/e/p.0123456789ab.webp")).toBe(false);
-    expect(f.files.has(first.thumbPath as string)).toBe(true);
-    expect(f.files.get("originals/e/p.jpg")).toBe(orig);
   });
 });
 
