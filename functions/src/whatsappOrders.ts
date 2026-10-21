@@ -7,7 +7,8 @@ import { AttemptState, addFailure, isBlocked, normalizeNumber } from "./download
 import { loadPricing } from "./orders";
 import { AdvanceError, planAdvance } from "./orderStatus";
 import {
-  EMAIL_REQUIRED, ORDER_RATE_MAX, ORDER_RATE_WINDOW_MS, ORDER_TTL_MS, parseCustomer, publicOrder, PublicOrder, shouldExpire,
+  canRemind, EMAIL_REQUIRED, ORDER_RATE_MAX_PER_IP, ORDER_RATE_MAX_PER_PHONE, ORDER_RATE_WINDOW_MS, ORDER_TTL_MS, parseCustomer, publicOrder, PublicOrder,
+  shouldExpire,
 } from "./whatsappOrderLogic";
 
 type Db = Firestore;
@@ -23,12 +24,13 @@ export interface WhatsappOrderResult {
 
 const RATE_MESSAGE = "Hiciste muchos pedidos seguidos. Espera unos minutos o escríbenos por WhatsApp.";
 
-/** CU10: cuenta el pedido por IP y por telefono en una transaccion; si alguno llego al tope en la ventana, se rechaza sin contar. */
+/** CU10: cuenta el pedido por IP y por telefono (cada uno con su tope) en una transaccion; si alguno llego al tope, se rechaza sin contar. */
 async function takeOrderSlot(db: Db, ip: string, phone: string, now: number): Promise<void> {
   const refs = [`ip-${hash(ip)}`, `tel-${hash(phone)}`].map((id) => db.doc(`orderAttempts/${id}`));
+  const max = [ORDER_RATE_MAX_PER_IP, ORDER_RATE_MAX_PER_PHONE];
   await db.runTransaction(async (tx) => {
     const states = (await Promise.all(refs.map((r) => tx.get(r)))).map((s) => s.data() as AttemptState | undefined);
-    if (states.some((s) => isBlocked(s, now, ORDER_RATE_MAX, ORDER_RATE_WINDOW_MS))) throw new HttpsError("resource-exhausted", RATE_MESSAGE);
+    if (states.some((s, i) => isBlocked(s, now, max[i], ORDER_RATE_WINDOW_MS))) throw new HttpsError("resource-exhausted", RATE_MESSAGE);
     refs.forEach((r, i) => tx.set(r, { ...addFailure(states[i], now, ORDER_RATE_WINDOW_MS), updatedAt: FieldValue.serverTimestamp() }));
   });
 }
@@ -39,16 +41,16 @@ const asHttps = (e: unknown): never => {
 };
 
 /**
- * CU1/CU2/CU3: valida carrito y cliente, cobra el limite anti-abuso, pone precio desde el catalogo (el total del cliente no
- * se usa) y crea orders/WA-<numero> en pendiente_pago, con plazo de 24 h. `create` falla si el id existe: numero unico.
+ * CU1/CU2/CU3: valida carrito y cliente, pone precio desde el catalogo (el total del cliente no se usa), recien entonces
+ * cobra el limite anti-abuso (un carrito invalido o viejo no gasta cupo) y crea orders/WA-<numero> en pendiente_pago, con plazo de 24 h. `create` falla si el id existe: numero unico.
  */
 export async function createWhatsappOrder(db: Db, data: { lines?: unknown; customer?: unknown }, ip: string, now = Date.now()): Promise<WhatsappOrderResult> {
   try {
     const input = parseCartInput(data.lines);
     const customer = parseCustomer(data.customer);
-    await takeOrderSlot(db, ip, customer.phone, now);
     const priced = priceLines(await loadPricing(db, input));
     if (priced.lines.some((l) => l.kind === "digital") && !customer.email) throw new CheckoutError("invalid-argument", EMAIL_REQUIRED);
+    await takeOrderSlot(db, ip, customer.phone, now);
     const total = (priced.linesCents - priced.savingsCents) / 100;
     const savings = priced.savingsCents / 100;
     const base = {
@@ -107,8 +109,8 @@ export async function advanceOrderTx(db: Db, orderId: string, from: unknown, to:
   }
 }
 
-/** CU6: deja constancia de que el admin abrio el recordatorio. Solo en pedidos por WhatsApp que siguen pendientes. */
-export async function markReminderSent(db: Db, orderId: string, uid: string): Promise<number> {
+/** CU6: deja constancia de que el admin abrio el recordatorio. Solo en pedidos por WhatsApp pendientes y antes de la hora limite. */
+export async function markReminderSent(db: Db, orderId: string, uid: string, now = Date.now()): Promise<number> {
   const ref = db.doc(`orders/${orderId}`);
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -116,7 +118,10 @@ export async function markReminderSent(db: Db, orderId: string, uid: string): Pr
     if (snap.get("channel") !== "whatsapp" || snap.get("status") !== "pendiente_pago") {
       throw new HttpsError("failed-precondition", "El pedido ya no está pendiente de pago. Recarga la lista.");
     }
-    const at = Timestamp.now();
+    if (!canRemind(snap.data() as Parameters<typeof canRemind>[0], now)) {
+      throw new HttpsError("failed-precondition", "El plazo de pago de este pedido ya venció: se anulará en unos minutos.");
+    }
+    const at = Timestamp.fromMillis(now);
     tx.update(ref, { reminderSentAt: at, reminderSentBy: uid });
     return at.toMillis();
   });

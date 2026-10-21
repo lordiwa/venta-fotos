@@ -148,7 +148,14 @@ export const advanceOrder = onCall(async (request) => {
 
 /** Crea el pedido pendiente de pago con el precio del servidor; el cliente arma el mensaje de WhatsApp con lo que devuelve. */
 export const createWhatsappOrder = onCall(async (request) => {
-  const ip = clientIp(request.rawRequest?.headers?.["x-forwarded-for"], request.rawRequest?.ip);
+  const xff = request.rawRequest?.headers?.["x-forwarded-for"];
+  const ip = clientIp(xff, request.rawRequest?.ip);
+  // R-1 (temporal, opt-in): con IP_DIAG=true en el entorno de Functions se registra SOLO cuantos saltos trae
+  // x-forwarded-for y si rawRequest.ip coincide con el ultimo; nunca las IPs. Apagado por defecto; quitar tras validar.
+  if (process.env.IP_DIAG === "true") {
+    const hops = typeof xff === "string" ? xff.split(",").map((h) => h.trim()).filter(Boolean) : [];
+    logger.info("ipDiag createWhatsappOrder", { xffHops: hops.length, rawIpIsLastHop: hops.length > 0 && hops[hops.length - 1] === request.rawRequest?.ip });
+  }
   try {
     const res = await createWhatsappOrderDoc(admin.firestore(), request.data ?? {}, ip);
     logger.info("createWhatsappOrder", { number: res.number, total: res.total, lines: res.lines.length });

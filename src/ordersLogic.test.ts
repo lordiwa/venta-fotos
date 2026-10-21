@@ -1,7 +1,7 @@
 // Prevents: despachar mal los pedidos (saltar estados, imprimir lo digital, mezclar filtros) y que la copia del servidor se desvie de la del cliente.
 import { describe, it, expect } from 'vitest'
 import {
-  allowedTransitions, downloadName, filterOrders, needsReminder, nextStatus, orderTab, packSavings, printList, REMINDER_AFTER_MS, searchOrders, STATUSES, timeLeftText,
+  allowedTransitions, canRemind, downloadName, filterOrders, needsReminder, nextStatus, orderTab, packSavings, printList, REMINDER_AFTER_MS, searchOrders, STATUSES, timeLeftText,
   type OrderRow,
 } from './ordersLogic'
 import { allowedTransitions as serverAllowed, isAdmin, nextStatus as serverNext, planAdvance } from '../functions/src/orderStatus'
@@ -109,11 +109,14 @@ describe('ordersLogic', () => {
   })
   // Previene: recordar antes de tiempo, dos veces o un pedido ya pagado, o mostrar un plazo distinto al que anula el servidor.
   it('TASK-037 CU3/CU6: "recordar pago" desde las 12 h (la paridad con el plazo del servidor esta en functions/test/whatsappOrder.test.ts) y sin recordatorio enviado; tiempo restante', () => {
-    const p = order({ status: 'pendiente_pago', channel: 'whatsapp', createdAt: new Date(0) })
+    const p = order({ status: 'pendiente_pago', channel: 'whatsapp', createdAt: new Date(0), expiresAt: new Date(2 * REMINDER_AFTER_MS) })
     expect(needsReminder(p, REMINDER_AFTER_MS - 1)).toBe(false)
     expect(needsReminder(p, REMINDER_AFTER_MS)).toBe(true)
     expect(needsReminder({ ...p, reminderSentAt: new Date(1) }, REMINDER_AFTER_MS)).toBe(false)
     expect(needsReminder({ ...p, status: 'pagado' }, REMINDER_AFTER_MS)).toBe(false)
+    // L-2: pasada la hora limite ya no se marca ni se ofrece el boton (el servidor tambien lo rechaza).
+    expect(needsReminder(p, 2 * REMINDER_AFTER_MS)).toBe(false)
+    expect([canRemind(p, 2 * REMINDER_AFTER_MS - 1), canRemind(p, 2 * REMINDER_AFTER_MS)]).toEqual([true, false])
     expect(timeLeftText(new Date(2 * REMINDER_AFTER_MS), REMINDER_AFTER_MS + 20 * 60000)).toBe('Quedan 11 h 40 min para pagar')
     expect(timeLeftText(new Date(1000), 1000)).toMatch(/^Vencido/)
   })

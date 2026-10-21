@@ -10,6 +10,8 @@ describe('whatsappLogic', () => {
   it('normalizePhone: acepta +, espacios y guiones y devuelve solo digitos (8 a 15); rechaza letras y largos fuera de rango', () => {
     // Daño: guardar un numero invalido que rompe el enlace wa.me para todos los compradores.
     expect(normalizePhone('+593 99-856 5995')).toBe('593998565995')
+    // M-1 (TASK-037): un 0 de discado nacional tras el 593 se quita; si no, wa.me abre un numero inexistente.
+    expect(normalizePhone('+593 099 856 5995')).toBe('593998565995')
     expect(normalizePhone('12345678')).toBe('12345678')
     expect(normalizePhone('1234567')).toBeNull()
     expect(normalizePhone('1234567890123456')).toBeNull()
@@ -105,11 +107,11 @@ describe('whatsappLogic', () => {
     expect(msg).toContain('pedido ABCD2345')
     expect(msg).toContain('Total: USD 20.00')
     expect(msg).toContain('Ahorro por paquetes: −5.00')
-    expect(msg).toMatch(/Pago hasta: jueves, 22 de octubre, 03:30/)
+    expect(msg).toMatch(/Pago hasta: jueves, 22 de octubre, 03:30\sp\.\s?m\./)
     expect(msg).toContain(`Mi pedido: ${link}`)
     const rem = reminderMessage({ name: 'Ana Pérez', number: 'ABCD2345', total: 20, expiresAt, link })
     expect(rem).toMatch(/^Hola Ana, te recordamos tu pedido ABCD2345 por USD 20\.00/)
-    expect(rem).toMatch(/22 de octubre, 03:30/)
+    expect(rem).toMatch(/22 de octubre, 03:30\sp\.\s?m\./)
     expect(rem).toContain(link)
   })
 })

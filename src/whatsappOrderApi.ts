@@ -11,7 +11,7 @@ export async function createWhatsappOrder(lines: CartLine[], customer: { name: s
   return (await httpsCallable<unknown, CreatedOrder>(functions, 'createWhatsappOrder')({ lines: toOrderLines(lines), customer })).data
 }
 
-/** Lo que devuelve getOrderStatus: sin telefono ni correo completos. */
+/** Lo que devuelve getOrderStatus: sin nombre ni correo, y el telefono enmascarado. */
 export interface PublicOrder {
   number: string
   status: OrderStatus
@@ -21,7 +21,7 @@ export interface PublicOrder {
   packs: { name: string; times: number; price: number }[]
   createdAt: number | null
   expiresAt: number | null
-  customer: { name: string; phone: string; email: string }
+  customer: { phone: string }
   /** Tiene fotos digitales (se descargan en Mis descargas una vez pagado). */
   hasDigital: boolean
 }

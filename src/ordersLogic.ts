@@ -81,9 +81,13 @@ export const ACTION_LABEL: Partial<Record<OrderStatus, string>> = { pagado: 'Mar
 /** Pasadas estas horas sin pago, el pedido se marca "recordar pago" (debe coincidir con la mitad de ORDER_TTL_MS del servidor). */
 export const REMINDER_AFTER_MS = 12 * 60 * 60 * 1000
 
-/** CU6: pendiente de pago, con 12 h o mas desde el alta y sin recordatorio enviado. */
-export const needsReminder = (o: Pick<OrderRow, 'status' | 'createdAt' | 'reminderSentAt'>, now: number): boolean =>
-  o.status === 'pendiente_pago' && !!o.createdAt && now >= o.createdAt.getTime() + REMINDER_AFTER_MS && !o.reminderSentAt
+/** CU6: se puede recordar mientras siga pendiente y no haya pasado la hora limite (el servidor rechaza despues). */
+export const canRemind = (o: Pick<OrderRow, 'status' | 'expiresAt'>, now: number): boolean =>
+  o.status === 'pendiente_pago' && !!o.expiresAt && now < o.expiresAt.getTime()
+
+/** CU6: pendiente de pago, con 12 h o mas desde el alta, antes de la hora limite y sin recordatorio enviado. */
+export const needsReminder = (o: Pick<OrderRow, 'status' | 'createdAt' | 'expiresAt' | 'reminderSentAt'>, now: number): boolean =>
+  canRemind(o, now) && !!o.createdAt && now >= o.createdAt.getTime() + REMINDER_AFTER_MS && !o.reminderSentAt
 
 /** CU3: "Quedan 5 h 20 min" hasta la anulacion; "Vencido" si ya paso (la Function lo anula en la siguiente corrida). */
 export function timeLeftText(expiresAt: Date | null | undefined, now: number): string {

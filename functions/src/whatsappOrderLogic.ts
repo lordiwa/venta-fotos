@@ -4,8 +4,12 @@ import { isDigitalLine } from "./downloadsLogic";
 
 /** Plazo de pago: pasado esto, expireOrders anula el pedido. */
 export const ORDER_TTL_MS = 24 * 60 * 60 * 1000;
-/** Limite anti-abuso de pedidos creados: por IP real y por telefono, en una ventana corta. */
-export const ORDER_RATE_MAX = 5;
+/**
+ * Limite anti-abuso de pedidos creados, en una ventana corta. Por telefono: 5 (confirmado por el humano). Por IP real: 20,
+ * porque los asistentes de un evento comparten la IP del NAT de su operadora movil.
+ */
+export const ORDER_RATE_MAX_PER_PHONE = 5;
+export const ORDER_RATE_MAX_PER_IP = 20;
 export const ORDER_RATE_WINDOW_MS = 10 * 60 * 1000;
 
 export interface Customer { name: string; phone: string; email?: string }
@@ -16,11 +20,12 @@ const text = (v: unknown, max: number): string => (typeof v === "string" ? v.tri
 /**
  * Telefono de WhatsApp -> solo digitos con codigo de pais (E.164 sin "+"), o null. Copia de normalizePhone de
  * src/whatsappLogic.ts (paridad en functions/test/whatsappOrder.test.ts): "+", espacios y guiones; 8 a 15 digitos; sin 0 inicial.
+ * Ecuador: el 0 de discado nacional escrito despues del codigo ("+593 099...") se quita, wa.me no lo acepta.
  */
 export function normalizePhone(input: unknown): string | null {
   const t = String(input ?? "").trim();
   if (!/^\+?[\d\s-]+$/.test(t)) return null;
-  const digits = t.replace(/\D/g, "");
+  const digits = t.replace(/\D/g, "").replace(/^5930/, "593");
   return digits.length >= 8 && digits.length <= 15 && digits[0] !== "0" ? digits : null;
 }
 
@@ -38,6 +43,10 @@ export function parseCustomer(data: unknown): Customer {
 
 export const EMAIL_REQUIRED = "Escribe tu correo: con él descargas tus fotos digitales.";
 
+/** CU6: el recordatorio solo tiene sentido antes de la hora limite (despues el pedido se anula). */
+export const canRemind = (o: { status?: unknown; expiresAt?: { toMillis(): number } } | undefined, nowMs: number): boolean =>
+  !!o && o.status === "pendiente_pago" && typeof o.expiresAt?.toMillis === "function" && o.expiresAt.toMillis() > nowMs;
+
 /** CU7: solo se anula lo que sigue pendiente de pago y ya vencio. Lo pagado (o cualquier otro estado) nunca. */
 export const shouldExpire = (o: { status?: unknown; expiresAt?: { toMillis(): number } } | undefined, nowMs: number): boolean =>
   !!o && o.status === "pendiente_pago" && typeof o.expiresAt?.toMillis === "function" && o.expiresAt.toMillis() <= nowMs;
@@ -48,11 +57,6 @@ export function maskPhone(digits: unknown): string {
   return d.length < 6 ? "•••" : `+${d.slice(0, 3)} ••• ••• ${d.slice(-3)}`;
 }
 
-/** "a•••@gmail.com": primera letra y dominio. */
-export function maskEmail(email: unknown): string {
-  const [user, domain] = String(email ?? "").split("@");
-  return user && domain ? `${user[0]}•••@${domain}` : "";
-}
 
 type Millis = { toMillis(): number } | undefined;
 export interface PublicOrder {
@@ -60,14 +64,15 @@ export interface PublicOrder {
   lines: { productName: string; quantity: number; unitPrice: number }[];
   packs: { name: string; times: number; price: number }[];
   createdAt: number | null; expiresAt: number | null;
-  customer: { name: string; phone: string; email: string };
+  /** Solo el telefono enmascarado: ni nombre ni correo salen por esta vista publica. */
+  customer: { phone: string };
   /** Hay fotos digitales: la pagina ofrece Mis descargas cuando el pedido esta pagado. */
   hasDigital: boolean;
 }
 
 /** CU9: lo que /pedido/:number puede mostrar a quien tiene el numero: estado, total, lineas, plazo y contacto enmascarado. */
 export function publicOrder(d: Record<string, unknown>): PublicOrder {
-  const contact = (d.customer ?? d.buyer ?? {}) as { name?: string; phone?: string; email?: string };
+  const contact = (d.customer ?? d.buyer ?? {}) as { phone?: string };
   const lines = Array.isArray(d.lines) ? d.lines as { productId: string; kind?: string; productName: string; quantity: number; unitPrice: number }[] : [];
   const packs = Array.isArray(d.packs) ? d.packs as { name: string; times: number; price: number }[] : [];
   const ms = (v: unknown) => (typeof (v as Millis)?.toMillis === "function" ? (v as { toMillis(): number }).toMillis() : null);
@@ -80,7 +85,7 @@ export function publicOrder(d: Record<string, unknown>): PublicOrder {
     packs: packs.map((p) => ({ name: p.name, times: p.times, price: p.price })),
     createdAt: ms(d.createdAt),
     expiresAt: d.status === "pendiente_pago" ? ms(d.expiresAt) : null,
-    customer: { name: String(contact.name ?? "").split(/\s+/)[0] ?? "", phone: contact.phone ? maskPhone(contact.phone) : "", email: maskEmail(contact.email) },
+    customer: { phone: contact.phone ? maskPhone(contact.phone) : "" },
     hasDigital: lines.some((l) => isDigitalLine(l)),
   };
 }

@@ -13,7 +13,8 @@ export const WHATSAPP_PHONE_ERROR = 'Escribe un número válido con código de p
 export function normalizePhone(input: unknown): string | null {
   const t = String(input ?? '').trim()
   if (!/^\+?[\d\s-]+$/.test(t)) return null
-  const digits = t.replace(/\D/g, '')
+  // Ecuador: el 0 de discado nacional escrito despues del codigo ("+593 099...") se quita; wa.me no lo acepta.
+  const digits = t.replace(/\D/g, '').replace(/^5930/, '593')
   return digits.length >= 8 && digits.length <= 15 && digits[0] !== '0' ? digits : null
 }
 

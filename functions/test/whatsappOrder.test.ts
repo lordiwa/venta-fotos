@@ -2,8 +2,10 @@
 import { describe, it, expect } from "vitest";
 import { Timestamp } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
-import { advanceOrderTx, createWhatsappOrder, expireDueOrders } from "../src/whatsappOrders";
-import { maskEmail, maskPhone, normalizePhone, ORDER_RATE_MAX, ORDER_TTL_MS, parseCustomer, publicOrder, shouldExpire } from "../src/whatsappOrderLogic";
+import { advanceOrderTx, createWhatsappOrder, expireDueOrders, markReminderSent } from "../src/whatsappOrders";
+import {
+  maskPhone, normalizePhone, ORDER_RATE_MAX_PER_IP, ORDER_RATE_MAX_PER_PHONE, ORDER_RATE_WINDOW_MS, ORDER_TTL_MS, parseCustomer, publicOrder, shouldExpire,
+} from "../src/whatsappOrderLogic";
 import { normalizePhone as clientNormalizePhone } from "../../src/whatsappLogic";
 import { REMINDER_AFTER_MS } from "../../src/ordersLogic";
 
@@ -90,23 +92,41 @@ describe("pedido por WhatsApp", () => {
     expect(() => parseCustomer({ name: "", phone: "+593998565995" })).toThrow();
     for (const phone of ["0998565995", "abc", "+59", ""]) expect(() => parseCustomer({ name: "A", phone })).toThrow();
     expect(parseCustomer({ name: " A ", phone: "+593 99-856-5995" })).toEqual({ name: "A", phone: "593998565995" });
-    for (const v of ["+593998565995", "0998565995", "+1 (555) 123", "12-34 5678", undefined]) expect(normalizePhone(v)).toBe(clientNormalizePhone(v));
+    for (const v of ["+593998565995", "+593 099 856 5995", "5930998565995", "0998565995", "+1 (555) 123", "12-34 5678", undefined]) expect(normalizePhone(v)).toBe(clientNormalizePhone(v));
+    // M-1: el 0 de discado nacional despues del 593 se quita (wa.me no abre 5930...); solo uno, y solo tras el 593.
+    expect(normalizePhone("+593 099 856 5995")).toBe("593998565995");
+    expect(normalizePhone("+1 0555 123 4567")).toBe("105551234567");
     const now = Date.now();
     const noMail = { name: "Ana", phone: "+593998565995" };
     expect(await codeOf(createWhatsappOrder(memDb(catalog()).db, { lines: [line("p1", "digital")], customer: noMail }, "3.3.3.3", now))).toBe("invalid-argument");
     expect(await codeOf(createWhatsappOrder(memDb(catalog()).db, { lines: [line("p1", "a4")], customer: noMail }, "3.3.3.3", now))).toBe("none");
   });
 
-  // Previene: que un bot llene la coleccion de pedidos falsos desde una IP o con un mismo telefono.
-  it("CU10 limita los pedidos por IP y por telefono dentro de la ventana", async () => {
+  // Previene: que un bot llene la coleccion de pedidos falsos, sin bloquear a los asistentes que comparten la IP del operador
+  // ni gastar cupo con carritos invalidos o viejos.
+  it("CU10 limita por telefono (5) y por IP (20) en la ventana; un carrito rechazado no gasta cupo", async () => {
+    expect([ORDER_RATE_MAX_PER_PHONE, ORDER_RATE_MAX_PER_IP, ORDER_RATE_WINDOW_MS]).toEqual([5, 20, 10 * 60 * 1000]);
     const { db } = memDb(catalog());
     const now = Date.now();
-    const order = (ip: string, phone: string) => createWhatsappOrder(db, { lines: [line("p1", "a4")], customer: { name: "A", phone } }, ip, now);
-    for (let i = 0; i < ORDER_RATE_MAX; i++) await order("9.9.9.9", `+59399000000${i}`);
+    const order = (ip: string, phone: string, lines = [line("p1", "a4")]) => createWhatsappOrder(db, { lines, customer: { name: "A", phone } }, ip, now);
+    for (let i = 0; i < 10; i++) expect(await codeOf(order("6.6.6.6", "+593994444444", [line("oculta", "a4")]))).toBe("failed-precondition");
+    for (let i = 0; i < ORDER_RATE_MAX_PER_PHONE; i++) expect(await codeOf(order(`8.8.8.${i}`, "+593994444444"))).toBe("none");
+    expect(await codeOf(order("8.8.8.99", "+593994444444"))).toBe("resource-exhausted"); // mismo telefono
+    for (let i = 0; i < ORDER_RATE_MAX_PER_IP; i++) expect(await codeOf(order("9.9.9.9", `+5939900000${String(i).padStart(2, "0")}`))).toBe("none");
     expect(await codeOf(order("9.9.9.9", "+593991111111"))).toBe("resource-exhausted"); // misma IP
-    for (let i = 0; i < ORDER_RATE_MAX; i++) await order(`8.8.8.${i}`, "+593992222222");
-    expect(await codeOf(order("8.8.8.99", "+593992222222"))).toBe("resource-exhausted"); // mismo telefono
     expect(await codeOf(order("7.7.7.7", "+593993333333"))).toBe("none");
+  });
+
+  // Previene: mandar un recordatorio de pago de un pedido que ya vencio (el cliente paga y el pedido se anula igual).
+  it("CU6 markReminderSent solo antes de la hora limite y en pendiente_pago", async () => {
+    const now = Date.UTC(2026, 9, 22, 15);
+    const { db, docs } = memDb({
+      "orders/WA-V": { channel: "whatsapp", status: "pendiente_pago", expiresAt: Timestamp.fromMillis(now) },
+      "orders/WA-P": { channel: "whatsapp", status: "pendiente_pago", expiresAt: Timestamp.fromMillis(now + 1) },
+    });
+    expect(await codeOf(markReminderSent(db, "WA-V", "admin", now))).toBe("failed-precondition");
+    expect(docs.get("orders/WA-V")!.reminderSentAt).toBeUndefined();
+    expect(await markReminderSent(db, "WA-P", "admin", now)).toBe(now);
   });
 
   // Previene: anular un pedido ya pagado (cliente que pago y pierde su pedido) o anular dos veces.
@@ -147,11 +167,11 @@ describe("pedido por WhatsApp", () => {
       lines: [{ eventId: "e1", photoId: "p1", productId: "digital", kind: "digital", productName: "Digital", unitPrice: 10, quantity: 1 }],
     };
     const pub = publicOrder(base);
-    expect(pub).toMatchObject({ number: "ABCD2345", status: "pendiente_pago", total: 20, expiresAt: 2000, hasDigital: true, customer: { name: "Ana" } });
+    expect(pub).toMatchObject({ number: "ABCD2345", status: "pendiente_pago", total: 20, expiresAt: 2000, hasDigital: true, customer: { phone: "+593 ••• ••• 995" } });
     const json = JSON.stringify(pub);
-    for (const secret of ["593998565995", "998565995", "ana@mail.com", "Pérez", "p1", "e1"]) expect(json).not.toContain(secret);
+    expect(Object.keys(pub.customer)).toEqual(["phone"]); // M-3: ni nombre ni correo, ni siquiera enmascarados
+    for (const secret of ["593998565995", "998565995", "ana", "Ana", "mail.com", "Pérez", "p1", "e1"]) expect(json).not.toContain(secret);
     expect(maskPhone("593998565995")).toBe("+593 ••• ••• 995");
-    expect(maskEmail("ana@mail.com")).toBe("a•••@mail.com");
     expect(publicOrder({ ...base, status: "anulado" }).expiresAt).toBeNull();
   });
 });

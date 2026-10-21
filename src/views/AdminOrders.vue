@@ -4,7 +4,7 @@ import PhotoThumb from '../components/PhotoThumb.vue'
 import { listEvents } from '../eventsApi'
 import { advanceOrder, getPhoto, listOrders, markOrderReminder } from '../ordersApi'
 import {
-  ACTION_LABEL, allowedTransitions, filterOrders, needsReminder, orderTab, packSavings, searchOrders, STATUS_LABEL, tabStatuses, timeLeftText,
+  ACTION_LABEL, allowedTransitions, canRemind, filterOrders, needsReminder, orderTab, packSavings, searchOrders, STATUS_LABEL, tabStatuses, timeLeftText,
   type OrderFilters, type OrderRow, type OrderTab,
 } from '../ordersLogic'
 import { formatMoney } from '../productsLogic'
@@ -47,7 +47,8 @@ const counts = computed(() => ({
 const shown = computed(() => searchOrders(filterOrders(orders.value.filter((o) => orderTab(o.status) === tab.value), filters.value), search.value))
 const open = computed(() => orders.value.find((o) => o.id === openId.value) ?? null)
 const eventName = (id: string) => events.value.find((e) => e.id === id)?.name ?? id
-const dateText = (d: Date | null) => (d ? d.toLocaleString('es') : '—')
+// Hora de la tienda (Ecuador), igual que deadlineText, aunque el admin abra el panel con otra zona horaria.
+const dateText = (d: Date | null) => (d ? d.toLocaleString('es-EC', { timeZone: 'America/Guayaquil' }) : '—')
 const deliveryText = (o: OrderRow) => (!o.delivery ? 'WhatsApp' : o.delivery.method === 'envio' ? 'Envío' : 'Retiro')
 const actionLabel = (s: OrderStatus) => ACTION_LABEL[s] ?? `Marcar como ${STATUS_LABEL[s]}`
 const TABS: OrderTab[] = ['activos', 'historial']
@@ -227,7 +228,7 @@ async function remind(o: OrderRow) {
               <dd>Hasta el {{ deadlineText(open.expiresAt.getTime()) }}<br><span class="muted">{{ timeLeftText(open.expiresAt, now) }}</span></dd>
             </div>
           </dl>
-          <div v-if="open.status === 'pendiente_pago' && open.channel === 'whatsapp' && open.buyer.phone" class="foot">
+          <div v-if="canRemind(open, now) && open.channel === 'whatsapp' && open.buyer.phone" class="foot">
             <Button type="button" :variant="needsReminder(open, now) ? 'accent' : 'secondary'" icon="externo" :disabled="busy" @click="remind(open)">Enviar recordatorio</Button>
             <small v-if="open.reminderSentAt" class="caption muted">Recordatorio enviado el {{ dateText(open.reminderSentAt) }}</small>
           </div>
