@@ -68,11 +68,12 @@ export function photoChangeAffectsCover(before: CoverPhoto, after: CoverPhoto): 
 /**
  * Archivos de covers/{eventId}/ a borrar: nunca la portada vigente (coverPath y la de coverPhotoId, releidos despues
  * de listar). Quien llama borra con ifGenerationMatch del listado, asi un archivo regenerado despues no se toca (M-1).
- * `drop`: archivo de una foto que ya no puede ser portada (oculta, no lista): se borra aunque siga elegida.
+ * `drop`: archivo de una foto que ya no puede ser portada (oculta, no lista): se borra aunque siga elegida, salvo que
+ * coverPath releido vuelva a apuntarle (la mostraron y otra invocacion ya la regenero y publico: M-5).
  */
 export function coversToDelete(files: { name: string }[], eventId: string, doc: CoverFields | null, drop?: string): string[] {
   const keep = new Set<unknown>([doc?.coverPath]);
   if (validId(doc?.coverPhotoId)) keep.add(coverFilePath(eventId, doc.coverPhotoId));
-  if (drop) keep.delete(drop);
+  if (drop && doc?.coverPath !== drop) keep.delete(drop);
   return files.filter((f) => !keep.has(f.name)).map((f) => f.name);
 }

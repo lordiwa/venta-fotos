@@ -13,8 +13,12 @@ const readCover = async (ref: DocumentReference) => {
 
 /** Borra un archivo solo si sigue siendo la generacion indicada; si alguien lo regenero (o ya no existe), no se toca. */
 async function deleteGeneration(bucket: Bucket, name: string, generation: unknown) {
+  if (generation === undefined || generation === null) {
+    logger.warn("cover.sync: sin generation, no se borra (nunca incondicional)", { name }); // L-7
+    return;
+  }
   try {
-    await bucket.file(name).delete(generation !== undefined ? { ifGenerationMatch: Number(generation) } : { ignoreNotFound: true });
+    await bucket.file(name).delete({ ifGenerationMatch: Number(generation) });
   } catch (e) {
     const code = (e as { code?: number }).code;
     if (code !== 404 && code !== 412) throw e; // 412: regenerado despues del listado; 404: ya borrado
@@ -43,6 +47,7 @@ const photoData = (s: { exists: boolean; data(): unknown }) => (s.exists ? (s.da
 export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, after: CoverFields | null, recheck = false): Promise<string> {
   if (!recheck && planCover(eventId, after).kind === "none") return "none";
   const ref = db.doc(`events/${eventId}`);
+  let saved: { path: string; generation: unknown } | undefined; // L-5: lo guardado y aun no publicado
   try {
     const doc = await readCover(ref);
     let plan: CoverPlan = planCover(eventId, doc);
@@ -86,6 +91,7 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
     const out = bucket.file(plan.path);
     await out.save(await makeCover(original), { contentType: "image/jpeg", resumable: false });
     const generation = out.metadata.generation;
+    saved = { path: plan.path, generation };
     // R-2: la foto se relee DENTRO de la transaccion; si la ocultaron mientras se generaba, no se publica.
     const written = await db.runTransaction(async (tx) => {
       const [cur, p] = await Promise.all([tx.get(ref), tx.get(photoRef)]);
@@ -94,6 +100,7 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
       tx.update(ref, { coverPath: plan.path });
       return true;
     });
+    saved = undefined;
     if (written) {
       await cleanupCovers(ref, bucket, eventId);
     } else {
@@ -104,6 +111,7 @@ export async function syncCover(db: Firestore, bucket: Bucket, eventId: string, 
     return written ? "generated" : "superseded";
   } catch (e) {
     logger.error("cover.sync failed", { eventId, error: String(e) });
+    if (saved) await deleteGeneration(bucket, saved.path, saved.generation).catch(() => undefined);
     return "error";
   }
 }

@@ -43,7 +43,9 @@ describe("planCover (TASK-028)", () => {
     expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/b.jpg" })).toEqual(["covers/e/c.jpg"]);
     expect(coversToDelete(files, "e", { coverPhotoId: "a" })).toEqual(["covers/e/b.jpg", "covers/e/c.jpg"]);
     expect(coversToDelete(files, "e", null)).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
-    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/a.jpg" }, "covers/e/a.jpg")).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
+    expect(coversToDelete(files, "e", { coverPhotoId: "a" }, "covers/e/a.jpg")).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
+    // M-5: drop no borra la portada si coverPath releido vuelve a apuntarle (la mostraron y ya se regenero)
+    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/a.jpg" }, "covers/e/a.jpg")).toEqual(["covers/e/b.jpg", "covers/e/c.jpg"]);
   });
 });
 

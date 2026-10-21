@@ -15,7 +15,7 @@ function fakes() {
   const files = new Map<string, { gen: number; buf: Buffer }>();
   let clock = 1;
   let gen = 1;
-  const hooks: { beforeGet?: Hook; beforeSave?: Hook } = {};
+  const hooks: { beforeGet?: Hook; beforeSave?: Hook; beforeList?: Hook } = {};
   const once = async (k: keyof typeof hooks, name: string) => { const h = hooks[k]; if (h) await h(name); };
 
   const isDelete = (v: unknown) => v instanceof FieldValue && v.isEqual(FieldValue.delete());
@@ -33,10 +33,7 @@ function fakes() {
   const ref = (path: string) => ({
     path,
     get: async () => { await once("beforeGet", path); return snap(path); },
-    update: async (patch: Data, pre?: { lastUpdateTime?: { t: number } }) => {
-      if (pre?.lastUpdateTime && pre.lastUpdateTime.t !== docs.get(path)?.t) throw new Error("FAILED_PRECONDITION");
-      write(path, patch);
-    },
+    update: async (patch: Data) => write(path, patch),
   });
   const db = {
     doc: ref,
@@ -70,9 +67,9 @@ function fakes() {
   };
   const bucket = {
     file,
-    getFiles: async ({ prefix }: { prefix: string }) => [
+    getFiles: async ({ prefix }: { prefix: string }) => { await once("beforeList", prefix); return [
       [...files.entries()].filter(([n]) => n.startsWith(prefix)).map(([n, v]) => ({ ...file(n), metadata: { generation: String(v.gen) } })),
-    ],
+    ]; },
   };
   const set = (path: string, data: Data) => docs.set(path, { data: { ...data }, t: ++clock });
   return { db: db as unknown as Firestore, bucket: bucket as unknown as Bucket, docs, files, hooks, set, write };
@@ -124,5 +121,21 @@ describe("syncCover orquestacion (TASK-028)", () => {
     await syncCoverForPhoto(f.db, f.bucket, "e", "p", visible, hidden);
     expect(f.docs.get("events/e")!.data.coverPath).toBeUndefined();
     expect(f.files.has("covers/e/p.jpg")).toBe(false);
+  });
+
+  // Previene (M-5): que ocultar y volver a mostrar la portada deje coverPath apuntando a un archivo borrado para
+  // siempre (la limpieza del retiro listaba y borraba la portada que el disparo de "mostrar" acababa de publicar).
+  it("ocultar y mostrar en seguida: la portada regenerada sobrevive a la limpieza del retiro", async () => {
+    const f = seed({ coverPhotoId: "p", coverPath: "covers/e/p.jpg" });
+    f.files.set("covers/e/p.jpg", { gen: 50, buf: jpeg });
+    f.write("events/e/photos/p", { visible: false });
+    f.hooks.beforeList = async () => {
+      f.hooks.beforeList = undefined; // el retiro (B) ya quito coverPath; antes de listar, el admin la muestra (C)
+      f.write("events/e/photos/p", { visible: true });
+      await syncCoverForPhoto(f.db, f.bucket, "e", "p", hidden, visible);
+    };
+    await syncCoverForPhoto(f.db, f.bucket, "e", "p", visible, hidden);
+    expect(f.docs.get("events/e")!.data.coverPath).toBe("covers/e/p.jpg");
+    expect(f.files.has("covers/e/p.jpg")).toBe(true);
   });
 });
