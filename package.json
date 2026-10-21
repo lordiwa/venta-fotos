@@ -15,6 +15,7 @@
     "emulators": "npm run build:functions && npx --no-install firebase emulators:start --only auth,functions,firestore,storage --project demo-venta-fotos",
     "set-admin": "node scripts/set-admin.mjs",
     "backfill:covers": "node scripts/backfill-covers.mjs",
+    "backfill:webp": "npm run build:functions && node scripts/backfill-webp.mjs",
     "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {

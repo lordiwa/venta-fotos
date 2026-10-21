@@ -1,7 +1,7 @@
 // Uso: node scripts/backfill-covers.mjs [--prod]   (emulador: FIRESTORE_EMULATOR_HOST=127.0.0.1:8080)
 // TASK-028: re-dispara syncEventCover en los eventos con portada elegida pero sin su portada dedicada, con UNA sola
 // escritura que no toca coverPhotoId: coverPath ausente -> null; coverPath ajeno -> se borra. En ambos casos planCover
-// ve que no corresponde y genera covers/{id}/{foto}.jpg. Admin SDK: no lo frenan las reglas (que impiden al cliente tocar coverPath).
+// ve que no corresponde y genera covers/{id}/{foto}.{hash}.webp. Admin SDK: no lo frenan las reglas (que impiden al cliente tocar coverPath).
 import { initializeApp, applicationDefault } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 
@@ -19,7 +19,9 @@ const db = getFirestore()
 let n = 0
 for (const d of (await db.collection('events').get()).docs) {
   const { coverPhotoId, coverPath } = d.data()
-  if (typeof coverPhotoId !== 'string' || !coverPhotoId || coverPath === `covers/${d.id}/${coverPhotoId}.jpg`) continue
+  // TASK-033: la portada vigente es covers/{id}/{foto}.{hash}.webp; el .jpg viejo lo convierte backfill:webp.
+  const pre = `covers/${d.id}/${coverPhotoId}.`
+  if (typeof coverPhotoId !== 'string' || !coverPhotoId || (typeof coverPath === 'string' && coverPath.startsWith(pre) && /^([0-9a-f]{12}\.webp|jpg)$/.test(coverPath.slice(pre.length)))) continue
   await d.ref.update({ coverPath: coverPath === undefined ? null : FieldValue.delete() })
   console.log(`Portada re-disparada: events/${d.id} (foto ${coverPhotoId})`)
   n++
