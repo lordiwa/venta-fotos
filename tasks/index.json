@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T12:30:08.886Z",
+  "generated_at": "2026-10-21T14:41:31.151Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -138,6 +138,18 @@
       "title": "Zoom con dos dedos en el visor de fotos en móviles",
       "status": "in_review",
       "priority": "medium"
+    },
+    {
+      "key": "TASK-032",
+      "title": "Links de \"Eventos\" llevan a la lista de eventos y /eventos existe",
+      "status": "done",
+      "priority": "medium"
+    },
+    {
+      "key": "TASK-033",
+      "title": "Miniaturas, vistas previas y portada en WebP con caché",
+      "status": "done",
+      "priority": "high"
     }
   ]
 }

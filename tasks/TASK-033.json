@@ -1,0 +1,81 @@
+{
+  "key": "TASK-033",
+  "title": "Miniaturas, vistas previas y portada en WebP con caché",
+  "description": "Pedido del humano (2026-10-21): \"Testeo en mobile y los thumbs y el header no cargan. Hazlos webp para optimizar la carga\".\n\nLa causa de que no carguen es otra y se resuelve aparte: a los visitantes anónimos les falta el permiso de IAM roles/firebaserules.firestoreServiceAgent sobre el service agent de Storage, así que Storage les responde 403. Aun así el humano pidió WebP para optimizar.\n\nEstado hoy:\n- miniatura: 400px, JPEG q80, unos 16 KB;\n- vista previa: 1600px, JPEG q78, unos 253 KB;\n- portada: 1920px, JPEG q82, unos 276 KB;\n- ningún archivo tiene Cache-Control;\n- cada miniatura llama a getDownloadURL (una petición de metadatos de unos 600 ms) antes de descargar.",
+  "acceptance_criteria": [
+    "processPhoto genera miniatura y vista previa en WebP (image/webp, extensión .webp), manteniendo tamaños y marca de agua; syncCover genera la portada en WebP.",
+    "Los derivados se suben con Cache-Control público de larga duración, seguro frente a regeneraciones (nombre de archivo nuevo o versionado si el contenido puede cambiar).",
+    "Script de backfill idempotente que convierte las fotos existentes (501 del evento Taikai y cualquier otro), actualiza thumbPath/previewPath/coverPath en Firestore y borra los JPEG viejos solo después de actualizar el documento; con modo --dry-run.",
+    "La limpieza de archivos (cleanupPhotoFiles, borrado de fotos y portadas) sigue funcionando con las rutas nuevas y las viejas.",
+    "El frontend no cambia de contrato (sigue usando las rutas guardadas); las imágenes cargan en la galería, visor, portada, carrito y admin.",
+    "Tests de la generación WebP y del plan del backfill; tests y build existentes pasan."
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "functions",
+    "performance"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "0372773",
+    "1464d4b",
+    "60c3e42",
+    "6f292d9"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T13:47:25.875Z",
+      "body": "Use cases (P-1): the acceptance criteria are the list derived from the human's explicit request of 2026-10-21, \"Hazlos webp para optimizar la carga\".\n\nRoot cause of the mobile load failure, fixed separately: the Storage service agent lacked the IAM role roles/firebaserules.firestoreServiceAgent. The human granted it. Verified as an anonymous visitor: 1002/1002 thumbs and previews return 200, and originals return 403.\n\nReview of 0372773 and 1464d4b: REQUEST-CHANGES.\n- [FINDING-HIGH R-1]: the backfill can run before the Functions deploy.\n- R-2, R-3, R-4 MEDIUM; R-6 LOW.\n- All sent back to the developer.\n\nNote: 0372773 and 1464d4b were pushed to origin together with a docs commit before the review. Not deployed."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T14:01:08.562Z",
+      "body": "Re-revisión de 60c3e42 y 6f292d9: APPROVE del código.\n\nHallazgos corregidos:\n- [FINDING-RESOLVED: R-1] --prod exige --functions-deployed; el orden está documentado en el script y en deploy-prod.\n- R-2, R-3 (no se borra nada si la transacción se rechaza), R-4, R-5 y R-6: resueltos.\n- R-7 a R-10 y R-12: LOW, no bloqueantes.\n\n[WARGAMING] Se atacaron estos caminos:\n- AC1: formato y tamaño de los tres derivados, y portada con EXIF rotado.\n- AC2: regenerar con el mismo contenido y con contenido distinto, cambio de marca de agua, republicar el mismo hash en simultáneo.\n- AC3: segunda corrida, efectos de dry-run, falla de descarga, accept rechazado, carrera con un reproceso, corrida antes del deploy, barrido con fotos ocultas o no listas, --prod ausente, variables de emulador mezcladas, --event sin valor.\n- AC4: borrado con .jpg más varias versiones webp, ids con el mismo prefijo, retiro de portada.\n- AC5: portada .jpg heredada, portada webp, path traversal, frontend viejo.\n- AC6: cobertura de tests.\n\nTras las correcciones sobreviven todos. Quedan archivos webp huérfanos (R-3 por diseño, R-7, R-8), que solo cuestan almacenamiento.\n\n[FINDING-HIGH: P-1] Pendiente: que el humano apruebe la lista de casos de uso, que son los AC del ticket.\n\nSiguiente: el humano corre el deploy de functions (el clasificador lo bloqueó para el orquestador); después el orquestador corre el --dry-run, y la corrida real solo con confirmación del humano."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T14:02:35.781Z",
+      "body": "[FINDING-RESOLVED: P-1] El humano aprobó la lista de casos de uso el 2026-10-21 (\"ok\").\n\nCondición que agregó: \"la versión final que descarga el cliente debe ser a full calidad y tamaño\".\n\nComprobado en el código:\n- getDownloadLinks (functions/src/downloads.ts:69) firma la URL de originalPath, el original sin tocar.\n- TASK-033 solo cambia los derivados públicos (thumbs, previews, covers).\n- El backfill lee originals/ y nunca los reescribe ni los borra.\n- El único borrado de originals sigue siendo el de eliminar la foto (deletePhotoFiles)."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T14:40:51.081Z",
+      "body": "[WARGAMING] Review in a fresh context, transcribed by the orchestrator.\n\nRound 1 (0372773, 1464d4b): REQUEST-CHANGES.\n- R-1 HIGH: the backfill could run before the Functions deploy.\n- R-2, R-3, R-4 MEDIUM.\n- R-6 LOW.\n\nRound 2 (60c3e42, 6f292d9): APPROVE. R-1 to R-6 resolved; R-3 is correct without ifGenerationMatch.\n\nPaths attacked:\n- AC1: format/size/EXIF.\n- AC2: same/different content, concurrent hash.\n- AC3: dry-run, prod and event guards, races, sweep.\n- AC4: prefix deletion.\n- AC5: legacy jpg, traversal.\n- AC6: tests.\n\nAll survive after the fixes. Tests: functions 43/43, frontend 89/89, integration 3/3."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T14:41:22.520Z",
+      "body": "1. CASOS DE USO APROBADOS\nAprobados por el humano el 2026-10-21 (\"ok\"), con la condición de que la descarga del cliente sea el original, a calidad y tamaño completos.\n- CU1: miniatura, vista previa y portada en WebP, con los mismos tamaños y la marca de agua.\n- CU2: Cache-Control largo, seguro ante regeneraciones.\n- CU3: backfill idempotente con --dry-run, que borra los JPEG solo después de actualizar el documento.\n- CU4: la limpieza funciona con las rutas viejas y con las nuevas.\n- CU5: el frontend no cambia de contrato.\n- CU6: tests y build en verde.\n\n2. RESULTADO\nCommits 0372773, 1464d4b, 60c3e42 y 6f292d9.\n- Deploy de functions (lo corrió el humano) y de hosting.\n- Backfill: 501 fotos convertidas, 0 errores, 1 portada regenerada. El segundo dry-run dio 0 pendientes.\n- 1003 de 1003 archivos verificados como anónimo: image/webp, immutable de 1 año.\n- Pesos: miniatura de 16 a 11 KB, vista previa de 253 a 127 KB, portada de 276 a 120 KB.\n- La descarga sigue usando originalPath.\n\n3. WARGAMING\n- CU1: formato, tamaño y EXIF. Sobrevive.\n- CU2: mismo contenido, contenido distinto y el mismo hash en simultáneo. Sobrevive.\n- CU3: segunda corrida, dry-run, accept rechazado, carrera con un reproceso, corrida antes del deploy, --event sin valor y barrido de fotos ocultas. Fallaba en R-1, R-3, R-4 y R-6; corregido en 60c3e42 y sobrevive.\n- CU4: jpg más varias versiones webp, ids con prefijo compartido, retiro de la portada. Sobrevive.\n- CU5: jpg heredado, path traversal, frontend viejo. Sobrevive.\n- CU6: tests; R-5 agregado. Sobrevive.\nRe-revisión: APPROVE.\n\n4. UAT\nPASS: el orquestador probó en producción a 390px. La portada WebP carga, las 501 de 501 miniaturas WebP cargan sin ninguna rota, y la vista previa WebP de 1600px se ve en el visor."
+    }
+  ],
+  "created_at": "2026-10-21T13:27:07.683Z",
+  "updated_at": "2026-10-21T14:41:22.520Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T14:41:22.520Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "0372773",
+        "state": "verified"
+      },
+      {
+        "sha": "1464d4b",
+        "state": "verified"
+      },
+      {
+        "sha": "60c3e42",
+        "state": "verified"
+      },
+      {
+        "sha": "6f292d9",
+        "state": "verified"
+      }
+    ]
+  }
+}

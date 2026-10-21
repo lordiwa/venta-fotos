@@ -1,0 +1,65 @@
+{
+  "key": "TASK-032",
+  "title": "Links de \"Eventos\" llevan a la lista de eventos y /eventos existe",
+  "description": "Pedido del humano (2026-10-21): \"arreglá esos links, todo tiene que estar perfecto\". El orquestador recorrió en vivo los 14 links internos del sitio y todos abren su página. Fallan tres:\n- \"Eventos\" del menú superior (TopBar.vue) apunta a \"/\", igual que el logo, y deja al usuario arriba del todo en el hero.\n- La URL /eventos muestra NotFound.\n- El link \"← Eventos\" de EventGallery.vue vuelve a \"/\" y no a la lista.",
+  "acceptance_criteria": [
+    "El encabezado \"Eventos\" de HomeView tiene un ancla estable (id=\"eventos\").",
+    "El link \"Eventos\" del menú superior lleva a la lista de eventos del inicio (/#eventos): hace scroll hasta esa sección, tanto desde otra página como estando ya en el inicio.",
+    "El link \"← Eventos\" de la galería lleva a la lista de eventos (/#eventos).",
+    "La URL /eventos (y /eventos/) redirige a /#eventos en lugar de mostrar \"Página no encontrada\".",
+    "El router tiene scrollBehavior: ancla con hash → hace scroll al elemento (compensando la barra superior fija si la hay); posición guardada al volver atrás; arriba en las demás navegaciones. Abrir o cerrar el visor de foto (/eventos/:id/fotos/:photoId) NO debe mover la galería.",
+    "Tests de la redirección y del scrollBehavior; los tests y el build existentes siguen pasando."
+  ],
+  "status": "done",
+  "priority": "medium",
+  "labels": [
+    "frontend"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "28b2657",
+    "d3f5a92",
+    "1e3347c",
+    "5ef15ae"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T14:40:51.144Z",
+      "body": "[WARGAMING] Fresh-context review of 28b2657 and d3f5a92, transcribed by the orchestrator: APPROVE, with no HIGH or MEDIUM findings. LOW findings: the cart links and the matchMedia test, both resolved in 1e3347c.\n\nPaths attacked:\n- AC2: the four TopBar entry points, including a duplicate navigation (vue-router 5.3.1 re-triggers scroll).\n- AC3: \"← Eventos\" with the viewer open.\n- AC4: the /eventos redirect variants; it does not shadow /eventos/:id.\n- AC5: viewer push/replace/back; moving between events; cart and back; direct load and refresh; reduced motion.\n- AC6: vitest 89/89.\n\nAll survive."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T14:41:31.151Z",
+      "body": "1. CASOS DE USO APROBADOS\nDerivados del pedido del humano del 2026-10-21:\n- CU1: ancla id=eventos.\n- CU2: el link Eventos del menú lleva a la lista, desde otra página y desde el inicio.\n- CU3: el link ← Eventos de la galería.\n- CU4: /eventos redirige a /#eventos.\n- CU5: scrollBehavior; el visor no mueve la galería.\n- CU6: tests.\n\n2. RESULTADO\nCommits 28b2657, d3f5a92, 1e3347c y 5ef15ae, desplegados en hosting.\n\n3. WARGAMING\nCaminos alternativos y de fallo atacados:\n- CU2: desde la galería, desde el carrito, desde / y desde /#eventos (navegación duplicada). Sobrevive.\n- CU3: con el visor abierto, y después atrás. Sobrevive.\n- CU4: /eventos/, /eventos/e1, /Eventos y /admin/eventos. Sobrevive.\n- CU5: abrir, recorrer y cerrar el visor; ir a otro evento; carga directa; refresh; reduced-motion. La carga directa fallaba en vivo; se corrigió en 5ef15ae y sobrevive.\n- CU1 y CU6: sobreviven.\n\n4. UAT\nUAT no solicitado: el orquestador lo verificó en producción a 390px y CU2 a CU5 dan PASS."
+    }
+  ],
+  "created_at": "2026-10-21T13:12:52.575Z",
+  "updated_at": "2026-10-21T14:41:31.151Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T14:41:31.151Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "28b2657",
+        "state": "verified"
+      },
+      {
+        "sha": "d3f5a92",
+        "state": "verified"
+      },
+      {
+        "sha": "1e3347c",
+        "state": "verified"
+      },
+      {
+        "sha": "5ef15ae",
+        "state": "verified"
+      }
+    ]
+  }
+}
