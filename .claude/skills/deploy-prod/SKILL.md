@@ -49,10 +49,11 @@ apagado (TASK-027: sin ese id la tienda queda en modo WhatsApp y /checkout redir
 3. Deploy filtrado:
 
 ```
-npm run build:functions && npx firebase deploy --only functions:processPhoto,functions:cleanupPhotoFiles,functions:getDownloadLinks,functions:advanceOrder,functions:syncEventCover --project venta-fotos-estudio --force
+npm run build:functions && npx firebase deploy --only functions:processPhoto,functions:cleanupPhotoFiles,functions:getDownloadLinks,functions:advanceOrder,functions:syncEventCover,functions:syncPhotoCover --project venta-fotos-estudio --force
 ```
 
-`syncEventCover` (TASK-028) genera la portada dedicada `covers/{eventId}/{photoId}.jpg` al escribirse un evento.
+`syncEventCover` (TASK-028) genera la portada dedicada `covers/{eventId}/{photoId}.jpg` al escribirse un evento;
+`syncPhotoCover` la regenera o la retira cuando la foto de portada cambia (ocultar/mostrar, reprocesar).
 Se exporta siempre (no depende de PayPal).
 
 ## Reglas
@@ -75,7 +76,7 @@ O el admin re-elige la portada (elegir otra foto y volver a la original), o:
 GCLOUD_PROJECT=venta-fotos-estudio GOOGLE_CLOUD_QUOTA_PROJECT=venta-fotos-estudio npm run backfill:covers -- --prod
 ```
 
-Idempotente: solo toca eventos cuya `coverPath` no corresponde a su `coverPhotoId`.
+Idempotente, una sola escritura por evento (`coverPath` a null o borrado; nunca toca `coverPhotoId`): solo eventos cuya `coverPath` no corresponde a su `coverPhotoId`.
 
 Región: southamerica-east1. Bucket de Storage: `venta-fotos-estudio.firebasestorage.app`.
 

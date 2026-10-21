@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
-import { planCover } from "../src/coverLogic";
+import { coverSource, coversToDelete, photoChangeAffectsCover, planCover } from "../src/coverLogic";
+import { parseOriginalPath } from "../src/process";
 import { makeCover } from "../src/image";
 
 describe("planCover (TASK-028)", () => {
@@ -14,6 +15,33 @@ describe("planCover (TASK-028)", () => {
     expect(planCover("e", { name: "sin portada" } as object)).toEqual({ kind: "none" });
     expect(planCover("e", null)).toEqual({ kind: "purge" });
     expect(planCover("e", { coverPhotoId: "../x/y" })).toEqual({ kind: "none" }); // id con "/" no se usa como ruta
+    // backfill de una sola escritura: coverPath null (ausente) o borrado -> genera sin perder coverPhotoId
+    expect(planCover("e", { coverPhotoId: "p1", coverPath: null })).toEqual({ kind: "generate", photoId: "p1", path: "covers/e/p1.jpg" });
+  });
+
+  // Previene: que una foto OCULTA (o no lista, o con un original ajeno) acabe publicada como portada de 1920px sin marca (R-1).
+  it("solo una foto visible, lista y con su propio original puede ser portada; ocultarla o mostrarla re-dispara", () => {
+    const ok = { status: "ready", visible: true, originalPath: "originals/e/p1.jpg" };
+    expect(coverSource(ok, "e", "p1", parseOriginalPath)).toBe("originals/e/p1.jpg");
+    expect(coverSource({ ...ok, visible: false }, "e", "p1", parseOriginalPath)).toBeNull();
+    expect(coverSource({ ...ok, status: "processing" }, "e", "p1", parseOriginalPath)).toBeNull();
+    expect(coverSource({ ...ok, originalPath: "originals/otro/p1.jpg" }, "e", "p1", parseOriginalPath)).toBeNull();
+    expect(coverSource(null, "e", "p1", parseOriginalPath)).toBeNull();
+    expect(photoChangeAffectsCover(ok, { ...ok, visible: false })).toBe(true);
+    expect(photoChangeAffectsCover(ok, { ...ok })).toBe(false);
+  });
+
+  // Previene: que la limpieza de una invocacion borre la portada vigente que otra acaba de generar (A->B->A, M-1).
+  it("la limpieza nunca borra la portada vigente ni lo creado tras empezar; si borra la de una foto retirada", () => {
+    const files = [
+      { name: "covers/e/a.jpg", timeCreatedMs: 100 },
+      { name: "covers/e/b.jpg", timeCreatedMs: 100 },
+      { name: "covers/e/c.jpg", timeCreatedMs: 500 },
+    ];
+    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/b.jpg" }, 200)).toEqual([]);
+    expect(coversToDelete(files, "e", { coverPhotoId: "a" }, 200)).toEqual(["covers/e/b.jpg"]);
+    expect(coversToDelete(files, "e", null, 1000)).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
+    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/a.jpg" }, 200, "covers/e/a.jpg")).toEqual(["covers/e/a.jpg", "covers/e/b.jpg"]);
   });
 });
 

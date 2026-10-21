@@ -1,6 +1,7 @@
 // Uso: node scripts/backfill-covers.mjs [--prod]   (emulador: FIRESTORE_EMULATOR_HOST=127.0.0.1:8080)
-// TASK-028: re-dispara syncEventCover en los eventos con portada elegida pero sin su portada dedicada. Quita y vuelve
-// a poner coverPhotoId (lo mismo que re-elegir la portada en el admin); la Function genera covers/{id}/{foto}.jpg.
+// TASK-028: re-dispara syncEventCover en los eventos con portada elegida pero sin su portada dedicada, con UNA sola
+// escritura que no toca coverPhotoId: coverPath ausente -> null; coverPath ajeno -> se borra. En ambos casos planCover
+// ve que no corresponde y genera covers/{id}/{foto}.jpg. Admin SDK: no lo frenan las reglas (que impiden al cliente tocar coverPath).
 import { initializeApp, applicationDefault } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 
@@ -19,8 +20,7 @@ let n = 0
 for (const d of (await db.collection('events').get()).docs) {
   const { coverPhotoId, coverPath } = d.data()
   if (typeof coverPhotoId !== 'string' || !coverPhotoId || coverPath === `covers/${d.id}/${coverPhotoId}.jpg`) continue
-  await d.ref.update({ coverPhotoId: FieldValue.delete() })
-  await d.ref.update({ coverPhotoId })
+  await d.ref.update({ coverPath: coverPath === undefined ? null : FieldValue.delete() })
   console.log(`Portada re-disparada: events/${d.id} (foto ${coverPhotoId})`)
   n++
 }

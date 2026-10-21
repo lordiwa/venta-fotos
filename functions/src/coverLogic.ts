@@ -32,3 +32,36 @@ export function planCover(eventId: string, doc: CoverFields | null): CoverPlan {
   const path = coverFilePath(eventId, doc.coverPhotoId);
   return doc.coverPath === path ? { kind: "none" } : { kind: "generate", photoId: doc.coverPhotoId, path };
 }
+
+export interface CoverPhoto {
+  status?: unknown;
+  visible?: unknown;
+  originalPath?: unknown;
+}
+
+/**
+ * Ruta del original desde la que se puede generar la portada, o null si la foto no sirve: no existe, no esta lista,
+ * esta OCULTA (una foto oculta nunca debe acabar publica en 1920px sin marca) o su originalPath no es el suyo.
+ */
+export function coverSource(photo: CoverPhoto | null, eventId: string, photoId: string, parse: (p: string) => { eventId: string; photoId: string } | null): string | null {
+  if (!photo || photo.status !== "ready" || photo.visible !== true || typeof photo.originalPath !== "string") return null;
+  const ids = parse(photo.originalPath);
+  return ids && ids.eventId === eventId && ids.photoId === photoId ? photo.originalPath : null;
+}
+
+/** Un cambio de la foto que puede cambiar su portada (ocultar/mostrar, reprocesar, reemplazar el original). */
+export function photoChangeAffectsCover(before: CoverPhoto, after: CoverPhoto): boolean {
+  return before.visible !== after.visible || before.status !== after.status || before.originalPath !== after.originalPath;
+}
+
+/**
+ * Archivos de covers/{eventId}/ a borrar. Nunca la portada vigente (coverPath y la de coverPhotoId, releidos justo
+ * antes de llamar), ni un archivo creado despues de empezar la limpieza (otra invocacion lo acaba de generar).
+ * `drop`: archivo de una foto que ya no puede ser portada (oculta, no lista): se borra aunque siga elegida.
+ */
+export function coversToDelete(files: { name: string; timeCreatedMs: number }[], eventId: string, doc: CoverFields | null, startedMs: number, drop?: string): string[] {
+  const keep = new Set<unknown>([doc?.coverPath]);
+  if (validId(doc?.coverPhotoId)) keep.add(coverFilePath(eventId, doc.coverPhotoId));
+  if (drop) keep.delete(drop);
+  return files.filter((f) => f.name === drop || (!keep.has(f.name) && f.timeCreatedMs < startedMs)).map((f) => f.name);
+}

@@ -6,7 +6,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { defineInt, defineSecret, defineString } from "firebase-functions/params";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
-import { onDocumentDeleted, onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { assertSimulationAllowed, CheckoutError, CheckoutSnapshot, classifyCapture, extractCapture } from "./checkout";
 import { getDownloadLinks as buildDownloadLinks } from "./downloads";
 import { clientIp, ttlDays } from "./downloadsLogic";
@@ -14,7 +14,7 @@ import { AdvanceError, isAdmin, planAdvance } from "./orderStatus";
 import { computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
 import { capturePaypalOrder, createPaypalOrder } from "./paypal";
 import { deletePhotoFiles, processOriginal } from "./process";
-import { syncCover } from "./cover";
+import { syncCover, syncCoverForPhoto } from "./cover";
 
 admin.initializeApp();
 
@@ -166,7 +166,15 @@ export const cleanupPhotoFiles = onDocumentDeleted("events/{eventId}/photos/{pho
  * events/{id} escrito -> reconcilia covers/{id}/{coverPhotoId}.jpg (1920px, sin marca) y el campo coverPath.
  * Escribe en el mismo documento que la dispara: planCover devuelve "none" cuando coverPath ya corresponde (sin bucle).
  */
-export const syncEventCover = onDocumentWritten({ document: "events/{eventId}", memory: "2GiB", timeoutSeconds: 300 }, async (event) => {
+export const syncEventCover = onDocumentWritten({ document: "events/{eventId}", memory: "1GiB", timeoutSeconds: 300 }, async (event) => {
   const after = event.data?.after;
   await syncCover(admin.firestore(), admin.storage().bucket(), event.params.eventId, after?.exists ? after.data() ?? null : null);
+});
+
+/** Foto actualizada: si es la portada y cambia visible/status/originalPath, se regenera o se retira (ocultarla la saca de la portada). */
+export const syncPhotoCover = onDocumentUpdated({ document: "events/{eventId}/photos/{photoId}", memory: "1GiB", timeoutSeconds: 300 }, async (event) => {
+  const { eventId, photoId } = event.params;
+  const before = event.data?.before.data() ?? {};
+  const after = event.data?.after.data() ?? {};
+  await syncCoverForPhoto(admin.firestore(), admin.storage().bucket(), eventId, photoId, before, after);
 });
