@@ -2,12 +2,12 @@
   "schema_version": 2,
   "session_id": "20261021T184806Z-092f4211",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-21T18:48:06.391Z",
+  "updated_at": "2026-10-21T18:50:47.472Z",
   "previous_session_id": "20261003T184652Z-bda20da3",
-  "active_task": "TASK-038",
-  "workflow_step": "update",
-  "handoff_summary": "2026-10-21: TASK-038 pasó a marca al 20% (5061906, logo-dark-3). Review fresco aprobó el código; el humano aprobó la muestra (\"dale si\"). Functions desplegadas desde worktree limpio scratchpad/deploy038 (Deploy complete). Backfill webp real lanzado por el humano. TASK-037 (pedidos WhatsApp) quedó a medias SIN commit en el working tree: backend + APIs del front hechos; faltan formulario del carrito, pestañas Activos/Historial + recordatorio en admin, /pedido/:number enmascarado y tests (CU11). PayPal apagado.",
-  "next_action": "1) Confirmar que el backfill terminó sin errores (dry-run debe dar 0 por regenerar) y verificar como anónimo una vista previa al 20%; cerrar TASK-038 (falta comentario [WARGAMING] del reviewer, linked_commits 72be55c+5061906, in_review). 2) Lanzar developer para terminar TASK-037 sobre el working tree, luego review fresco (usar model opus: Fable sin créditos).",
+  "active_task": "TASK-037",
+  "workflow_step": "implement",
+  "handoff_summary": "2026-10-21: TASK-038 CERRADO (marca al 20%, logo-dark-3, desplegado, backfill 485 OK, verificado anónimo; cc7c075). TASK-037 (pedidos WhatsApp) a medias SIN commit en el working tree: backend + APIs del front hechos; faltan formulario del carrito, pestañas Activos/Historial + recordatorio en admin, /pedido/:number enmascarado y tests (CU11). El humano compartió C:/Users/srpar/Downloads/CVMRPhoto2025.pdf (CV/portafolio de Mauricio Reinoso), propósito sin aclarar. PayPal apagado.",
+  "next_action": "1) Preguntar al humano qué hacer con el PDF del fotógrafo. 2) Lanzar developer (model opus) para terminar TASK-037 sobre el working tree; review fresco; deploy de functions nuevas + índices + reglas + hosting; UAT en el teléfono.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
