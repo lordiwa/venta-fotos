@@ -1,0 +1,38 @@
+{
+  "key": "TASK-037",
+  "title": "Pedidos por WhatsApp registrados, panel de activos, recordatorio a las 12 h y anulación a las 24 h",
+  "description": "Decisiones del humano del 2026-10-21:\n- PayPal queda apagado.\n- Todos los pedidos van por WhatsApp, y se necesita un espacio en el admin para ver los pedidos activos.\n- El plazo máximo de pago es de 24 h; pasado ese tiempo el pedido se anula solo.\n- A las 12 h se le recuerda al cliente por WhatsApp. Opción elegida, \"solo mensaje de whatsapp\": un botón en el panel que abre WhatsApp con el chat del cliente y el mensaje ya escrito. La WhatsApp Business API queda descartada por costo.\n\nLo que ya existe:\n- /admin/pedidos (AdminOrders) con estados y advanceOrder, y la lista de impresión.\n- getDownloadLinks: el cliente descarga con número de pedido y correo.\n- createOrder y captureOrder de PayPal, que no se exportan con PAYPAL_ENABLED=false.\n- Las reglas de orders dejan leer solo al admin y no dejan escribir a nadie desde el cliente.\n- En modo WhatsApp, hoy CartView arma el mensaje con wa.me y no registra nada.",
+  "acceptance_criteria": [
+    "CU1: En el carrito (modo WhatsApp), antes de \"Pedir por WhatsApp\" el cliente completa nombre y número de WhatsApp (obligatorios, validados con código de país) y correo (obligatorio solo si hay fotos digitales). Se crea el pedido vía una Function callable y se abre WhatsApp (misma pestaña en móvil, TASK-036) con el detalle, el total, el número de pedido y el link /pedido/:number.",
+    "CU2: El servidor recalcula líneas y total desde el catálogo activo (con paquetes, printOnly, fotos visibles/listas), igual que el carrito; el total del cliente no se usa. Se rechaza un carrito vacío o inválido.",
+    "CU3: El pedido queda en Firestore con estado pendiente_pago, createdAt y expiresAt (=createdAt+24 h). El admin lo ve en Pedidos → Activos con número, cliente, teléfono, correo, líneas, paquetes, total y tiempo restante.",
+    "CU4: El admin avanza el estado: pendiente_pago → pagado → en_preparacion → entregado, o cancela (pendiente_pago/pagado → cancelado). Transiciones validadas en el servidor (advanceOrder) y solo por admin.",
+    "CU5: Al pasar a pagado, el cliente puede descargar sus fotos digitales en Mis descargas con número + correo; las impresas aparecen en la lista de impresión. Pedidos pendiente_pago, cancelados o anulados no dan descargas ni aparecen en la lista de impresión.",
+    "CU6: A las 12 h sin pago el pedido aparece marcado \"recordar pago\" en Activos; el botón \"Enviar recordatorio\" abre WhatsApp al número del cliente con un mensaje escrito (nombre, número de pedido, total, hora límite y link al pedido). Se registra que se envió el recordatorio (reminderSentAt).",
+    "CU7: Una Function programada anula automáticamente (estado anulado) los pedidos en pendiente_pago con expiresAt vencido; idempotente; un pedido ya pagado nunca se anula. Si el admin marca pagado al mismo tiempo, gana la transacción que vea el estado real.",
+    "CU8: Activos (pendiente_pago, pagado, en_preparacion) e Historial (entregado, cancelado, anulado) separados; el admin puede filtrar/buscar por número o nombre.",
+    "CU9: /pedido/:number muestra al cliente el estado del pedido, el total y, si está pendiente, la hora límite de pago; si se anuló, lo dice. No expone el teléfono ni el correo completos.",
+    "CU10: Anti-abuso: límite de pedidos por IP real y por teléfono en una ventana corta; validación de tamaño de carrito.",
+    "CU11: Tests de la lógica (cálculo, transiciones, vencimiento, recordatorio, mensaje) y de reglas; build y tests pasan."
+  ],
+  "status": "todo",
+  "priority": "high",
+  "labels": [
+    "frontend",
+    "functions"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T16:43:07.506Z",
+      "body": "Casos de uso aprobados por el humano el 2026-10-21. Partimos de la lista de 8 casos que propuso el orquestador y el humano respondió \"ok\", con dos cambios:\n- El plazo de pago es de 24 h; pasado ese tiempo, el pedido se anula solo.\n- El recordatorio sale a las 12 h y solo por WhatsApp. Lo envía el admin con un botón en el panel.\n\nPara mandar el recordatorio hace falta el teléfono del cliente. El correo sigue siendo obligatorio, pero solo cuando el pedido tiene fotos digitales, porque las descargas se validan con el correo."
+    }
+  ],
+  "created_at": "2026-10-21T16:42:39.384Z",
+  "updated_at": "2026-10-21T16:43:07.506Z",
+  "jira_key": null
+}

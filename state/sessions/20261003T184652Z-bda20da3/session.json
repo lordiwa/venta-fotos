@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-21T09:57:54.019Z",
+  "updated_at": "2026-10-21T16:49:42.187Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
-  "next_action": "Humano: crear paquetes 3/5/10 y tamanos impresos en Productos; probar carrito y pedido WhatsApp en movil. Luego cerrar TASK-025 y UAT de TASK-022/023/024. Backlog: tests getPaypalOrder/alreadyPaid antes de activar PayPal; L-8 deletePhoto atomico; carrito recarga catalogo antes de WhatsApp.",
-  "handoff_summary": "2026-10-21: TASK-029 (paquetes digitales automaticos por evento) y TASK-030 (foto solo impresion) cerrados y desplegados (functions, reglas, hosting); verificado en vivo. Quien ya pago conserva la descarga si la foto pasa a printOnly. Antes: TASK-028 portada 1920px y hotfix admin movil. Evento Taikai con 501 fotos. Productos: solo Archivo digital 3.00, sin impresiones ni paquetes creados. TASK-025 sigue in_review.",
+  "next_action": "Recibir los hand-offs de los developers de TASK-038 y TASK-037; review en contexto fresco; humano despliega functions; backfill de marca 35% con dry-run y OK; UAT de pedidos.",
+  "handoff_summary": "2026-10-21: TASK-031..036 cerrados (zoom, links Eventos, WebP+cache, texto paquetes, logo marca de agua, WhatsApp misma pestana). Precios 5/12/20. IAM firestoreServiceAgent concedido. PayPal apagado (cuenta personal, sin Business). En curso: TASK-038 (marca 35%) y TASK-037 (pedidos WhatsApp registrados, recordatorio 12h por boton, anulacion 24h). Ver HANDOFF.md.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"

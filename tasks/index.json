@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T16:22:08.763Z",
+  "generated_at": "2026-10-21T16:48:01.158Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -167,6 +167,18 @@
       "key": "TASK-036",
       "title": "El botón de WhatsApp abre el chat en la app del celular",
       "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-037",
+      "title": "Pedidos por WhatsApp registrados, panel de activos, recordatorio a las 12 h y anulación a las 24 h",
+      "status": "todo",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-038",
+      "title": "Marca de agua al 35% de opacidad",
+      "status": "todo",
       "priority": "high"
     }
   ]
