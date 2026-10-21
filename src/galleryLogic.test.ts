@@ -26,6 +26,8 @@ describe('galleryLogic', () => {
     expect(swipeAction(-60, 120, { multi: false, scale: 1 })).toBeNull()
     expect(swipeAction(-80, 5, { multi: true, scale: 1 })).toBeNull()
     expect(swipeAction(-80, 5, { multi: false, scale: 1.5 })).toBeNull()
+    expect(swipeAction(-80, 5, { multi: false, scale: 1.005 })).toBe('next') // tolerancia de redondeo
+    expect(swipeAction(-80, 5, { multi: false, scale: 1.02 })).toBeNull()
   })
   // Prevents: links compartidos rotos por ids con caracteres especiales.
   it('photoPath arma la URL compartible y escapa ids', () => {
