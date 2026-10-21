@@ -24,6 +24,11 @@ export function swipeDirection(dx: number, dy: number): 'next' | 'prev' | null {
   if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return null
   return dx < 0 ? 'next' : 'prev'
 }
+/** Un gesto cambia de foto solo con un dedo y sin la pagina ampliada (pinch-zoom): ahi el dedo mueve la imagen. */
+export function swipeAction(dx: number, dy: number, g: { multi: boolean; scale?: number }): 'next' | 'prev' | null {
+  if (g.multi || (g.scale ?? 1) > 1.01) return null
+  return swipeDirection(dx, dy)
+}
 
 export const eventPath = (eventId: string) => `/eventos/${encodeURIComponent(eventId)}`
 export const photoPath = (eventId: string, photoId: string) => `${eventPath(eventId)}/fotos/${encodeURIComponent(photoId)}`

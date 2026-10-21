@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import { publicUrl } from '../photosApi'
 import PurchasePanel from './PurchasePanel.vue'
-import { swipeDirection } from '../galleryLogic'
+import { swipeAction } from '../galleryLogic'
 import { Icon } from '../ui'
 import type { Photo } from '../types'
 
@@ -42,8 +42,8 @@ let sx = 0, sy = 0
 let multi = false
 const start = (e: TouchEvent) => { multi = e.touches.length > 1; sx = e.touches[0].clientX; sy = e.touches[0].clientY }
 function end(e: TouchEvent) {
-  if (multi || e.touches.length) return // gestos multitactiles (zoom) no cambian de foto
-  const d = swipeDirection(e.changedTouches[0].clientX - sx, e.changedTouches[0].clientY - sy)
+  if (e.touches.length) return // aun quedan dedos apoyados: el gesto no termino
+  const d = swipeAction(e.changedTouches[0].clientX - sx, e.changedTouches[0].clientY - sy, { multi, scale: window.visualViewport?.scale })
   if (d === 'next' && props.hasNext) emit('next')
   else if (d === 'prev' && props.hasPrev) emit('prev')
 }
@@ -78,7 +78,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
 </template>
 
 <style scoped>
-.lb { position: fixed; inset: 0; background: var(--overlay); color: var(--on-rail); display: flex; flex-direction: column; z-index: 10; overflow-y: auto; touch-action: pan-y; }
+.lb { position: fixed; inset: 0; background: var(--overlay); color: var(--on-rail); display: flex; flex-direction: column; z-index: 10; overflow-y: auto; touch-action: pan-y pinch-zoom; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-6) 0; }
 .caption { color: var(--on-rail-muted); padding-left: var(--space-4); min-width: 0; overflow-wrap: anywhere; }
 .stage { flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-6); padding: var(--space-4) var(--space-6) var(--space-8); min-width: 0; }

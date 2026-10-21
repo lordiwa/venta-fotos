@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { galleryState, photoNav, photoPath, swipeDirection } from './galleryLogic'
+import { galleryState, photoNav, photoPath, swipeAction, swipeDirection } from './galleryLogic'
 
 describe('galleryLogic', () => {
   // Prevents: prev/next que se traba o salta en el limite de pagina de la cuadricula.
@@ -17,6 +17,15 @@ describe('galleryLogic', () => {
     expect(swipeDirection(80, 5)).toBe('prev')
     expect(swipeDirection(-20, 0)).toBeNull()
     expect(swipeDirection(-60, 120)).toBeNull()
+  })
+  // Prevents: que mover la foto ampliada con un dedo, o el pinch-zoom, salte a otra foto.
+  it('swipeAction no cambia de foto con varios dedos ni con la pagina ampliada', () => {
+    expect(swipeAction(-80, 5, { multi: false, scale: 1 })).toBe('next')
+    expect(swipeAction(80, 5, { multi: false })).toBe('prev')
+    expect(swipeAction(-20, 0, { multi: false, scale: 1 })).toBeNull()
+    expect(swipeAction(-60, 120, { multi: false, scale: 1 })).toBeNull()
+    expect(swipeAction(-80, 5, { multi: true, scale: 1 })).toBeNull()
+    expect(swipeAction(-80, 5, { multi: false, scale: 1.5 })).toBeNull()
   })
   // Prevents: links compartidos rotos por ids con caracteres especiales.
   it('photoPath arma la URL compartible y escapa ids', () => {
