@@ -15,7 +15,7 @@ export interface PackPricing<P> {
 
 export const MAX_PACK_QUANTITY = 100
 const toCents = (n: number) => Math.round(n * 100)
-const validPack = (p: PackLike): p is PackLike & { quantity: number } =>
+export const validPack = (p: PackLike): p is PackLike & { quantity: number } =>
   typeof p.quantity === 'number' && Number.isInteger(p.quantity) && p.quantity >= 2 && p.quantity <= MAX_PACK_QUANTITY && typeof p.price === 'number' && Number.isFinite(p.price) && p.price > 0
 
 /**

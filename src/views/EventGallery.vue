@@ -161,16 +161,16 @@ onBeforeUnmount(() => observer?.disconnect())
       </div>
     </section>
     <section v-if="packs && state === 'ready'" class="packs" aria-labelledby="packs-title">
-      <Eyebrow id="packs-title">Paquetes digitales</Eyebrow>
-      <ul class="packs-list">
-        <li class="pack"><span class="pack-qty">1 foto</span><span class="pack-price">{{ formatMoney(packs.unitPrice) }}</span></li>
+      <h2 id="packs-title" class="es-eyebrow packs-title">Paquetes digitales</h2>
+      <ul class="packs-list" role="list">
+        <li class="pack"><span class="pack-qty">1 foto</span><span class="sr">: </span><span class="pack-price">{{ formatMoney(packs.unitPrice) }}</span></li>
         <li v-for="r in packs.packs" :key="r.quantity" class="pack">
-          <span class="pack-qty">{{ r.quantity }} fotos</span><span class="pack-price">{{ formatMoney(r.price) }}</span>
+          <span class="pack-qty">{{ r.quantity }} fotos</span><span class="sr">: </span><span class="pack-price">{{ formatMoney(r.price) }}</span><span class="sr">, </span>
           <span class="pack-save">ahorras {{ formatMoney(r.savings) }}</span>
         </li>
       </ul>
       <p class="body-sm muted packs-note">
-        Elige tus fotos y agrégalas al carrito como archivo digital: el paquete se aplica solo y siempre pagas el precio más bajo combinando paquetes y fotos sueltas del mismo evento. Las copias impresas se cobran aparte.
+        Elige tus fotos y agrégalas al carrito como archivo digital: el paquete se aplica solo y siempre pagas el precio más bajo combinando paquetes y fotos sueltas del mismo evento. Las copias impresas se cobran aparte y las fotos de solo impresión no entran en los paquetes.
       </p>
     </section>
     <Alert v-if="failed" tone="danger" class="gap">
@@ -217,6 +217,8 @@ onBeforeUnmount(() => observer?.disconnect())
 .hero-meta { color: var(--on-rail-muted); }
 .gap { margin-bottom: var(--space-4); }
 .packs { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-6); padding: var(--space-5) var(--space-6); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); }
+.packs-title { margin: 0; font-weight: 400; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .packs-list { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .pack { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 14px; }
 .pack-qty { font-weight: 600; }
