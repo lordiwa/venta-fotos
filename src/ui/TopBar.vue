@@ -6,7 +6,7 @@ import Wordmark from './Wordmark.vue'
 export interface TopBarLink { label: string; to: string }
 
 const props = withDefaults(defineProps<{ links?: TopBarLink[]; cartCount?: number; homeTo?: string; cartTo?: string }>(), {
-  links: () => [{ label: 'Eventos', to: '/' }, { label: 'Mis descargas', to: '/descargas' }],
+  links: () => [{ label: 'Eventos', to: '/#eventos' }, { label: 'Mis descargas', to: '/descargas' }],
   cartCount: 0,
   homeTo: '/',
   cartTo: '/carrito',

@@ -31,7 +31,7 @@ onMounted(async () => {
   </section>
 
   <div class="list-head">
-    <h2 class="display-md">Eventos</h2>
+    <h2 id="eventos" class="display-md">Eventos</h2>
     <span v-if="events.length" class="mono-sm muted">{{ events.length }} {{ events.length === 1 ? 'evento publicado' : 'eventos publicados' }}</span>
   </div>
   <p v-if="loading" class="mono-sm muted">Cargando…</p>

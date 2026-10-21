@@ -144,7 +144,7 @@ onBeforeUnmount(() => observer?.disconnect())
       <div v-if="heroPath" class="hero-img"><PhotoThumb :path="heroPath" fill /></div>
       <div class="hero-shade" aria-hidden="true" />
       <div class="hero-body">
-        <RouterLink to="/" class="back"><Icon name="flecha-izquierda" :size="16" />Eventos</RouterLink>
+        <RouterLink to="/#eventos" class="back"><Icon name="flecha-izquierda" :size="16" />Eventos</RouterLink>
         <div class="hero-row">
           <div class="hero-title-box">
             <h1 class="display-lg hero-title">{{ event!.name }}</h1>

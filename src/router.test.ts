@@ -1,10 +1,10 @@
 // Prevents: ruta inexistente que deja pantalla en blanco en vez de la 404 del layout publico (UC1/UC2).
 import { afterEach, describe, it, expect, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { routes } from './router'
+import { routes, scrollBehavior } from './router'
 
 describe('router', () => {
-  afterEach(() => vi.unstubAllEnvs())
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
 
   it('resuelve / y /admin a layouts distintos y lo desconocido a not-found', () => {
     const router = createRouter({ history: createMemoryHistory(), routes })
@@ -39,6 +39,34 @@ describe('router', () => {
     expect(ph.name).toBe('event-photo')
     expect(ph.params).toMatchObject({ eventId: 'e1', photoId: 'p9' })
     expect(ph.matched.map((m) => m.name)).toContain('event')
+  })
+
+  // Daño: /eventos (link viejo o URL escrita) muestra "Página no encontrada" en vez de la lista; o tapa /eventos/:id.
+  it('/eventos y /eventos/ redirigen a /#eventos sin tapar /eventos/:id', async () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    for (const p of ['/eventos', '/eventos/']) {
+      await router.push(p)
+      expect(router.currentRoute.value).toMatchObject({ name: 'home', hash: '#eventos' })
+    }
+    expect(router.resolve('/eventos/e1').name).toBe('event')
+  })
+
+  // Daño: abrir/cerrar el visor salta la galeria arriba (se pierde la foto); el ancla #eventos no lleva a la lista; atras no restaura.
+  it('scrollBehavior: mismo evento no se mueve, atras restaura, ancla hace scroll, lo demas arriba', () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    const r = (p: string) => router.resolve(p) as Parameters<typeof scrollBehavior>[0]
+    const saved = { left: 0, top: 640 }
+    expect(scrollBehavior(r('/eventos/e1/fotos/p1'), r('/eventos/e1'), null)).toBe(false)
+    expect(scrollBehavior(r('/eventos/e1'), r('/eventos/e1/fotos/p1'), saved)).toBe(false)
+    expect(scrollBehavior(r('/eventos/e1/fotos/p2'), r('/eventos/e1/fotos/p1'), null)).toBe(false)
+    expect(scrollBehavior(r('/eventos/e2'), r('/eventos/e1'), null)).toEqual({ top: 0 })
+    expect(scrollBehavior(r('/'), r('/carrito'), saved)).toBe(saved)
+    expect(scrollBehavior(r('/#eventos'), r('/eventos/e1'), null)).toEqual({ el: '#eventos', behavior: 'auto' })
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce') }))
+    expect(scrollBehavior(r('/#eventos'), r('/#eventos'), null)).toMatchObject({ behavior: 'auto' })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    expect(scrollBehavior(r('/#eventos'), r('/#eventos'), null)).toMatchObject({ el: '#eventos', behavior: 'smooth' })
+    expect(scrollBehavior(r('/carrito'), r('/'), null)).toEqual({ top: 0 })
   })
 
   // Daño: el comprador sin PayPal llega a un /checkout roto ("PayPal no configurado") desde un enlace viejo o URL escrita.

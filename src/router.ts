@@ -1,4 +1,4 @@
-import type { RouteRecordRaw } from 'vue-router'
+import type { RouteLocationNormalized, RouteRecordRaw, RouterScrollBehavior } from 'vue-router'
 import { currentPaymentMode } from './paymentMode'
 
 export const routes: RouteRecordRaw[] = [
@@ -31,6 +31,7 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('./views/EventGallery.vue'),
         children: [{ path: 'fotos/:photoId', name: 'event-photo', component: { render: () => null } }],
       },
+      { path: 'eventos', redirect: { path: '/', hash: '#eventos' } },
       { path: 'carrito', name: 'cart', component: () => import('./views/CartView.vue') },
       { path: 'checkout', name: 'checkout', beforeEnter: () => (currentPaymentMode() === 'whatsapp' ? { name: 'cart' } : true), component: () => import('./views/CheckoutView.vue') },
       { path: 'descargas', name: 'downloads', component: () => import('./views/DescargasView.vue') },
@@ -39,3 +40,15 @@ export const routes: RouteRecordRaw[] = [
     ],
   },
 ]
+
+const inEvent = (r: RouteLocationNormalized) => r.matched.some((m) => m.name === 'event')
+const smooth = () => (typeof matchMedia === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto')
+
+// Abrir/cerrar/pasar fotos del mismo evento no mueve la galeria; atras restaura; ancla hace scroll; lo demas va arriba.
+// Un click al ancla en la que ya se esta tambien pasa por aqui: vue-router re-dispara el scroll en la navegacion duplicada.
+export const scrollBehavior: RouterScrollBehavior = (to, from, saved) => {
+  if (inEvent(to) && inEvent(from) && to.params.eventId === from.params.eventId) return false
+  if (saved) return saved
+  if (to.hash) return { el: to.hash, behavior: smooth() }
+  return { top: 0 }
+}
