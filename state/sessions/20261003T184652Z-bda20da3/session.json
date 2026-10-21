@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-21T04:36:18.156Z",
+  "updated_at": "2026-10-21T09:57:54.019Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
-  "next_action": "Humano: cargar tamanos impresos si los vende y probar pedido por WhatsApp en movil. Luego cerrar TASK-025 (decision R-1 + UAT) y UAT de TASK-022/023/024. Backlog posible: deletePhoto atomico (L-8), refresco en vivo de portada en admin, miniaturas de fotos ocultas legibles por ruta.",
-  "handoff_summary": "2026-10-20: TASK-028 cerrado y desplegado. Portada dedicada 1920px sin marca: Functions syncEventCover y syncPhotoCover (retry solo transitorio), reglas storage covers/ y firestore coverPath, hosting; backfill corrido sobre el evento Taikai; portada verificada nitida en vivo. 5 rondas de review (R-1, R-2 HIGH y M-5..M-8 resueltos). Antes: hotfix admin movil (2f2ebcc+aad9070) desplegado y verificado. El humano subio 124 fotos al evento. Productos: solo Archivo digital 3.00. TASK-025 sigue in_review (R-1 alt, R-2 UAT).",
+  "next_action": "Humano: crear paquetes 3/5/10 y tamanos impresos en Productos; probar carrito y pedido WhatsApp en movil. Luego cerrar TASK-025 y UAT de TASK-022/023/024. Backlog: tests getPaypalOrder/alreadyPaid antes de activar PayPal; L-8 deletePhoto atomico; carrito recarga catalogo antes de WhatsApp.",
+  "handoff_summary": "2026-10-21: TASK-029 (paquetes digitales automaticos por evento) y TASK-030 (foto solo impresion) cerrados y desplegados (functions, reglas, hosting); verificado en vivo. Quien ya pago conserva la descarga si la foto pasa a printOnly. Antes: TASK-028 portada 1920px y hotfix admin movil. Evento Taikai con 501 fotos. Productos: solo Archivo digital 3.00, sin impresiones ni paquetes creados. TASK-025 sigue in_review.",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
@@ -72,6 +72,11 @@
       "at": "2026-10-21T04:36:18.156Z",
       "decision": "TASK-028: portada dedicada de 1920px sin marca solo para la foto elegida; nunca de una foto oculta o no lista",
       "rationale": "Eleccion del humano: Portada dedicada (Recomendado), 2026-10-20"
+    },
+    {
+      "at": "2026-10-21T09:57:54.019Z",
+      "decision": "Paquetes digitales automaticos en carrito por evento (TASK-029); printOnly por foto (TASK-030); printOnly solo afecta ventas nuevas, quien ya pago conserva la descarga",
+      "rationale": "Elecciones del humano 2026-10-20/21"
     }
   ],
   "subagent_results": [

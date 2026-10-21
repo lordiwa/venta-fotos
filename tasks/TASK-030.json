@@ -1,0 +1,68 @@
+{
+  "key": "TASK-030",
+  "title": "Foto marcada como solo impresión",
+  "description": "Decisión del humano (2026-10-20): en el admin del evento cada foto tiene un interruptor \"Solo impresión\". Esa foto no ofrece archivo digital (ni suelto ni en paquete) en la tienda, el carrito, WhatsApp ni el servidor.",
+  "acceptance_criteria": [
+    "En AdminEventDetail cada foto tiene un interruptor \"Solo impresión\" que persiste en Firestore (campo printOnly en la foto).",
+    "En la tienda (lightbox/PurchasePanel) una foto printOnly solo ofrece productos de impresión; si no hay impresiones activas, se indica que no está disponible.",
+    "El carrito descarta o marca como no disponible cualquier línea digital de una foto printOnly (incluida una ya guardada antes de marcarla) y no la cuenta en paquetes.",
+    "El servidor (createOrder/captureOrder) rechaza líneas digitales de fotos printOnly y getDownloadLinks no entrega descargas de ellas.",
+    "Reglas de Firestore: solo el admin puede escribir printOnly; la lectura pública sigue igual.",
+    "Las fotos ya existentes sin el campo se tratan como printOnly=false."
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "frontend",
+    "functions"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "4e4e252",
+    "19f4389"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T04:40:36.267Z",
+      "body": "Casos de uso aprobados por el humano el 2026-10-20: eligió la opción \"Por foto\". Los criterios de aceptación del ticket son la lista de casos de uso aprobada."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T05:29:00.499Z",
+      "body": "Decisión del humano del 2026-10-21, a raíz del punto M-3 de la revisión: quien ya pagó el archivo digital conserva la descarga. \"Solo impresión\" se aplica únicamente a las ventas nuevas. Esto modifica el criterio de aceptación \"getDownloadLinks no entrega descargas de ellas\": ahora vale solo para pedidos que todavía no se hayan pagado."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T05:38:22.529Z",
+      "body": "[WARGAMING] Se atacaron los AC1 a AC6 de \"foto solo impresión\" por estos caminos:\n- abrir la foto en el lightbox\n- una línea digital guardada antes de marcar la foto\n- enviar directo la línea digital a createOrder\n- marcar la foto entre createOrder y la captura\n- reintentar una captura ya cobrada\n- llamar a getDownloadLinks después de marcarla\n- intentos de anon o usuario de escribir printOnly, y printOnly no booleano\n- escrituras del admin y de processPhoto\n- pedidos viejos sin kind\n\nResultado: todo PASA. La carrera de captura (M-2) se corrigió en 19f4389, consultando PayPal. Por decisión del humano, quien ya pagó conserva la descarga (M-3, 19f4389). Revisiones: APPROVE en 4e4e252 y APPROVE en la re-revisión de 19f4389, sin HIGH.\n\nPendiente, no bloqueante porque PayPal está apagado: falta un test de getPaypalOrder y del cableado de alreadyPaid en index.ts, y registrar logger.error si no se puede confirmar el cobro. Se deja para el ticket que active PayPal."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T05:41:02.803Z",
+      "body": "1. CASOS DE USO APROBADOS\nEl humano eligió el 2026-10-20 que la marca vaya \"Por foto\", y el 2026-10-21 que quien ya pagó conserve la descarga.\n- CU1: interruptor printOnly en cada foto del admin.\n- CU2: la tienda solo ofrece impresiones para esas fotos.\n- CU3: el carrito descarta la línea digital y no la cuenta en paquetes.\n- CU4: el servidor rechaza la venta digital nueva. getDownloadLinks entrega solo lo ya pagado.\n- CU5: solo el admin puede escribir printOnly.\n- CU6: si el campo falta, cuenta como false.\n\n2. RESULTADO\n- Commits 4e4e252 y 19f4389.\n- npm test 86/86, test:functions 36/36, reglas 19/19 e integración 3/3, estas dos en puertos aislados. Builds en verde.\n- Desplegado a producción el 2026-10-21: functions, reglas firestore y storage, y hosting.\n- Verificado en vivo: las 501 fotos del evento tienen el interruptor \"Solo impresión\", todas desmarcadas.\n- Pendiente sin bloqueo, porque PayPal está apagado: falta el test de getPaypalOrder y del cableado de alreadyPaid.\n\n3. WARGAMING\nCasos atacados: CU1 a CU6.\n- CU2: camino del lightbox.\n- CU3: camino de una línea vieja en el carrito.\n- CU4: camino directo a createOrder; marcar la foto entre la creación y la captura; camino de fallo en el reintento de una captura ya cobrada (M-2, corregido); getDownloadLinks después de marcar (M-3, decisión del humano).\n- CU5: escritura anónima o de usuario, y valor no booleano.\nTodo PASA y no hay hallazgos HIGH.\n\n4. UAT\nUAT no solicitado: el ticket es tests-after y no lleva requires_uat. El orquestador lo comprobó en vivo en producción."
+    }
+  ],
+  "created_at": "2026-10-21T04:40:11.652Z",
+  "updated_at": "2026-10-21T05:41:02.803Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "marker": "[EXPLICIT]",
+  "linked_commits_verification": {
+    "at": "2026-10-21T05:41:02.803Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "4e4e252",
+        "state": "verified"
+      },
+      {
+        "sha": "19f4389",
+        "state": "verified"
+      }
+    ]
+  }
+}

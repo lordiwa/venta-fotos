@@ -1,0 +1,70 @@
+{
+  "key": "TASK-029",
+  "title": "Paquetes de fotos digitales (3, 5, 10) con precio automático en carrito",
+  "description": "Decisión del humano (2026-10-20): el admin define paquetes de fotos digitales (cantidad N + precio, p.ej. 3, 5, 10). El cliente agrega fotos digitales como siempre y el carrito aplica automáticamente la combinación más barata de paquetes + sueltas, POR EVENTO (las fotos de eventos distintos no se combinan en un mismo paquete). El carrito, el mensaje de WhatsApp y el cálculo de total del servidor (createOrder/captureOrder, aunque PayPal esté apagado) deben coincidir.",
+  "acceptance_criteria": [
+    "En Productos el admin puede crear, editar, activar/desactivar y borrar paquetes digitales con cantidad (entero >= 2) y precio.",
+    "Por cada evento, el carrito agrupa las fotos digitales y calcula el precio mínimo combinando paquetes activos y fotos sueltas al precio del producto digital (p.ej. 7 fotos con paquetes 3/5/10 y suelta 3.00 -> el más barato posible).",
+    "El carrito muestra el desglose (\"Paquete 5 fotos digitales\" y sueltas) y el ahorro frente al precio suelto.",
+    "El mensaje de pedido por WhatsApp refleja paquetes, sueltas y total iguales a los del carrito.",
+    "El total que calcula el servidor para PayPal (functions) usa la misma lógica compartida y coincide con el carrito.",
+    "Fotos de eventos distintos nunca se combinan en un mismo paquete.",
+    "Sin paquetes activos el comportamiento es el actual."
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "frontend",
+    "functions",
+    "pricing"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [
+    "645f79a",
+    "36aa23d",
+    "b9ee93a"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T04:40:36.210Z",
+      "body": "Casos de uso aprobados por el humano el 2026-10-20, elegidos en la pregunta: el precio se aplica de forma \"Automática en el carrito\" y los paquetes son \"Solo del mismo evento\". Los criterios de aceptación del ticket son la lista de casos de uso aprobada."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T05:38:22.446Z",
+      "body": "[WARGAMING] Se atacaron los criterios AC1-AC7 de paquetes por evento. Los caminos probados fueron:\n- un paquete enviado como línea;\n- la misma foto duplicada para llenar un paquete;\n- mezclar eventos para completar un paquete;\n- un paquete desactivado con el carrito abierto;\n- priceAtAdd manipulado;\n- paquetes más caros que las fotos sueltas;\n- empates de precio;\n- una trampa voraz con 8 fotos y paquetes de 5 y 4;\n- 0, 1, -3, NaN, 100 y 1000 fotos;\n- dos paquetes con la misma quantity;\n- quantity 1, 101 o 2.5;\n- redondeo con céntimos;\n- comparación de totales entre carrito, WhatsApp y servidor.\n\nResultado: todo PASA, salvo el recibo sin la fila de ahorro (M-1), que se corrigió en b9ee93a. Revisión de 645f79a/36aa23d: APPROVE. Re-revisión de b9ee93a: APPROVE, sin HIGH."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T05:41:03.337Z",
+      "body": "1. CASOS DE USO APROBADOS\nEl humano lo aprobó el 2026-10-20 con dos condiciones: precio \"Automático en carrito\" y paquetes \"Solo mismo evento\".\n- CU1: el admin gestiona paquetes digitales.\n- CU2: el carrito aplica, por evento, la combinación de menor costo.\n- CU3: el carrito muestra el desglose y el ahorro.\n- CU4: WhatsApp muestra lo mismo que el carrito.\n- CU5: el servidor calcula el mismo total.\n- CU6: no se mezclan eventos.\n- CU7: sin paquetes, todo funciona como antes.\n\n2. RESULTADO\n- Commits: 645f79a, 36aa23d y b9ee93a.\n- Tests: npm test 86/86, test:functions 36/36, paridad en 300 casos, reglas 19/19 e integración 3/3 en puertos aislados. Builds en verde.\n- Recibo y AdminOrders con paquetes y fila de ahorro: listo en b9ee93a.\n- Desplegado en producción el 2026-10-21. Verificado en vivo: la sección \"Paquetes digitales\" aparece en Admin > Productos. El humano todavía no ha creado paquetes.\n- Pendiente (LOW): el carrito y WhatsApp pueden mostrar un ahorro desactualizado si se desactiva un paquete con el carrito abierto. El servidor calcula con los datos vigentes.\n\n3. WARGAMING\nCasos atacados del CU1 al CU7.\n- CU5: camino de un paquete enviado como línea, foto duplicada y priceAtAdd manipulado.\n- CU6: camino alternativo mezclando eventos.\n- CU2: trampa voraz, empates, paquetes más caros, entre 0 y 1000 fotos, y quantity no válida.\n- CU4: comparación de totales entre carrito, WhatsApp y servidor.\n- Camino de fallo del recibo sin ahorro (M-1), ya corregido.\nTodo PASA. No hay HIGH.\n\n4. UAT\nUAT no solicitado: el ticket es tests-after y no tiene requires_uat. El orquestador lo comprobó en vivo y el humano probará sus paquetes al crearlos."
+    }
+  ],
+  "created_at": "2026-10-21T04:40:11.603Z",
+  "updated_at": "2026-10-21T05:41:03.337Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "marker": "[EXPLICIT]",
+  "linked_commits_verification": {
+    "at": "2026-10-21T05:41:03.337Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "645f79a",
+        "state": "verified"
+      },
+      {
+        "sha": "36aa23d",
+        "state": "verified"
+      },
+      {
+        "sha": "b9ee93a",
+        "state": "verified"
+      }
+    ]
+  }
+}

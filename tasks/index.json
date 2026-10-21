@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T04:35:49.679Z",
+  "generated_at": "2026-10-21T05:41:03.337Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -118,6 +118,18 @@
     {
       "key": "TASK-028",
       "title": "Portada de evento dedicada en alta resolución sin marca",
+      "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-029",
+      "title": "Paquetes de fotos digitales (3, 5, 10) con precio automático en carrito",
+      "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-030",
+      "title": "Foto marcada como solo impresión",
       "status": "done",
       "priority": "high"
     }

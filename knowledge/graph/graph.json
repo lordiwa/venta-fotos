@@ -84,6 +84,18 @@
       "type": "task",
       "ref": "tasks/TASK-028.json",
       "label": "Portada de evento dedicada en alta resolución sin marca"
+    },
+    {
+      "id": "task-029",
+      "type": "task",
+      "ref": "tasks/TASK-029.json",
+      "label": "Paquetes de fotos digitales (3, 5, 10) con precio automático en carrito"
+    },
+    {
+      "id": "task-030",
+      "type": "task",
+      "ref": "tasks/TASK-030.json",
+      "label": "Foto marcada como solo impresión"
     }
   ],
   "edges": []
