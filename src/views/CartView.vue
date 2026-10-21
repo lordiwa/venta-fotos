@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { listActiveProducts } from '../productsApi'
 import { getPublicPhoto, getPublishedEvent } from '../publicApi'
 import { getSettings } from '../settingsApi'
-import { buildWhatsAppMessage, currentLinkEnv, resolveWhatsappDigits, whatsappFromCart, whatsappLinkAttrs, whatsappUrl, type WhatsAppLine } from '../whatsappLogic'
+import {
+  buildWhatsAppMessage, currentLinkEnv, CUSTOMER_KEY, customerPayload, orderLink, parseStoredCustomer, resolveWhatsappDigits, validateCustomer,
+  whatsappFromCart, whatsappLinkAttrs, whatsappOrderMessage, whatsappUrl, type WhatsAppLine,
+} from '../whatsappLogic'
+import { createWhatsappOrder, orderErrorMessage, whatsappOpener } from '../whatsappOrderApi'
 import { packBreakdown, reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { currentPaymentMode } from '../paymentMode'
 import { useCartStore } from '../stores/cart'
-import { Alert, Button, Card, Stepper } from '../ui'
+import { Alert, Button, Card, Field, Stepper } from '../ui'
 import type { Photo, Product } from '../types'
 
 const cart = useCartStore()
+const router = useRouter()
 const paypal = currentPaymentMode() === 'paypal'
 const products = ref<Product[]>([])
 const photos = ref<Record<string, PhotoAvailability>>({})
@@ -70,6 +76,49 @@ const whatsappHref = computed(() => {
   return whatsappUrl(whatsappDigits.value, msg)
 })
 
+// ---- TASK-037: el pedido por WhatsApp se registra en el servidor antes de abrir el chat ----
+
+const linkEnv = currentLinkEnv()
+const readStored = () => { try { return localStorage.getItem(CUSTOMER_KEY) } catch { return null } }
+// Se recuerdan nombre, WhatsApp y correo para el proximo pedido en este navegador.
+const customer = reactive(parseStoredCustomer(readStored()))
+watch(customer, (v) => { try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify(v)) } catch { /* sin almacenamiento */ } })
+const hasDigital = computed(() => view.value.lines.some((r) => r.counted && r.product?.kind === 'digital'))
+const customerErrors = computed(() => validateCustomer(customer, hasDigital.value))
+const submitted = ref(false)
+const shownErrors = computed(() => (submitted.value ? customerErrors.value : {}))
+const ordering = ref(false)
+const orderError = ref('')
+
+/** CU1: valida, crea el pedido (precio del servidor) y abre WhatsApp con el detalle, el total, el numero y el link. */
+async function orderByWhatsapp() {
+  submitted.value = true
+  orderError.value = ''
+  if (ordering.value || Object.keys(customerErrors.value).length) return
+  const lines = view.value.lines.filter((r) => r.counted).map((r) => ({ ...r.line, quantity: r.quantity }))
+  if (!lines.length) return
+  ordering.value = true
+  // En escritorio la pestaña se abre ya, dentro del clic; en movil se navega en la misma (TASK-036).
+  const opener = whatsappOpener(linkEnv)
+  try {
+    const created = await createWhatsappOrder(lines, customerPayload(customer, hasDigital.value))
+    const msg = whatsappOrderMessage(created, {
+      name: customer.name.trim(),
+      link: orderLink(window.location.origin, created.number),
+      eventName: (id) => eventNames.value[id],
+      photoName: (eventId, photoId) => photoNames.value[`${eventId}/${photoId}`] ?? photoId,
+    })
+    cart.clear() // el pedido ya existe: volver a pedir lo mismo crearia un duplicado
+    opener.go(whatsappUrl(whatsappDigits.value, msg))
+    if (whatsappLinkAttrs(linkEnv).target) await router.push({ name: 'order', params: { number: created.number } })
+  } catch (e) {
+    opener.cancel()
+    orderError.value = orderErrorMessage(e)
+  } finally {
+    ordering.value = false
+  }
+}
+
 /** TASK-029: desglose por evento de las digitales cobradas con paquetes (el resto del resumen va linea por linea). */
 const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.packs.length).map((g) => ({
   eventId: g.eventId, event: eventNames.value[g.eventId], items: packBreakdown(g), savings: g.pricing.savingsCents / 100,
@@ -97,8 +146,8 @@ const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.pack
         <Button variant="ghost" icon="quitar" @click="cart.remove(`${l.eventId}/${l.photoId}/${l.productId}`)">Quitar</Button>
       </li>
     </ul>
-    <p v-if="!paypal" class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
-    <Button :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
+    <!-- TASK-037: sin catalogo no se puede registrar el pedido; en modo WhatsApp solo queda reintentar. -->
+    <Button v-if="paypal" variant="secondary" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
   </template>
   <div v-else class="cols">
     <ul class="lines">
@@ -129,9 +178,17 @@ const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.pack
       </section>
       <p class="total"><strong>Total estimado:</strong> <span class="display-md amount">{{ formatMoney(view.total) }}</span></p>
       <p v-if="paypal" class="caption muted">El envío, si lo eliges, se suma al pagar.</p>
-      <p v-else class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp.</p>
+      <p v-else class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp. Tienes 24 h para pagar.</p>
       <Button v-if="paypal" variant="accent" size="lg" to="/checkout">Ir a pagar</Button>
-      <Button v-if="view.lines.some((r) => r.counted)" :variant="paypal ? 'secondary' : 'accent'" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
+      <Button v-if="paypal && view.lines.some((r) => r.counted)" variant="secondary" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
+      <form v-if="!paypal && view.lines.some((r) => r.counted)" class="customer" novalidate aria-label="Tus datos" @submit.prevent="orderByWhatsapp">
+        <Field v-model="customer.name" label="Nombre" autocomplete="name" :error="shownErrors.name" />
+        <Field v-model="customer.phone" label="WhatsApp" type="tel" inputmode="tel" autocomplete="tel" hint="Con código de país, ej. +593 99 856 5995" :error="shownErrors.phone" />
+        <!-- El correo solo se pide (y se guarda) si hay fotos digitales: las descargas se validan con el. -->
+        <Field v-if="hasDigital" v-model="customer.email" label="Correo" type="email" inputmode="email" autocomplete="email" hint="Con él descargas tus fotos digitales." :error="shownErrors.email" />
+        <Alert v-if="orderError" tone="danger">{{ orderError }}</Alert>
+        <Button type="submit" variant="accent" size="lg" :disabled="ordering">{{ ordering ? 'Registrando tu pedido…' : 'Pedir por WhatsApp' }}</Button>
+      </form>
       <RouterLink to="/#eventos" class="more">Seguir viendo fotos</RouterLink>
     </Card>
   </div>
@@ -160,6 +217,8 @@ const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.pack
 .total { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--line); }
 .amount { font-size: 30px; }
 .summary .caption { margin: 0; }
+.customer { display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+.customer > .es-btn { width: 100%; }
 .more { text-align: center; font-size: 14px; color: var(--ink-muted); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 @media (max-width: 720px) {
   .thumb { width: 96px; }
