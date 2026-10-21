@@ -52,7 +52,7 @@ apagado (TASK-027: sin ese id la tienda queda en modo WhatsApp y /checkout redir
 npm run build:functions && npx firebase deploy --only functions:processPhoto,functions:cleanupPhotoFiles,functions:getDownloadLinks,functions:advanceOrder,functions:syncEventCover,functions:syncPhotoCover --project venta-fotos-estudio --force
 ```
 
-`syncEventCover` (TASK-028) genera la portada dedicada `covers/{eventId}/{photoId}.jpg` al escribirse un evento;
+`syncEventCover` (TASK-028) genera la portada dedicada `covers/{eventId}/{photoId}.{hash}.webp` (TASK-033) al escribirse un evento;
 `syncPhotoCover` la regenera o la retira cuando la foto de portada cambia (ocultar/mostrar, reprocesar).
 Ambas llevan `retry: true` (TASK-028 M-7): un fallo de Firestore/Storage se relanza y Eventarc reintenta
 (hasta ~24 h). Un error que se repite aparece en los logs como `cover.sync failed, se reintenta`; un original
@@ -80,6 +80,28 @@ GCLOUD_PROJECT=venta-fotos-estudio GOOGLE_CLOUD_QUOTA_PROJECT=venta-fotos-estudi
 ```
 
 Idempotente, una sola escritura por evento (`coverPath` a null o borrado; nunca toca `coverPhotoId`): solo eventos cuya `coverPath` no corresponde a su `coverPhotoId`.
+
+## Backfill WebP (TASK-033)
+
+Desde TASK-033 miniaturas, vistas previas y portadas son `{id}.{hash}.webp` con Cache-Control de un año
+(`immutable`; el hash del contenido va en el nombre). Las fotos ya subidas siguen en `.jpg` hasta el backfill.
+El ORDEN es obligatorio: las Functions viejas siguen escribiendo y borrando `.jpg`, y un `syncEventCover` viejo
+desharía la portada webp.
+
+1. Desplegar las Functions (el deploy filtrado de arriba: processPhoto, cleanupPhotoFiles, syncEventCover,
+   syncPhotoCover, ...).
+2. Esperar a que termine el rollout (la CLI dice "Deploy complete!"; dar unos minutos para que mueran las
+   instancias viejas).
+3. Ensayo, no escribe nada:
+
+```
+GCLOUD_PROJECT=venta-fotos-estudio GOOGLE_CLOUD_QUOTA_PROJECT=venta-fotos-estudio npm run backfill:webp -- --prod --functions-deployed --dry-run
+```
+
+4. Corrida real (misma línea sin `--dry-run`; `--event <id>[,<id>]` para limitar a unos eventos). Idempotente:
+   si se corta, se vuelve a correr. Sale con código 1 si hubo errores (foto o portada); revisar las líneas `ERROR`.
+
+`--prod` sin `--functions-deployed` se niega a correr. ADC como rmatovelle84@gmail.com (ver Cuentas).
 
 Región: southamerica-east1. Bucket de Storage: `venta-fotos-estudio.firebasestorage.app`.
 
