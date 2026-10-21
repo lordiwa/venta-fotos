@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T18:50:29.312Z",
+  "generated_at": "2026-10-21T04:35:49.679Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -112,6 +112,12 @@
     {
       "key": "TASK-027",
       "title": "Modo sin pago en línea: WhatsApp como único canal y Functions sin secretos de PayPal",
+      "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-028",
+      "title": "Portada de evento dedicada en alta resolución sin marca",
       "status": "done",
       "priority": "high"
     }
