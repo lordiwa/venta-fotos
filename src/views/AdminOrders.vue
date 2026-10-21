@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { listEvents } from '../eventsApi'
-import { advanceOrder, getPhoto, listOrders } from '../ordersApi'
-import { filterOrders, nextStatus, packSavings, STATUS_LABEL, STATUSES, type OrderFilters, type OrderRow } from '../ordersLogic'
+import { advanceOrder, getPhoto, listOrders, markOrderReminder } from '../ordersApi'
+import {
+  ACTION_LABEL, allowedTransitions, filterOrders, needsReminder, orderTab, packSavings, searchOrders, STATUS_LABEL, tabStatuses, timeLeftText,
+  type OrderFilters, type OrderRow, type OrderTab,
+} from '../ordersLogic'
 import { formatMoney } from '../productsLogic'
+import { currentLinkEnv, deadlineText, orderLink, reminderMessage, whatsappUrl } from '../whatsappLogic'
+import { whatsappOpener } from '../whatsappOrderApi'
 import { Alert, Badge, Button, Field, OrderNumber } from '../ui'
-import type { Event } from '../types'
+import type { Event, OrderStatus } from '../types'
 
 const orders = ref<OrderRow[]>([])
 const events = ref<Event[]>([])
 const loading = ref(true)
 const loadError = ref(false)
 const filters = ref<OrderFilters>({ eventId: '', status: '', method: '' })
+// TASK-037 CU8: Activos (por cobrar, preparar o entregar) e Historial (cerrados), con busqueda por numero o nombre.
+const tab = ref<OrderTab>('activos')
+const search = ref('')
 const openId = ref<string | null>(null)
 const thumbs = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
@@ -25,10 +33,27 @@ const failure = (e: unknown) => {
   return x.code && !['functions/internal', 'functions/unavailable', 'functions/unknown'].includes(x.code) && x.message ? x.message : FALLBACK
 }
 
-const shown = computed(() => filterOrders(orders.value, filters.value))
+// Reloj de la pantalla: el tiempo restante y la marca "recordar pago" se actualizan solos.
+const now = ref(Date.now())
+const tick = setInterval(() => { now.value = Date.now() }, 30_000)
+onUnmounted(() => clearInterval(tick))
+
+const statusOptions = computed(() => tabStatuses(tab.value))
+watch(tab, () => { if (filters.value.status && !statusOptions.value.includes(filters.value.status as OrderStatus)) filters.value.status = '' })
+const counts = computed(() => ({
+  activos: orders.value.filter((o) => orderTab(o.status) === 'activos').length,
+  historial: orders.value.filter((o) => orderTab(o.status) === 'historial').length,
+}))
+const shown = computed(() => searchOrders(filterOrders(orders.value.filter((o) => orderTab(o.status) === tab.value), filters.value), search.value))
 const open = computed(() => orders.value.find((o) => o.id === openId.value) ?? null)
 const eventName = (id: string) => events.value.find((e) => e.id === id)?.name ?? id
 const dateText = (d: Date | null) => (d ? d.toLocaleString('es') : '—')
+const deliveryText = (o: OrderRow) => (!o.delivery ? 'WhatsApp' : o.delivery.method === 'envio' ? 'Envío' : 'Retiro')
+const actionLabel = (s: OrderStatus) => ACTION_LABEL[s] ?? `Marcar como ${STATUS_LABEL[s]}`
+const TABS: OrderTab[] = ['activos', 'historial']
+/** Telefono (los de WhatsApp se guardan en digitos con codigo de pais) y correo, los que haya. */
+const contactText = (o: OrderRow) =>
+  [o.buyer.phone && (o.channel === 'whatsapp' ? `+${o.buyer.phone}` : o.buyer.phone), o.buyer.email].filter(Boolean).join(' · ')
 
 async function load() {
   loading.value = true
@@ -57,13 +82,37 @@ async function show(o: OrderRow) {
   }))
 }
 
-async function advance(o: OrderRow) {
+/** CU4: el servidor valida la transicion contra el estado real; cancelar pide confirmacion. */
+async function advance(o: OrderRow, to: OrderStatus) {
   if (busy.value) return // doble clic: la Function ademas rechaza el salto
+  if (to === 'cancelado' && !window.confirm(`¿Cancelar el pedido ${o.number}? No se puede deshacer.`)) return
   busy.value = true
   actionError.value = ''
   try {
-    o.status = await advanceOrder(o.id, o.status)
+    o.status = await advanceOrder(o.id, o.status, to)
   } catch (e) {
+    actionError.value = failure(e)
+    await load()
+  } finally {
+    busy.value = false
+  }
+}
+
+/**
+ * CU6: abre WhatsApp al numero del cliente con el recordatorio escrito. Primero se registra reminderSentAt en el servidor
+ * (rechaza si el pedido ya no esta pendiente); en escritorio la pestaña se abre dentro del clic, en movil la misma.
+ */
+async function remind(o: OrderRow) {
+  if (busy.value || !o.buyer.phone || !o.expiresAt) return
+  busy.value = true
+  actionError.value = ''
+  const opener = whatsappOpener(currentLinkEnv())
+  try {
+    o.reminderSentAt = await markOrderReminder(o.id)
+    const msg = reminderMessage({ name: o.buyer.name, number: o.number, total: o.total, expiresAt: o.expiresAt.getTime(), link: orderLink(window.location.origin, o.number) })
+    opener.go(whatsappUrl(o.buyer.phone, msg))
+  } catch (e) {
+    opener.cancel()
     actionError.value = failure(e)
     await load()
   } finally {
@@ -84,7 +133,16 @@ async function advance(o: OrderRow) {
       <template #action><Button type="button" @click="load">Reintentar</Button></template>
     </Alert>
     <template v-else>
+      <div class="tabs" role="tablist" aria-label="Pedidos">
+        <button
+          v-for="t in TABS" :key="t" type="button" role="tab" class="tab" :class="{ on: tab === t }"
+          :aria-selected="tab === t" @click="tab = t"
+        >
+          {{ t === 'activos' ? 'Activos' : 'Historial' }} <span class="mono-sm count">{{ counts[t] }}</span>
+        </button>
+      </div>
       <div class="filters">
+        <Field v-model="search" label="Buscar" type="search" inputmode="search" placeholder="Número o nombre" />
         <Field label="Evento">
           <template #default="{ id, inputClass }">
             <select :id="id" v-model="filters.eventId" :class="inputClass" aria-label="Evento">
@@ -97,7 +155,7 @@ async function advance(o: OrderRow) {
           <template #default="{ id, inputClass }">
             <select :id="id" v-model="filters.status" :class="inputClass" aria-label="Estado">
               <option value="">Todos</option>
-              <option v-for="s in STATUSES" :key="s" :value="s">{{ STATUS_LABEL[s] }}</option>
+              <option v-for="s in statusOptions" :key="s" :value="s">{{ STATUS_LABEL[s] }}</option>
             </select>
           </template>
         </Field>
@@ -112,7 +170,7 @@ async function advance(o: OrderRow) {
         </Field>
       </div>
       <p v-if="capped" role="status" class="mono-sm note">Mostrando los últimos 200 pedidos.</p>
-      <p v-if="!shown.length" class="note">No hay pedidos.</p>
+      <p v-if="!shown.length" class="note">{{ search.trim() ? 'Ningún pedido coincide con la búsqueda.' : 'No hay pedidos.' }}</p>
       <div v-else class="split">
         <div class="es-table-wrap table">
           <table class="es-table">
@@ -123,8 +181,14 @@ async function advance(o: OrderRow) {
                 <td class="body-sm muted nowrap">{{ dateText(o.createdAt) }}</td>
                 <td class="client">{{ o.buyer.name }}</td>
                 <td class="mono-md money">{{ formatMoney(o.total) }}</td>
-                <td class="body-sm muted">{{ o.delivery.method === 'envio' ? 'Envío' : 'Retiro' }}</td>
-                <td><Badge :status="o.status" /></td>
+                <td class="body-sm muted">{{ deliveryText(o) }}</td>
+                <td>
+                  <span class="state">
+                    <Badge :status="o.status" />
+                    <Badge v-if="needsReminder(o, now)" tone="amber">Recordar pago</Badge>
+                    <small v-if="o.status === 'pendiente_pago'" class="caption muted nowrap">{{ timeLeftText(o.expiresAt, now) }}</small>
+                  </span>
+                </td>
                 <td class="act"><Button type="button" @click="show(o)">Ver detalle</Button></td>
               </tr>
             </tbody>
@@ -134,7 +198,10 @@ async function advance(o: OrderRow) {
         <section v-if="open" class="detail" aria-label="Detalle del pedido">
           <div class="detail-head">
             <OrderNumber size="sm" caption="Pedido">{{ open.number }}</OrderNumber>
-            <Badge :status="open.status" />
+            <span class="state">
+              <Badge :status="open.status" />
+              <Badge v-if="needsReminder(open, now)" tone="amber">Recordar pago</Badge>
+            </span>
           </div>
           <ul class="lines">
             <li v-for="(l, i) in open.lines" :key="i">
@@ -146,15 +213,29 @@ async function advance(o: OrderRow) {
             </li>
           </ul>
           <dl>
-            <div><dt class="table-head">Contacto</dt><dd>{{ open.buyer.name }}<br><span class="muted">{{ open.buyer.email }}<template v-if="open.buyer.phone"> · {{ open.buyer.phone }}</template></span></dd></div>
-            <div v-if="open.delivery.method === 'envio'"><dt class="table-head">Dirección</dt><dd>{{ open.delivery.address }}</dd></div>
-            <div><dt class="table-head">Entrega</dt><dd>{{ open.delivery.method === 'envio' ? 'Envío a domicilio' : 'Retiro en persona' }}</dd></div>
+            <div><dt class="table-head">Contacto</dt><dd>{{ open.buyer.name }}<br><span class="muted">{{ contactText(open) }}</span></dd></div>
+            <template v-if="open.delivery">
+              <div v-if="open.delivery.method === 'envio'"><dt class="table-head">Dirección</dt><dd>{{ open.delivery.address }}</dd></div>
+              <div><dt class="table-head">Entrega</dt><dd>{{ open.delivery.method === 'envio' ? 'Envío a domicilio' : 'Retiro en persona' }}</dd></div>
+            </template>
+            <div v-else><dt class="table-head">Entrega</dt><dd>Se acuerda por WhatsApp</dd></div>
             <div v-if="open.packs?.length"><dt class="table-head">Paquetes digitales</dt><dd><template v-for="(p, i) in open.packs" :key="i">{{ p.name }} × {{ p.times }} ({{ formatMoney(p.price) }} c/u) · {{ eventName(p.eventId) }}<br></template></dd></div>
             <div v-if="packSavings(open)"><dt class="table-head">Ahorro por paquetes</dt><dd class="mono-md">−{{ formatMoney(packSavings(open)) }}</dd></div>
             <div><dt class="table-head">Total</dt><dd class="mono-md">{{ formatMoney(open.total) }}</dd></div>
+            <div v-if="open.status === 'pendiente_pago' && open.expiresAt">
+              <dt class="table-head">Plazo de pago</dt>
+              <dd>Hasta el {{ deadlineText(open.expiresAt.getTime()) }}<br><span class="muted">{{ timeLeftText(open.expiresAt, now) }}</span></dd>
+            </div>
           </dl>
-          <div v-if="nextStatus(open) || actionError" class="foot">
-            <Button v-if="nextStatus(open)" type="button" variant="primary" size="lg" :disabled="busy" @click="advance(open)">Marcar como {{ STATUS_LABEL[nextStatus(open)!] }}</Button>
+          <div v-if="open.status === 'pendiente_pago' && open.channel === 'whatsapp' && open.buyer.phone" class="foot">
+            <Button type="button" :variant="needsReminder(open, now) ? 'accent' : 'secondary'" icon="externo" :disabled="busy" @click="remind(open)">Enviar recordatorio</Button>
+            <small v-if="open.reminderSentAt" class="caption muted">Recordatorio enviado el {{ dateText(open.reminderSentAt) }}</small>
+          </div>
+          <div v-if="allowedTransitions(open).length || actionError" class="foot">
+            <Button
+              v-for="s in allowedTransitions(open)" :key="s" type="button" :variant="s === 'cancelado' ? 'danger' : 'primary'" :size="s === 'cancelado' ? 'md' : 'lg'"
+              :disabled="busy" @click="advance(open, s)"
+            >{{ actionLabel(s) }}</Button>
             <Alert v-if="actionError" tone="danger">{{ actionError }}</Alert>
           </div>
         </section>
@@ -169,6 +250,12 @@ async function advance(o: OrderRow) {
 h1 { margin: 0; color: var(--ink); }
 .note, .muted { color: var(--ink-muted); }
 .note { margin: 0; }
+.tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--line); }
+.tab { min-height: 44px; padding: 0 var(--space-4); border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: transparent; font: inherit; font-weight: 500; color: var(--ink-muted); cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2); }
+.tab.on { color: var(--ink); border-bottom-color: var(--amber); }
+.tab:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.count { color: var(--ink-muted); }
+.state { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .filters { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .filters > * { flex: 1 1 200px; max-width: 280px; min-width: 0; }
 .split { display: flex; flex-wrap: wrap; gap: var(--space-5); align-items: flex-start; }

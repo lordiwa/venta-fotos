@@ -1,7 +1,10 @@
 // Prevents: que un pedido por WhatsApp llegue a un numero equivocado, con el texto mal codificado o con lineas no vendibles.
 import { describe, it, expect } from 'vitest'
 import { settingsToForm } from './productsLogic'
-import { buildWhatsAppMessage, DEFAULT_WHATSAPP_PHONE, normalizePhone, phoneToStore, resolveWhatsappDigits, validateWhatsappPhone, whatsappLinkAttrs, whatsappUrl } from './whatsappLogic'
+import {
+  buildWhatsAppMessage, customerPayload, DEFAULT_WHATSAPP_PHONE, normalizePhone, orderLink, parseStoredCustomer, phoneToStore, reminderMessage, resolveWhatsappDigits,
+  validateCustomer, validateWhatsappPhone, whatsappLinkAttrs, whatsappOrderMessage, whatsappUrl,
+} from './whatsappLogic'
 
 describe('whatsappLogic', () => {
   it('normalizePhone: acepta +, espacios y guiones y devuelve solo digitos (8 a 15); rechaza letras y largos fuera de rango', () => {
@@ -71,5 +74,42 @@ describe('whatsappLogic', () => {
     expect(whatsappLinkAttrs({ coarsePointer: false, noHover: false, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' })).toEqual(blank)
     expect(whatsappLinkAttrs({ coarsePointer: true, noHover: false, userAgent: 'Mozilla/5.0 (Windows NT 10.0)' })).toEqual(blank) // laptop tactil con mouse
     expect(whatsappLinkAttrs(undefined)).toEqual(blank)
+  })
+
+  // Previene: crear un pedido sin un WhatsApp donde recordarle el pago, o un pedido digital sin el correo con el que se descarga.
+  it('TASK-037 CU1: nombre y WhatsApp con codigo de pais obligatorios; correo solo con digitales (y solo entonces viaja)', () => {
+    const f = { name: ' Ana ', phone: '+593 99 856 5995', email: '' }
+    expect(validateCustomer(f, false)).toEqual({})
+    expect(validateCustomer(f, true)).toEqual({ email: 'Escribe tu correo: con él descargas tus fotos digitales.' })
+    expect(Object.keys(validateCustomer({ name: '', phone: '099 856 5995', email: 'x' }, true)).sort()).toEqual(['email', 'name', 'phone'])
+    expect(validateCustomer({ ...f, email: 'viejo-invalido' }, false)).toEqual({}) // oculto sin digitales: no bloquea
+    expect(customerPayload({ ...f, email: 'a@b.co' }, false)).toEqual({ name: 'Ana', phone: '593998565995' })
+    expect(customerPayload({ ...f, email: 'a@b.co' }, true)).toEqual({ name: 'Ana', phone: '593998565995', email: 'a@b.co' })
+    expect(parseStoredCustomer('{roto')).toEqual({ name: '', phone: '+593 ', email: '' })
+  })
+
+  // Previene: un mensaje cuyo total no cuadra con el del servidor, sin numero de pedido o sin el link para seguirlo.
+  it('TASK-037 CU1/CU6: mensaje del pedido y recordatorio con numero, total del servidor, hora limite y link', () => {
+    const expiresAt = Date.UTC(2026, 9, 22, 20, 30) // 15:30 en Ecuador (UTC-5)
+    const link = orderLink('https://fotos.example/', 'ABCD2345')
+    expect(link).toBe('https://fotos.example/pedido/ABCD2345')
+    const lines = [
+      { eventId: 'e1', photoId: 'p1', productName: 'Digital', unitPrice: 10, quantity: 1 },
+      { eventId: 'e1', photoId: 'p2', productName: 'Digital', unitPrice: 10, quantity: 1 },
+      { eventId: 'e1', photoId: 'p3', productName: 'A4', unitPrice: 2.5, quantity: 2 },
+    ]
+    const msg = whatsappOrderMessage(
+      { number: 'ABCD2345', total: 20, savings: 5, expiresAt, lines, packs: [{ eventId: 'e1', name: 'Paquete 2', times: 1, price: 15 }] },
+      { name: 'Ana', link, eventName: () => 'Carrera', photoName: (_e, p) => p },
+    )
+    expect(msg).toContain('pedido ABCD2345')
+    expect(msg).toContain('Total: USD 20.00')
+    expect(msg).toContain('Ahorro por paquetes: −5.00')
+    expect(msg).toMatch(/Pago hasta: jueves, 22 de octubre, 03:30/)
+    expect(msg).toContain(`Mi pedido: ${link}`)
+    const rem = reminderMessage({ name: 'Ana Pérez', number: 'ABCD2345', total: 20, expiresAt, link })
+    expect(rem).toMatch(/^Hola Ana, te recordamos tu pedido ABCD2345 por USD 20\.00/)
+    expect(rem).toMatch(/22 de octubre, 03:30/)
+    expect(rem).toContain(link)
   })
 })

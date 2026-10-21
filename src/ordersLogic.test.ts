@@ -1,7 +1,11 @@
 // Prevents: despachar mal los pedidos (saltar estados, imprimir lo digital, mezclar filtros) y que la copia del servidor se desvie de la del cliente.
 import { describe, it, expect } from 'vitest'
-import { downloadName, filterOrders, nextStatus, packSavings, printList, type OrderRow } from './ordersLogic'
-import { isAdmin, nextStatus as serverNext, planAdvance } from '../functions/src/orderStatus'
+import {
+  allowedTransitions, downloadName, filterOrders, needsReminder, nextStatus, orderTab, packSavings, printList, REMINDER_AFTER_MS, searchOrders, STATUSES, timeLeftText,
+  type OrderRow,
+} from './ordersLogic'
+import { allowedTransitions as serverAllowed, isAdmin, nextStatus as serverNext, planAdvance } from '../functions/src/orderStatus'
+import { isPaidStatus } from '../functions/src/downloadsLogic'
 import type { OrderStatus } from './types'
 
 const line = (productId: string, quantity = 1, photoId = 'p1', eventId = 'e1') => ({ eventId, photoId, productId, productName: productId.toUpperCase(), unitPrice: 5, quantity })
@@ -71,5 +75,46 @@ describe('ordersLogic', () => {
     const lines = [line('digital', 1, 'p1'), line('digital', 1, 'p2')].map((l) => ({ ...l, unitPrice: 10 }))
     expect(packSavings(order({ lines, total: 16, delivery: envio, packs: [pk] }))).toBe(5)
     expect(packSavings(order({ lines, total: 20 }))).toBe(0)
+  })
+  // Previene: saltarse el cobro (pendiente -> entregado), cancelar algo entregado o que el admin "anule" a mano; y que cliente y servidor difieran.
+  it('TASK-037 CU4: WhatsApp pendiente_pago -> pagado -> en_preparacion -> entregado; cancelar solo pendiente/pagado; igual en el servidor', () => {
+    const wa = (status: OrderStatus) => order({ status, channel: 'whatsapp', delivery: undefined })
+    expect(allowedTransitions(wa('pendiente_pago'))).toEqual(['pagado', 'cancelado'])
+    expect(allowedTransitions(wa('pagado'))).toEqual(['en_preparacion', 'cancelado'])
+    expect(allowedTransitions(wa('en_preparacion'))).toEqual(['entregado'])
+    for (const s of ['entregado', 'cancelado', 'anulado'] as const) expect(allowedTransitions(wa(s))).toEqual([])
+    for (const s of STATUSES) for (const o of [wa(s), order({ status: s })]) expect(serverAllowed(o)).toEqual(allowedTransitions(o))
+    expect(planAdvance(wa('pendiente_pago'), 'pendiente_pago', 'cancelado')).toBe('cancelado')
+    expect(() => planAdvance(wa('pendiente_pago'), 'pendiente_pago', 'entregado')).toThrow()
+    expect(() => planAdvance(wa('pendiente_pago'), 'pendiente_pago', 'anulado')).toThrow()
+    expect(() => planAdvance(wa('anulado'), 'pendiente_pago', 'pagado')).toThrow() // la anulacion gano
+    expect(() => planAdvance(order(), 'pagado', 'cancelado')).toThrow() // PayPal no se cancela desde aqui
+  })
+  // Previene: dar descargas o imprimir copias de un pedido que nadie pago (o que se cancelo/anulo).
+  it('TASK-037 CU5: solo pagado y posteriores dan descargas y entran a la lista de impresion', () => {
+    const wa = (status: OrderStatus) => order({ id: status, status, channel: 'whatsapp', delivery: undefined, lines: [line('a4', 2)] })
+    expect(printList([wa('pendiente_pago'), wa('cancelado'), wa('anulado'), wa('entregado')])).toEqual([])
+    expect(printList([wa('pagado'), wa('en_preparacion')]).map((g) => g.total)).toEqual([4])
+    for (const s of ['pendiente_pago', 'cancelado', 'anulado']) expect(isPaidStatus(s)).toBe(false)
+    for (const s of ['pagado', 'en_preparacion', 'entregado']) expect(isPaidStatus(s)).toBe(true)
+  })
+  // Previene: perder de vista un pedido por cobrar (o mezclarlo con los cerrados) y no poder encontrarlo por nombre o numero.
+  it('TASK-037 CU8: Activos/Historial y busqueda por numero o nombre sin tildes ni mayusculas', () => {
+    expect((['pendiente_pago', 'pagado', 'en_preparacion'] as const).map(orderTab)).toEqual(['activos', 'activos', 'activos'])
+    expect((['entregado', 'cancelado', 'anulado'] as const).map(orderTab)).toEqual(['historial', 'historial', 'historial'])
+    const os = [order({ id: '1', number: 'ABCD2345', buyer: { name: 'José Pérez' } }), order({ id: '2', number: 'ZZZZ9999', buyer: { name: 'Ana' } })]
+    expect(searchOrders(os, 'jose').map((o) => o.id)).toEqual(['1'])
+    expect(searchOrders(os, ' zzz').map((o) => o.id)).toEqual(['2'])
+    expect(searchOrders(os, '')).toHaveLength(2)
+  })
+  // Previene: recordar antes de tiempo, dos veces o un pedido ya pagado, o mostrar un plazo distinto al que anula el servidor.
+  it('TASK-037 CU3/CU6: "recordar pago" desde las 12 h (la paridad con el plazo del servidor esta en functions/test/whatsappOrder.test.ts) y sin recordatorio enviado; tiempo restante', () => {
+    const p = order({ status: 'pendiente_pago', channel: 'whatsapp', createdAt: new Date(0) })
+    expect(needsReminder(p, REMINDER_AFTER_MS - 1)).toBe(false)
+    expect(needsReminder(p, REMINDER_AFTER_MS)).toBe(true)
+    expect(needsReminder({ ...p, reminderSentAt: new Date(1) }, REMINDER_AFTER_MS)).toBe(false)
+    expect(needsReminder({ ...p, status: 'pagado' }, REMINDER_AFTER_MS)).toBe(false)
+    expect(timeLeftText(new Date(2 * REMINDER_AFTER_MS), REMINDER_AFTER_MS + 20 * 60000)).toBe('Quedan 11 h 40 min para pagar')
+    expect(timeLeftText(new Date(1000), 1000)).toMatch(/^Vencido/)
   })
 })

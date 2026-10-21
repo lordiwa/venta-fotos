@@ -87,14 +87,19 @@ export interface OrderLine {
   kind?: ProductKind
 }
 
-export type OrderStatus = 'pagado' | 'impreso' | 'listo_retiro' | 'enviado' | 'entregado'
+/**
+ * PayPal: pagado -> impreso -> listo_retiro | enviado -> entregado.
+ * WhatsApp (TASK-037): pendiente_pago -> pagado -> en_preparacion -> entregado; cancelado (admin) y anulado (24 h sin pago).
+ */
+export type OrderStatus =
+  | 'pendiente_pago' | 'pagado' | 'en_preparacion' | 'impreso' | 'listo_retiro' | 'enviado' | 'entregado' | 'cancelado' | 'anulado'
 
 export type Delivery =
   | { method: 'retiro' }
   | { method: 'envio'; address: string; cost: number }
 
 export interface Order {
-  /** Id del documento = id de la orden de PayPal (idempotencia de captureOrder). */
+  /** Id del documento = id de la orden de PayPal (idempotencia de captureOrder); WA-<number> en los pedidos por WhatsApp. */
   id: string
   /** Numero de pedido corto y no secuencial (8 caracteres) que ve el comprador en /pedido/<number>. */
   number: string
@@ -105,9 +110,21 @@ export interface Order {
   /** TASK-029: solo si se aplicaron paquetes digitales; total = suma de lineas - ahorro + envio. Ausente en pedidos anteriores. */
   packs?: OrderPack[]
   status: OrderStatus
-  delivery: Delivery
-  buyer: { name: string; email: string; phone?: string }
-  paypalOrderId: string
+  /** Solo PayPal: en los pedidos por WhatsApp la entrega se acuerda en el chat. */
+  delivery?: Delivery
+  /** Comprador de PayPal. */
+  buyer?: { name: string; email: string; phone?: string }
+  /** TASK-037: ausente = PayPal. */
+  channel?: 'whatsapp'
+  /** Cliente de WhatsApp: telefono en digitos con codigo de pais; correo solo si hay fotos digitales. */
+  customer?: { name: string; phone: string; email?: string }
+  /** TASK-037: ahorro por paquetes guardado al crear el pedido. */
+  savings?: number
+  /** TASK-037: createdAt + 24 h; vencido y sin pagar, expireOrders lo anula. */
+  expiresAt?: Timestamp
+  reminderSentAt?: Timestamp
+  anuladoAt?: Timestamp
+  paypalOrderId?: string
   createdAt: Timestamp
   /** Cambios de estado hechos por advanceOrder (el alta no genera entrada). */
   statusHistory?: { status: OrderStatus; at: Timestamp; by: string }[]
