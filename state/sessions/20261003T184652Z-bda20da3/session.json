@@ -2,11 +2,11 @@
   "schema_version": 2,
   "session_id": "20261003T184652Z-bda20da3",
   "lifecycle_state": "active",
-  "updated_at": "2026-10-17T15:49:36.199Z",
+  "updated_at": "2026-10-21T03:51:11.107Z",
   "active_task": "TASK-025",
   "workflow_step": "update",
-  "next_action": "Humano prueba prod (admin gulmork@gmail.com: productos, configuración, evento con fotos, pedido por WhatsApp). Luego cerrar TASK-025 (decisión R-1 + UAT) y UAT de TASK-022/023/024.",
-  "handoff_summary": "2026-10-17: hotfix c2afaf6 desplegado a hosting prod: galeria en dos columnas 4:3 y lightbox opaco en movil (<=720px); verificado en el sitio en vivo a 390px. Producción completa el 2026-10-16: hosting con TASK-025/026/027 (modo WhatsApp) y Functions processPhoto, cleanupPhotoFiles, getDownloadLinks, advanceOrder desplegadas en southamerica-east1 tras conceder 5 bindings IAM (humano, con token ADC). functions/.env local (gitignored) con PAYPAL_ENABLED=false. Falta que el humano cargue productos, configuración y un evento con fotos en prod y pruebe el pedido por WhatsApp. TASK-025 sigue in_review (R-1 alt=\"\", R-2 uat pendientes del humano). Sin PayPal por decisión del humano.",
+  "next_action": "Humano: cargar tamanos impresos si los vende y probar pedido por WhatsApp en movil. Luego cerrar TASK-025 (decision R-1 + UAT) y UAT de TASK-022/023/024.",
+  "handoff_summary": "2026-10-20: hotfix admin movil (2f2ebcc + fix round aad9070) desplegado a hosting prod y verificado en vivo a 390px: bajo 900px el SideNav es barra superior compacta (~120px, pills con scroll horizontal, acciones solo icono) y la dropzone oculta el input nativo. Reviewer APPROVE tras fix round (LOWs opcionales: centrado ~16px, test tautologico, sin recentrar al redimensionar, title redundante). El humano subio 124 fotos al evento Taikai Noguchi; procesadas sin errores, galeria movil y marca MUESTRA verificadas. Productos: solo Archivo digital 3.00, sin tamanos impresos. TASK-025 sigue in_review (R-1 alt, R-2 UAT).",
   "open_questions": [
     "¿Vista de cobros sin pedido en el panel admin? (no aprobada)",
     "Credenciales sandbox de PayPal para probar el popup real"
@@ -62,6 +62,11 @@
       "at": "2026-10-17T15:49:36.199Z",
       "decision": "Galeria movil: dos columnas 4:3 y lightbox opaco (hotfix directo del orquestador, sin ticket, c2afaf6)",
       "rationale": "Reporte del humano: las imagenes no se veian bien en movil"
+    },
+    {
+      "at": "2026-10-21T03:51:11.107Z",
+      "decision": "Admin movil: SideNav como barra superior compacta bajo 900px y dropzone sin input nativo visible (hotfix sin ticket, 2f2ebcc+aad9070)",
+      "rationale": "Reporte del humano: el admin en movil se veia roto"
     }
   ],
   "subagent_results": [
@@ -142,6 +147,12 @@
       "agent": "reviewer",
       "task": "TASK-027",
       "summary": "APPROVE 2f0e003 (MEDIUM: sin lock del gating de exports; LOW config cruzada) y APPROVE 6b19210. Wargaming PASA (WG-M-1 corregido)."
+    },
+    {
+      "at": "2026-10-21T03:51:11.107Z",
+      "agent": "reviewer",
+      "task": "hotfix-admin-movil",
+      "summary": "REQUEST-CHANGES en 2f2ebcc (HIGH franja 800-899px); re-review aad9070 APPROVE sin HIGH/MEDIUM."
     }
   ],
   "pending_human_confirmation": null,

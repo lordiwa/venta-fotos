@@ -66,6 +66,18 @@
       "type": "task",
       "ref": "tasks/TASK-019.json",
       "label": "Descarga del archivo digital con enlace firmado"
+    },
+    {
+      "id": "task-026",
+      "type": "task",
+      "ref": "tasks/TASK-026.json",
+      "label": "Pedido de fotos por WhatsApp (+593 99 856 5995)"
+    },
+    {
+      "id": "task-027",
+      "type": "task",
+      "ref": "tasks/TASK-027.json",
+      "label": "Modo sin pago en línea: WhatsApp como único canal y Functions sin secretos de PayPal"
     }
   ],
   "edges": []
