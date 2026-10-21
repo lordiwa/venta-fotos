@@ -97,6 +97,16 @@ gcloud projects add-iam-policy-binding venta-fotos-estudio --member=serviceAccou
 gcloud projects add-iam-policy-binding venta-fotos-estudio --member=serviceAccount:service-508685694209@gcp-sa-eventarc.iam.gserviceaccount.com --role=roles/eventarc.serviceAgent
 ```
 
+Reglas de Storage con `firestore.get()` (eventPublished): sin este rol, Storage responde 403 a TODO visitante
+anónimo (el admin entra igual por `isAdmin()`, así que probando logueado no se ve). Se notó el 2026-10-21:
+
+```
+gcloud projects add-iam-policy-binding venta-fotos-estudio --member=serviceAccount:service-508685694209@gcp-sa-firebasestorage.iam.gserviceaccount.com --role=roles/firebaserules.firestoreServiceAgent --condition=None
+```
+
+Tras concederlo hay unos minutos de 403 intermitentes mientras se propaga. Verificar SIEMPRE como anónimo
+(curl sin token a `.../o/<thumbPath>`), nunca solo con la sesión de admin.
+
 Añadir `--access-token-file=<ruta-token>` a cada uno si gcloud sigue logueado como srparca. Esperar
 1–2 minutos y repetir el deploy. Un 409 "Could not create bucket gcf-v2-sources-…" en el mismo intento
 suele resolverse al reintentar tras los permisos.
