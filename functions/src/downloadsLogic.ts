@@ -22,13 +22,16 @@ export const emailsMatch = (a: unknown, b: unknown): boolean => {
   return x !== "" && x === normalizeEmail(b);
 };
 
-/** Fotos digitales del pedido, sin repetir. Solo lineas con productId 'digital': las impresiones nunca dan acceso al original. */
-export function digitalPhotos(lines: { eventId: string; photoId: string; productId: string }[]): { eventId: string; photoId: string }[] {
+/** Linea digital: por `kind` (lineas desde TASK-030); las de pedidos anteriores, sin kind, por el id fijo del producto digital. */
+export const isDigitalLine = (l: { productId: string; kind?: string }): boolean => (l.kind === undefined ? l.productId === DIGITAL_ID : l.kind === "digital");
+
+/** Fotos digitales del pedido, sin repetir. Solo lineas digitales: las impresiones nunca dan acceso al original. */
+export function digitalPhotos(lines: { eventId: string; photoId: string; productId: string; kind?: string }[]): { eventId: string; photoId: string }[] {
   const seen = new Set<string>();
   const out: { eventId: string; photoId: string }[] = [];
   for (const l of lines) {
     const k = `${l.eventId}/${l.photoId}`;
-    if (l.productId !== DIGITAL_ID || seen.has(k)) continue;
+    if (!isDigitalLine(l) || seen.has(k)) continue;
     seen.add(k);
     out.push({ eventId: l.eventId, photoId: l.photoId });
   }

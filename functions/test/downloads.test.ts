@@ -18,6 +18,8 @@ describe("downloadsLogic", () => {
   it("CU6 solo las lineas digitales (sin repetir) dan acceso; solo estados posteriores al pago", () => {
     expect(digitalPhotos([line("a4"), line("digital", "p2"), line("digital", "p2"), line("a5", "p3")])).toEqual([{ eventId: "e1", photoId: "p2" }]);
     expect(digitalPhotos([line("a4")])).toEqual([]);
+    // L-2: con kind (lineas nuevas) manda kind; sin kind (pedidos anteriores), el id fijo 'digital'.
+    expect(digitalPhotos([{ ...line("x", "p4"), kind: "digital" }, { ...line("digital", "p5"), kind: "print" }])).toEqual([{ eventId: "e1", photoId: "p4" }]);
     for (const s of ["pagado", "impreso", "listo_retiro", "enviado", "entregado"]) expect(isPaidStatus(s)).toBe(true);
     for (const s of ["creado", "captura_pendiente", "", undefined]) expect(isPaidStatus(s)).toBe(false);
   });

@@ -63,11 +63,11 @@ export async function getDownloadLinks(db: Firestore, input: { number?: unknown;
   const expiresAt = expiresAtMs(now, days);
   const files: DownloadFile[] = [];
   for (const p of photos) {
-    // La ruta sale del documento de la foto, nunca de lo que mande el cliente.
+    // La ruta sale del documento de la foto, nunca de lo que mande el cliente. printOnly (TASK-030) no se mira: solo
+    // frena ventas nuevas; quien ya pago conserva la descarga (decision del humano, 2026-10-21).
     const snap = await db.doc(`events/${p.eventId}/photos/${p.photoId}`).get();
     const path = snap.get("originalPath");
     if (typeof path !== "string" || !path.startsWith(`originals/${p.eventId}/`)) continue;
-    if (snap.get("printOnly") === true) continue; // TASK-030: una foto solo impresion nunca entrega el original
     const name = String(snap.get("name") ?? p.photoId);
     files.push({ ...p, name, url: await linkFor(bucket, path, name, expiresAt), expiresAt });
   }

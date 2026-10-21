@@ -149,6 +149,13 @@ describe("solo impresion (TASK-030)", () => {
     const snap = { lines: digital.map((l) => ({ ...l, productName: "Digital", unitPrice: 10 })) };
     await expect(assertNoPrintOnlyDigital(photo(true), snap)).rejects.toThrow(CheckoutError);
     await expect(assertNoPrintOnlyDigital(photo(undefined), snap)).resolves.toBeUndefined();
+    // M-2: si PayPal confirma que ya cobro, no se rechaza (seria cobro sin pedido); si no, si.
+    await expect(assertNoPrintOnlyDigital(photo(true), snap, async () => true)).resolves.toBeUndefined();
+    await expect(assertNoPrintOnlyDigital(photo(true), snap, async () => false)).rejects.toThrow(CheckoutError);
+    // L-2: lo digital se reconoce por kind; una impresion con kind 'print' no se frena.
+    expect(buildSnapshot(base({ lines: digital, products: { digital: DIG } })).lines[0].kind).toBe("digital");
+    await expect(assertNoPrintOnlyDigital(photo(true), { lines: [{ ...snap.lines[0], productId: "otro", kind: "digital" as const }] })).rejects.toThrow(CheckoutError);
+    await expect(assertNoPrintOnlyDigital(photo(true), { lines: [{ ...snap.lines[0], kind: "print" as const }] })).resolves.toBeUndefined();
   });
 });
 

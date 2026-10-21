@@ -21,7 +21,11 @@ export interface CatalogProduct { name: string; kind: "print" | "digital" | "pac
 /** Paquete digital activo (TASK-029), con su id de documento. */
 export type CatalogPack = CatalogProduct & { id: string };
 export interface StoreSettings { shippingCost?: number; pickupInfo?: string }
-export interface SnapshotLine { eventId: string; photoId: string; productId: string; productName: string; unitPrice: number; quantity: number }
+export interface SnapshotLine {
+  eventId: string; photoId: string; productId: string; productName: string; unitPrice: number; quantity: number;
+  /** Tipo del producto al vender (desde TASK-030); los pedidos anteriores no lo tienen (ver isDigitalLine). */
+  kind?: CatalogProduct["kind"];
+}
 /** Paquete aplicado (TASK-029): las lineas siguen por foto a precio suelto y esto explica el descuento. */
 export interface SnapshotPack { eventId: string; productId: string; name: string; quantity: number; price: number; times: number }
 
@@ -130,7 +134,7 @@ export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
     if (!i.publicPhotos.has(`${l.eventId}/${l.photoId}`)) throw new CheckoutError("failed-precondition", "Una foto del carrito ya no está disponible.");
     if (p.kind === "digital" && i.printOnlyPhotos?.has(`${l.eventId}/${l.photoId}`)) throw new CheckoutError("failed-precondition", PRINT_ONLY_MESSAGE);
     if (p.kind === "digital" && l.quantity !== 1) throw new CheckoutError("invalid-argument", "El archivo digital se compra de a uno por foto.");
-    return { eventId: l.eventId, photoId: l.photoId, productId: l.productId, productName: p.name, unitPrice: p.price, quantity: l.quantity };
+    return { eventId: l.eventId, photoId: l.photoId, productId: l.productId, productName: p.name, unitPrice: p.price, quantity: l.quantity, kind: p.kind };
   });
   const hasPrints = i.lines.some((l) => i.products[l.productId]?.kind === "print");
   const { delivery, shippingCents } = resolveDelivery(i.deliveryInput, hasPrints, i.settings);

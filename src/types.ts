@@ -83,6 +83,8 @@ export interface OrderLine {
   productName: string
   unitPrice: number
   quantity: number
+  /** Desde TASK-030; ausente en pedidos anteriores (lo digital se reconoce entonces por productId 'digital'). */
+  kind?: ProductKind
 }
 
 export type OrderStatus = 'pagado' | 'impreso' | 'listo_retiro' | 'enviado' | 'entregado'

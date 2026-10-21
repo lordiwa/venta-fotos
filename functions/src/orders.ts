@@ -3,7 +3,7 @@ import { FieldValue, Firestore } from "firebase-admin/firestore";
 import {
   buildOrderDoc, buildSnapshot, CartInputLine, CatalogPack, CatalogProduct, CheckoutError, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, PRINT_ONLY_MESSAGE, StoreSettings,
 } from "./checkout";
-import { DIGITAL_ID } from "./orderStatus";
+import { isDigitalLine } from "./downloadsLogic";
 
 type Db = Firestore;
 
@@ -39,12 +39,18 @@ export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: u
   });
 }
 
-/** TASK-030: antes de cobrar, rechaza el snapshot si una foto con linea digital se marco printOnly despues de createOrder. */
-export async function assertNoPrintOnlyDigital(db: Db, snap: Pick<CheckoutSnapshot, "lines">): Promise<void> {
-  const digital = snap.lines.filter((l) => l.productId === DIGITAL_ID);
+/**
+ * TASK-030: antes de cobrar, rechaza el snapshot si una foto con linea digital se marco printOnly despues de createOrder.
+ * `alreadyPaid` (M-2): un intento anterior pudo cobrar en PayPal y caerse antes de registrar la captura; si confirma
+ * que la orden ya esta pagada, no se rechaza (seria un cobro sin pedido) y el flujo sigue normal.
+ */
+export async function assertNoPrintOnlyDigital(db: Db, snap: Pick<CheckoutSnapshot, "lines">, alreadyPaid?: () => Promise<boolean>): Promise<void> {
+  const digital = snap.lines.filter(isDigitalLine);
   if (!digital.length) return;
   const photos = await db.getAll(...digital.map((l) => db.doc(`events/${l.eventId}/photos/${l.photoId}`)));
-  if (photos.some((s) => s.exists && s.get("printOnly") === true)) throw new CheckoutError("failed-precondition", PRINT_ONLY_MESSAGE);
+  if (!photos.some((s) => s.exists && s.get("printOnly") === true)) return;
+  if (alreadyPaid && await alreadyPaid()) return;
+  throw new CheckoutError("failed-precondition", PRINT_ONLY_MESSAGE);
 }
 
 /** Guarda el snapshot calculado; captureOrder lo lee de aqui y no confia en el cliente. */

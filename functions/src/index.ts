@@ -12,7 +12,7 @@ import { getDownloadLinks as buildDownloadLinks } from "./downloads";
 import { clientIp, ttlDays } from "./downloadsLogic";
 import { AdvanceError, isAdmin, planAdvance } from "./orderStatus";
 import { assertNoPrintOnlyDigital, computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
-import { capturePaypalOrder, createPaypalOrder } from "./paypal";
+import { capturePaypalOrder, createPaypalOrder, getPaypalOrder } from "./paypal";
 import { deletePhotoFiles, processOriginal } from "./process";
 import { syncCover, syncCoverForPhoto } from "./cover";
 
@@ -72,7 +72,11 @@ function buildPaypalFunctions() {
       const snap = checkout.data() as CheckoutSnapshot;
       // Antes de cobrar: la foto pudo marcarse "solo impresion" despues de createOrder (TASK-030). Un reintento de
       // un checkout ya cobrado o con pedido no se rechaza: finalizeOrder es idempotente y no debe quedar cobro sin pedido.
-      if (checkout.get("status") === "creado" && !checkout.get("capture")) await assertNoPrintOnlyDigital(db, snap);
+      // M-2: si la foto se marco despues, antes de rechazar se consulta PayPal; una orden ya COMPLETED sigue el flujo normal.
+      if (checkout.get("status") === "creado" && !checkout.get("capture")) {
+        const simulated = id.startsWith(SIMULATED_PREFIX);
+        await assertNoPrintOnlyDigital(db, snap, simulated ? undefined : async () => (await getPaypalOrder(paypalConfig(), id))?.status === "COMPLETED");
+      }
       if (id.startsWith(SIMULATED_PREFIX)) {
         assertSimulationAllowed(process.env);
       } else {

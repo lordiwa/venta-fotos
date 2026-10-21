@@ -49,6 +49,13 @@ export async function createPaypalOrder(c: PaypalConfig, snap: CheckoutSnapshot)
   return ((await res.json()) as { id: string }).id;
 }
 
+/** Lee la orden de PayPal (GET); null si no se pudo leer. */
+export async function getPaypalOrder(c: PaypalConfig, paypalOrderId: string): Promise<PaypalCaptureResponse | null> {
+  const f = c.fetchFn ?? fetch;
+  const res = await f(`${c.baseUrl}/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}`, { headers: { Authorization: `Bearer ${await token(c)}` } });
+  return res.ok ? ((await res.json()) as PaypalCaptureResponse) : null;
+}
+
 /** Captura con PayPal-Request-Id = id de la orden (idempotente). Rechazo del medio de pago -> CheckoutError; ya capturada -> la lee. */
 export async function capturePaypalOrder(c: PaypalConfig, paypalOrderId: string): Promise<PaypalCaptureResponse> {
   const f = c.fetchFn ?? fetch;
