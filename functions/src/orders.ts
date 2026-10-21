@@ -1,7 +1,8 @@
 /** Acceso a Firestore del checkout (TASK-017): lectura del catalogo, snapshot pendiente y creacion idempotente del pedido. */
 import { FieldValue, Firestore } from "firebase-admin/firestore";
 import {
-  buildOrderDoc, buildSnapshot, CartInputLine, CatalogPack, CatalogProduct, CheckoutError, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, PRINT_ONLY_MESSAGE, StoreSettings,
+  buildOrderDoc, buildSnapshot, CartInputLine, CatalogPack, CatalogProduct, CheckoutError, CheckoutSnapshot, newOrderNumber, parseBuyer, parseCartInput, PRINT_ONLY_MESSAGE,
+  PricingInput, StoreSettings,
 } from "./checkout";
 import { isDigitalLine } from "./downloadsLogic";
 
@@ -14,15 +15,23 @@ export interface OrderSummary { number: string; lines: unknown[]; total: number;
 export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: unknown; delivery?: unknown }): Promise<CheckoutSnapshot> {
   const lines: CartInputLine[] = parseCartInput(data.lines);
   const buyer = parseBuyer(data.buyer);
+  const [pricing, settingsSnap] = await Promise.all([loadPricing(db, lines), db.doc("settings/store").get()]);
+  return buildSnapshot({ ...pricing, buyer, deliveryInput: data.delivery, settings: (settingsSnap.data() ?? {}) as StoreSettings });
+}
+
+/**
+ * Lee del catalogo lo necesario para poner precio a las lineas (productos, fotos publicas, printOnly, paquetes activos).
+ * TASK-037: la usan createOrder (PayPal) y createWhatsappOrder, para que ambos cobren igual que el carrito.
+ */
+export async function loadPricing(db: Db, lines: CartInputLine[]): Promise<PricingInput> {
   const productIds = [...new Set(lines.map((l) => l.productId))];
   const eventIds = [...new Set(lines.map((l) => l.eventId))];
   const photoKeys = [...new Set(lines.map((l) => `${l.eventId}/${l.photoId}`))];
 
-  const [productSnaps, eventSnaps, photoSnaps, settingsSnap, activeSnap] = await Promise.all([
+  const [productSnaps, eventSnaps, photoSnaps, activeSnap] = await Promise.all([
     db.getAll(...productIds.map((id) => db.doc(`products/${id}`))),
     db.getAll(...eventIds.map((id) => db.doc(`events/${id}`))),
     db.getAll(...photoKeys.map((k) => { const [e, p] = k.split("/"); return db.doc(`events/${e}/photos/${p}`); })),
-    db.doc("settings/store").get(),
     db.collection("products").where("active", "==", true).get(),
   ]);
   const packs = activeSnap.docs.filter((d) => d.get("kind") === "pack").map((d) => ({ id: d.id, ...d.data() }) as CatalogPack);
@@ -34,10 +43,7 @@ export async function computeSnapshot(db: Db, data: { lines?: unknown; buyer?: u
     return published.has(k.split("/")[0]) && s.exists && s.get("visible") === true && s.get("status") === "ready";
   }));
   const printOnlyPhotos = new Set(photoKeys.filter((_, i) => photoSnaps[i].exists && photoSnaps[i].get("printOnly") === true));
-  return buildSnapshot({
-    lines, buyer, deliveryInput: data.delivery, products, publicPhotos, printOnlyPhotos, packs,
-    settings: (settingsSnap.data() ?? {}) as StoreSettings,
-  });
+  return { lines, products, publicPhotos, printOnlyPhotos, packs };
 }
 
 /**

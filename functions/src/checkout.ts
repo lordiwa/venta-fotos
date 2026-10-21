@@ -93,10 +93,9 @@ export function resolveDelivery(data: unknown, hasPrints: boolean, settings: Sto
   return { delivery: { method: "envio", address, cost }, shippingCents: toCents(cost) };
 }
 
-export interface BuildInput {
+/** Lo que hace falta para poner precio a las lineas. TASK-037: lo comparten el checkout de PayPal y el pedido por WhatsApp. */
+export interface PricingInput {
   lines: CartInputLine[];
-  buyer: Buyer;
-  deliveryInput: unknown;
   /** Catalogo leido por el servidor, por productId (undefined si no existe). */
   products: Record<string, CatalogProduct | undefined>;
   /** Claves "eventId/photoId" de fotos publicas (evento publicado, visible y lista). */
@@ -105,6 +104,11 @@ export interface BuildInput {
   printOnlyPhotos?: Set<string>;
   /** Paquetes digitales activos (TASK-029). */
   packs?: CatalogPack[];
+}
+
+export interface BuildInput extends PricingInput {
+  buyer: Buyer;
+  deliveryInput: unknown;
   settings: StoreSettings;
 }
 
@@ -124,8 +128,11 @@ export function applyPacks(lines: SnapshotLine[], products: Record<string, Catal
 
 export const PRINT_ONLY_MESSAGE = "Una foto del carrito solo se vende impresa.";
 
-/** Recalcula todo desde el catalogo: precio y nombre salen de ahi; digital = 1 por foto; lineas no vendibles se rechazan. */
-export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
+/** Lineas con precio del catalogo y paquetes aplicados, sin envio. linesCents va a precio suelto; savingsCents es el descuento por paquetes. */
+export interface PricedLines { lines: SnapshotLine[]; packs: SnapshotPack[]; linesCents: number; savingsCents: number }
+
+/** Recalcula las lineas desde el catalogo: precio y nombre salen de ahi; digital = 1 por foto; lineas no vendibles se rechazan. */
+export function priceLines(i: PricingInput): PricedLines {
   const lines: SnapshotLine[] = i.lines.map((l) => {
     const p = i.products[l.productId];
     if (!p || p.active !== true || p.kind === "pack" || typeof p.price !== "number" || !(p.price > 0)) {
@@ -136,10 +143,16 @@ export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
     if (p.kind === "digital" && l.quantity !== 1) throw new CheckoutError("invalid-argument", "El archivo digital se compra de a uno por foto.");
     return { eventId: l.eventId, photoId: l.photoId, productId: l.productId, productName: p.name, unitPrice: p.price, quantity: l.quantity, kind: p.kind };
   });
-  const hasPrints = i.lines.some((l) => i.products[l.productId]?.kind === "print");
-  const { delivery, shippingCents } = resolveDelivery(i.deliveryInput, hasPrints, i.settings);
   const linesCents = lines.reduce((s, l) => s + toCents(l.unitPrice) * l.quantity, 0);
   const { packs, savingsCents } = applyPacks(lines, i.products, i.packs ?? []);
+  return { lines, packs, linesCents, savingsCents };
+}
+
+/** Snapshot del checkout de PayPal: las lineas de priceLines + la entrega (el envio sale de settings/store). */
+export function buildSnapshot(i: BuildInput): CheckoutSnapshot {
+  const { lines, packs, linesCents, savingsCents } = priceLines(i);
+  const hasPrints = lines.some((l) => l.kind === "print");
+  const { delivery, shippingCents } = resolveDelivery(i.deliveryInput, hasPrints, i.settings);
   return {
     lines,
     ...(packs.length ? { packs } : {}),

@@ -9,8 +9,11 @@ export const MAX_TTL_DAYS = 7;
 export const MAX_FAILURES = 10;
 export const WINDOW_MS = 60 * 60 * 1000;
 
-/** Estados posteriores al pago (todo pedido que existe en orders esta pagado; esto protege ante estados futuros como reembolsado). */
-const PAID = ["pagado", "impreso", "listo_retiro", "enviado", "entregado"];
+/**
+ * Estados posteriores al pago. TASK-037: en_preparacion (WhatsApp) cuenta; pendiente_pago, cancelado y anulado no dan
+ * descargas (un pedido por WhatsApp existe antes de pagarse). Tambien protege ante estados futuros como reembolsado.
+ */
+const PAID = ["pagado", "en_preparacion", "impreso", "listo_retiro", "enviado", "entregado"];
 export const isPaidStatus = (s: unknown): boolean => typeof s === "string" && PAID.includes(s);
 
 export const normalizeEmail = (v: unknown): string => (typeof v === "string" ? v.trim().toLowerCase() : "");
@@ -64,10 +67,10 @@ export const expiresAtMs = (nowMs: number, days: number): number => nowMs + days
 
 export interface AttemptState { count: number; windowStart: number }
 
-/** Hay bloqueo si en la ventana vigente ya se llego al maximo de fallos. */
-export const isBlocked = (s: AttemptState | undefined, nowMs: number): boolean =>
-  !!s && nowMs - s.windowStart < WINDOW_MS && s.count >= MAX_FAILURES;
+/** Hay bloqueo si en la ventana vigente ya se llego al maximo. max/windowMs: los de descargas por defecto; TASK-037 usa otros para crear pedidos. */
+export const isBlocked = (s: AttemptState | undefined, nowMs: number, max = MAX_FAILURES, windowMs = WINDOW_MS): boolean =>
+  !!s && nowMs - s.windowStart < windowMs && s.count >= max;
 
-/** Registra un fallo: abre ventana nueva si no hay o ya vencio. */
-export const addFailure = (s: AttemptState | undefined, nowMs: number): AttemptState =>
-  s && nowMs - s.windowStart < WINDOW_MS ? { count: s.count + 1, windowStart: s.windowStart } : { count: 1, windowStart: nowMs };
+/** Registra un intento (fallo de descarga o pedido creado): abre ventana nueva si no hay o ya vencio. */
+export const addFailure = (s: AttemptState | undefined, nowMs: number, windowMs = WINDOW_MS): AttemptState =>
+  s && nowMs - s.windowStart < windowMs ? { count: s.count + 1, windowStart: s.windowStart } : { count: 1, windowStart: nowMs };

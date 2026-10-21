@@ -165,6 +165,22 @@ describe('Firestore', () => {
     await assertFails(getDoc(doc(anon().firestore(), 'orders/o1')))
     await assertFails(getDocs(collection(anon().firestore(), 'orders')))
   })
+  it('TASK-037 pedidos por WhatsApp y orderAttempts: el cliente no los lee ni escribe - evita leer telefonos ajenos, fabricar pedidos o borrar el limite anti-abuso', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'orders/WA-ABCD2345'), { status: 'pendiente_pago', channel: 'whatsapp', customer: { phone: '593998565995' } })
+      await setDoc(doc(ctx.firestore(), 'orderAttempts/a'), { count: 5 })
+    })
+    for (const ctx of [anon(), user()]) {
+      await assertFails(getDoc(doc(ctx.firestore(), 'orders/WA-ABCD2345')))
+      await assertFails(setDoc(doc(ctx.firestore(), 'orders/WA-X'), { status: 'pagado' }))
+    }
+    await assertFails(updateDoc(doc(admin().firestore(), 'orders/WA-ABCD2345'), { status: 'pagado' })) // solo via advanceOrder
+    for (const ctx of [anon(), user(), admin()]) {
+      await assertFails(getDoc(doc(ctx.firestore(), 'orderAttempts/a')))
+      await assertFails(setDoc(doc(ctx.firestore(), 'orderAttempts/a'), { count: 0 }))
+      await assertFails(deleteDoc(doc(ctx.firestore(), 'orderAttempts/a')))
+    }
+  })
   it('TASK-019 downloadAttempts cerrada a todos - evita borrar los contadores para seguir adivinando pedidos', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'downloadAttempts/a'), { count: 10 }) })
     for (const ctx of [anon(), user(), admin()]) {

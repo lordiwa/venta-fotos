@@ -1,5 +1,4 @@
 import * as admin from "firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { randomUUID } from "crypto";
 import { logger } from "firebase-functions";
 import { setGlobalOptions } from "firebase-functions/v2";
@@ -7,14 +6,16 @@ import { defineInt, defineSecret, defineString } from "firebase-functions/params
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { assertSimulationAllowed, CheckoutError, CheckoutSnapshot, classifyCapture, extractCapture } from "./checkout";
 import { getDownloadLinks as buildDownloadLinks } from "./downloads";
 import { clientIp, ttlDays } from "./downloadsLogic";
-import { AdvanceError, isAdmin, planAdvance } from "./orderStatus";
+import { isAdmin } from "./orderStatus";
 import { assertNoPrintOnlyDigital, computeSnapshot, finalizeOrder, saveCheckout, updateCheckout } from "./orders";
 import { capturePaypalOrder, createPaypalOrder, getPaypalOrder } from "./paypal";
 import { deletePhotoFiles, processOriginal } from "./process";
 import { syncCover, syncCoverForPhoto } from "./cover";
+import { advanceOrderTx, createWhatsappOrder as createWhatsappOrderDoc, expireDueOrders, getOrderStatus as readOrderStatus, markReminderSent } from "./whatsappOrders";
 
 admin.initializeApp();
 
@@ -130,27 +131,58 @@ export const getDownloadLinks = onCall(async (request) => {
 
 // ---- TASK-018: avance de estado de pedidos (solo admin) ----
 
-/** Avanza el pedido al siguiente estado valido. `from` es el estado que veia el admin; si cambio, se rechaza. */
+/**
+ * Cambia el estado del pedido. `from` es el estado que veia el admin; si cambio, se rechaza. `to` (TASK-037) es el estado
+ * elegido (pagado, en_preparacion, entregado, cancelado); sin `to`, el siguiente del flujo (pantallas anteriores).
+ */
 export const advanceOrder = onCall(async (request) => {
   if (!isAdmin(request.auth)) throw new HttpsError("permission-denied", "Solo el administrador puede cambiar el estado de un pedido.");
-  const { orderId, from } = request.data ?? {};
+  const { orderId, from, to } = request.data ?? {};
   if (typeof orderId !== "string" || !orderId || orderId.includes("/")) throw new HttpsError("invalid-argument", "Falta el pedido.");
-  const db = admin.firestore();
-  const ref = db.doc(`orders/${orderId}`);
+  const status = await advanceOrderTx(admin.firestore(), orderId, from, to, request.auth!.uid);
+  logger.info("advanceOrder", { orderId, from, status });
+  return { status };
+});
+
+// ---- TASK-037: pedidos por WhatsApp (siempre exportados, con o sin PayPal) ----
+
+/** Crea el pedido pendiente de pago con el precio del servidor; el cliente arma el mensaje de WhatsApp con lo que devuelve. */
+export const createWhatsappOrder = onCall(async (request) => {
+  const ip = clientIp(request.rawRequest?.headers?.["x-forwarded-for"], request.rawRequest?.ip);
   try {
-    const status = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists) throw new HttpsError("not-found", "No encontramos ese pedido.");
-      const next = planAdvance(snap.data() as Parameters<typeof planAdvance>[0], from);
-      tx.update(ref, { status: next, statusHistory: FieldValue.arrayUnion({ status: next, at: Timestamp.now(), by: request.auth!.uid }) });
-      return next;
-    });
-    logger.info("advanceOrder", { orderId, status });
-    return { status };
+    const res = await createWhatsappOrderDoc(admin.firestore(), request.data ?? {}, ip);
+    logger.info("createWhatsappOrder", { number: res.number, total: res.total, lines: res.lines.length });
+    return res;
   } catch (e) {
-    if (e instanceof AdvanceError) throw new HttpsError("failed-precondition", e.message);
-    throw e;
+    if (e instanceof HttpsError) {
+      logger.warn("createWhatsappOrder rechazado", { code: e.code, message: e.message });
+      throw e;
+    }
+    logger.error("createWhatsappOrder failed", e);
+    throw new HttpsError("internal", "No pudimos registrar tu pedido. Intenta de nuevo.");
   }
+});
+
+/** Estado publico de un pedido para /pedido/:number (sin telefono ni correo completos). */
+export const getOrderStatus = onCall(async (request) => {
+  const ip = clientIp(request.rawRequest?.headers?.["x-forwarded-for"], request.rawRequest?.ip);
+  return readOrderStatus(admin.firestore(), request.data ?? {}, ip);
+});
+
+/** El admin abrio el recordatorio de pago por WhatsApp: queda reminderSentAt. */
+export const markOrderReminder = onCall(async (request) => {
+  if (!isAdmin(request.auth)) throw new HttpsError("permission-denied", "Solo el administrador puede enviar recordatorios.");
+  const { orderId } = request.data ?? {};
+  if (typeof orderId !== "string" || !orderId || orderId.includes("/")) throw new HttpsError("invalid-argument", "Falta el pedido.");
+  const reminderSentAt = await markReminderSent(admin.firestore(), orderId, request.auth!.uid);
+  logger.info("markOrderReminder", { orderId });
+  return { reminderSentAt };
+});
+
+/** Cada 15 min anula los pedidos por WhatsApp sin pagar con mas de 24 h. Requiere Cloud Scheduler e indice status+expiresAt. */
+export const expireOrders = onSchedule({ schedule: "every 15 minutes", timeZone: "America/Guayaquil" }, async () => {
+  const ids = await expireDueOrders(admin.firestore());
+  logger.info("expireOrders", { anulados: ids.length, ids });
 });
 
 // ---- TASK-013: procesamiento de fotos ----

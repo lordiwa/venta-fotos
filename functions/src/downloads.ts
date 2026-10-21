@@ -11,14 +11,14 @@ export interface DownloadFile { eventId: string; photoId: string; name: string; 
 export interface DownloadResult { files: DownloadFile[]; message?: string }
 
 const NOT_FOUND = "No encontramos un pedido con esos datos";
-const hash = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 32);
+export const hash = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 32);
 
 /** Contadores de fallos por IP y por numero de pedido (downloadAttempts/{hash}); solo las Functions los tocan. */
 function counters(db: Firestore, ip: string, number: string) {
   return [`ip-${hash(ip)}`, `num-${hash(number)}`].map((id) => db.doc(`downloadAttempts/${id}`));
 }
 
-async function recordFailure(db: Firestore, refs: FirebaseFirestore.DocumentReference[], now: number) {
+export async function recordFailure(db: Firestore, refs: FirebaseFirestore.DocumentReference[], now: number) {
   await Promise.all(refs.map((ref) => db.runTransaction(async (tx) => {
     const cur = (await tx.get(ref)).data() as AttemptState | undefined;
     tx.set(ref, { ...addFailure(cur, now), updatedAt: FieldValue.serverTimestamp() });
@@ -41,6 +41,9 @@ async function linkFor(bucket: ReturnType<admin.storage.Storage["bucket"]>, path
   return url;
 }
 
+/** Correo del pedido: customer (WhatsApp, TASK-037) o buyer (PayPal). */
+const orderEmail = (d: FirebaseFirestore.DocumentSnapshot): unknown => d.get("customer.email") ?? d.get("buyer.email");
+
 export async function getDownloadLinks(db: Firestore, input: { number?: unknown; email?: unknown }, ip: string, days: number): Promise<DownloadResult> {
   const number = normalizeNumber(input.number);
   const now = Date.now();
@@ -50,7 +53,7 @@ export async function getDownloadLinks(db: Firestore, input: { number?: unknown;
   }
   // CU5: un solo mensaje y un solo codigo para "no existe" y "correo distinto".
   const found = number
-    ? (await db.collection("orders").where("number", "==", number).limit(5).get()).docs.find((d) => isPaidStatus(d.get("status")) && emailsMatch(d.get("buyer.email"), input.email))
+    ? (await db.collection("orders").where("number", "==", number).limit(5).get()).docs.find((d) => isPaidStatus(d.get("status")) && emailsMatch(orderEmail(d), input.email))
     : undefined;
   if (!found) {
     await recordFailure(db, refs, now);
