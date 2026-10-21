@@ -6,7 +6,10 @@ import PhotoLightbox from '../components/PhotoLightbox.vue'
 import { fetchPhotosPage, getPublishedEvent, type PhotoCursor } from '../publicApi'
 import { eventPath, galleryState, photoNav, photoPath } from '../galleryLogic'
 import { dedicatedCoverPath } from '../eventsLogic'
-import { Alert, Button, Icon } from '../ui'
+import { getActiveCatalog } from '../productsApi'
+import { formatMoney } from '../productsLogic'
+import { packsInfo, type PacksInfo } from '../packsInfo'
+import { Alert, Button, Eyebrow, Icon } from '../ui'
 import type { Event, Photo } from '../types'
 
 const route = useRoute()
@@ -47,6 +50,9 @@ const caption = computed(() => {
 // Mosaico: algunas miniaturas ocupan mas espacio (patron cada 15 fotos, como en el diseno).
 const spanOf = (i: number) => ([0, 7].includes(i % 15) ? 'es-tile-big' : [3, 9].includes(i % 15) ? 'es-tile-wide' : '')
 const current = computed(() => photos.value.find((p) => p.id === photoId.value) ?? null)
+// TASK-034: precios de paquetes desde el catalogo activo (cache de sesion). Si falla, no se muestra el bloque.
+const packs = ref<PacksInfo | null>(null)
+onMounted(() => getActiveCatalog().then((xs) => { packs.value = packsInfo(xs) }, () => {}))
 
 function loadMore(): Promise<void> {
   if (inflight) return inflight // quien pide mas mientras hay una carga en curso espera a la misma
@@ -154,6 +160,19 @@ onBeforeUnmount(() => observer?.disconnect())
         </div>
       </div>
     </section>
+    <section v-if="packs && state === 'ready'" class="packs" aria-labelledby="packs-title">
+      <Eyebrow id="packs-title">Paquetes digitales</Eyebrow>
+      <ul class="packs-list">
+        <li class="pack"><span class="pack-qty">1 foto</span><span class="pack-price">{{ formatMoney(packs.unitPrice) }}</span></li>
+        <li v-for="r in packs.packs" :key="r.quantity" class="pack">
+          <span class="pack-qty">{{ r.quantity }} fotos</span><span class="pack-price">{{ formatMoney(r.price) }}</span>
+          <span class="pack-save">ahorras {{ formatMoney(r.savings) }}</span>
+        </li>
+      </ul>
+      <p class="body-sm muted packs-note">
+        Elige tus fotos y agrégalas al carrito como archivo digital: el paquete se aplica solo y siempre pagas el precio más bajo combinando paquetes y fotos sueltas del mismo evento. Las copias impresas se cobran aparte.
+      </p>
+    </section>
     <Alert v-if="failed" tone="danger" class="gap">
       No pudimos cargar todas las fotos.
       <template #action><Button @click="retryMore">Reintentar</Button></template>
@@ -197,11 +216,21 @@ onBeforeUnmount(() => observer?.disconnect())
 .hero-title { margin: 0; font-size: clamp(36px, 7vw, 72px); color: var(--on-rail); overflow-wrap: anywhere; }
 .hero-meta { color: var(--on-rail-muted); }
 .gap { margin-bottom: var(--space-4); }
+.packs { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-6); padding: var(--space-5) var(--space-6); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--line); }
+.packs-list { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.pack { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 14px; }
+.pack-qty { font-weight: 600; }
+.pack-price { font-family: var(--font-mono); }
+.pack-save { font-family: var(--font-mono); font-size: 12px; color: var(--amber-ink); }
+.packs-note { margin: 0; max-width: 72ch; }
 .sentinel { height: 1px; }
 .more { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin: 0; padding: var(--space-5); font: 13px var(--font-mono); color: var(--ink-muted); }
 .more-bar { display: inline-block; width: 40px; height: 2px; background: linear-gradient(90deg, var(--amber), #0000); }
 @media (max-width: 720px) {
   .hero { min-height: 220px; }
   .hero-body { padding: var(--space-6) var(--space-5) var(--space-6); }
+  .packs { padding: var(--space-4); }
+  .pack { flex: 1 1 0; box-sizing: border-box; min-width: 96px; flex-direction: column; align-items: flex-start; padding: var(--space-2) var(--space-3); }
+  .pack-save { font-size: 11px; }
 }
 </style>
