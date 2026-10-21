@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T21:46:43.527Z",
+  "generated_at": "2026-10-21T21:50:15.381Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -100,7 +100,7 @@
     {
       "key": "TASK-025",
       "title": "Marca Martial Photo: logo, nombre y favicon en toda la app",
-      "status": "in_review",
+      "status": "done",
       "priority": "medium"
     },
     {

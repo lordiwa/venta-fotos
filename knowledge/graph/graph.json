@@ -68,6 +68,12 @@
       "label": "Descarga del archivo digital con enlace firmado"
     },
     {
+      "id": "task-025",
+      "type": "task",
+      "ref": "tasks/TASK-025.json",
+      "label": "Marca Martial Photo: logo, nombre y favicon en toda la app"
+    },
+    {
       "id": "task-026",
       "type": "task",
       "ref": "tasks/TASK-026.json",
