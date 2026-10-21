@@ -15,7 +15,7 @@
     "CU10: Anti-abuso: límite de pedidos por IP real y por teléfono en una ventana corta; validación de tamaño de carrito.",
     "CU11: Tests de la lógica (cálculo, transiciones, vencimiento, recordatorio, mensaje) y de reglas; build y tests pasan."
   ],
-  "status": "todo",
+  "status": "done",
   "priority": "high",
   "labels": [
     "frontend",
@@ -23,16 +23,89 @@
   ],
   "assignee": null,
   "depends_on": [],
-  "linked_commits": [],
+  "linked_commits": [
+    "d455b2d",
+    "732b7bc",
+    "bcb31ce",
+    "a31ef64",
+    "b3659d0",
+    "7ca3c5d"
+  ],
   "linked_prs": [],
   "comments": [
     {
       "author": "orchestrator",
       "at": "2026-10-21T16:43:07.506Z",
       "body": "Casos de uso aprobados por el humano el 2026-10-21. Partimos de la lista de 8 casos que propuso el orquestador y el humano respondió \"ok\", con dos cambios:\n- El plazo de pago es de 24 h; pasado ese tiempo, el pedido se anula solo.\n- El recordatorio sale a las 12 h y solo por WhatsApp. Lo envía el admin con un botón en el panel.\n\nPara mandar el recordatorio hace falta el teléfono del cliente. El correo sigue siendo obligatorio, pero solo cuando el pedido tiene fotos digitales, porque las descargas se validan con el correo."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T18:55:12.342Z",
+      "body": "2026-10-21: el humano pidió \"termina task-037\". Se lanzó un developer nuevo (Opus) para completar sobre el working tree sin commit que dejó el developer anterior, que se cortó a medias (backend + APIs del front hechos; faltaban el formulario del carrito, las pestañas del admin con el recordatorio, /pedido/:number y los tests)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T19:10:22.263Z",
+      "body": "2026-10-21: el humano respondió \"ok\" a los desvíos del developer. Quedan confirmados:\n- límite de 5 pedidos cada 10 min por IP y por teléfono, que cuenta también los intentos fallidos;\n- sin WhatsApp sin registrar el pedido cuando el catálogo no carga;\n- el carrito se vacía al crearse el pedido;\n- los datos del cliente se guardan en localStorage.\nCommits d455b2d, 732b7bc, bcb31ce y a31ef64; revisión en contexto fresco en curso."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T19:10:42.264Z",
+      "body": "[FINDING-HIGH: R-1] Revisión en contexto fresco de 452be7f..a31ef64, transcrita por el orquestador. No está verificado que clientIp (downloadsLogic.ts:50, el último salto de x-forwarded-for) sea la IP real del cliente en Functions v2. Si fuera la IP de un front-end de Google, toda la tienda compartiría el límite de 5 pedidos cada 10 min. Se cierra con una prueba en vivo: dos redes distintas tienen que generar dos documentos orderAttempts/ip-* distintos.\nAdemás:\n- M-1: un 0 inicial después de 593 se acepta.\n- M-2: hay un orden de deploy obligatorio (reglas e índice, después functions, al final hosting) y Cloud Scheduler debe estar habilitado.\n- M-3: getOrderStatus devuelve nombre y correo, que la página no usa.\n- M-4: el contador se descuenta antes de validar y el límite por IP es estrecho detrás de NAT del operador.\n- M-5: 12 tests contra 11 CU.\n- LOW: L-1 pedido duplicado si hay timeout; L-2 recordatorio después del plazo; L-3 zona horaria del admin; L-4 texto de los pedidos PayPal viejos; L-5 tope de 200 pedidos; L-6 el test no fija a. m./p. m."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T20:39:37.276Z",
+      "body": "[FINDING-RESOLVED: R2-1] El humano aprobó explícitamente (\"si\", 2026-10-21) los dos cambios al límite anti-abuso: (a) ORDER_RATE_MAX_PER_IP = 20 por 10 min (teléfono sigue en 5), (b) los intentos fallidos por validación no consumen cupo (takeOrderSlot tras validar)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T21:46:25.632Z",
+      "body": "[FINDING-RESOLVED: R-1] Verificado en producción tras el deploy (2026-10-21). El log IP_DIAG de createWhatsappOrder muestra xffHops=1 y rawIpIsLastHop=true en las 2 llamadas reales: x-forwarded-for trae un solo salto, el que pone el front-end de Google, así que la IP usada como clave es la del cliente y no la de un proxy. El pedido real 2QPYHF8E creó exactamente un orderAttempts ip-* y un tel-*. Seguimiento: quitar IP_DIAG del .env de functions en el próximo deploy de functions."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-21T21:46:25.714Z",
+      "body": "UAT del humano en producción, 2026-10-21, celular con datos móviles: \"its working properly now\". Resultados: el pedido 2QPYHF8E quedó en Firestore con estado pendiente_pago, total 10 y vencimiento a las 24 h; se abrió WhatsApp con el detalle; el humano lo vio en el admin. CU1: PASS, CU3: PASS, CU8: PASS, CU10: PASS (cupos de IP y teléfono creados)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T21:46:42.840Z",
+      "body": "1. CASOS DE USO APROBADOS\nCU1–CU11, aprobados por el humano antes de implementar: pedido por WhatsApp con formulario, precio recalculado en el servidor, estado pendiente_pago con plazo de 24 h, avance de estados en el admin, descargas al pagar, recordatorio a las 12 h, anulación automática, pestañas Activos/Historial, /pedido/:number con datos enmascarados, anti-abuso por IP y por teléfono, y tests.\n\n2. RESULTADO\nDesplegado en producción el 2026-10-21: functions createWhatsappOrder, getOrderStatus, markOrderReminder, expireOrders (cada 15 min), advanceOrder y getDownloadLinks; el índice orders(status, expiresAt); la regla deny-all para orderAttempts; y el hosting. Tests: raíz 104/104, functions 53/53, reglas 20/20. Verificado como anónimo: las callables son públicas y responden INVALID_ARGUMENT, NOT_FOUND o PERMISSION_DENIED según corresponda. El pedido real 2QPYHF8E se guardó con pendiente_pago y vence a las 24 h.\n\n3. WARGAMING\nEl reviewer atacó CU10 por caminos alternativos y de fallo: ráfagas desde una misma IP, prefijo telefónico 593+0, intentos inválidos que consumían cupo, y un x-forwarded-for falsificado. También atacó CU6 (recordatorio pedido después del plazo, ahora rechazado), CU9 (fuga de nombre y correo en la vista pública, eliminada) y CU7 (expiración con reloj fijo). Hallazgos: R-1 resuelto con el log IP_DIAG en producción (xffHops=1, rawIpIsLastHop=true); R2-1 resuelto con la aprobación del humano (IP 20/10 min; los fallidos no cuentan).\n\n4. UAT\nCU1: PASS, CU3: PASS, CU8: PASS, CU10: PASS. Prueba del humano en el celular con datos móviles: \"its working properly now\". CU4, CU5, CU6 y CU7: UAT no solicitado; quedan cubiertos por tests y revisión, y se observarán en operación real. Seguimiento: quitar IP_DIAG en el próximo deploy de functions."
     }
   ],
   "created_at": "2026-10-21T16:42:39.384Z",
-  "updated_at": "2026-10-21T16:43:07.506Z",
-  "jira_key": null
+  "updated_at": "2026-10-21T21:46:42.840Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T21:46:42.840Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "d455b2d",
+        "state": "verified"
+      },
+      {
+        "sha": "732b7bc",
+        "state": "verified"
+      },
+      {
+        "sha": "bcb31ce",
+        "state": "verified"
+      },
+      {
+        "sha": "a31ef64",
+        "state": "verified"
+      },
+      {
+        "sha": "b3659d0",
+        "state": "verified"
+      },
+      {
+        "sha": "7ca3c5d",
+        "state": "verified"
+      }
+    ]
+  }
 }

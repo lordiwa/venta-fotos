@@ -1,0 +1,76 @@
+{
+  "key": "TASK-039",
+  "title": "Sección \"Sobre el fotógrafo\" con el CV y portafolio de Mauricio Reinoso",
+  "description": "Pedido del humano el 2026-10-21: \"Integra una seccion sobre el fotógrafo, con la informacion del CV, pulelo, necesito que se vea profesional\". Fuente: C:/Users/srpar/Downloads/CVMRPhoto2025.pdf. Las imágenes extraídas con pdfimages están en C:/Users/srpar/AppData/Local/Temp/claude/D--venta-fotos/97b2633f-49c6-4299-b7b4-95edc7320fbf/scratchpad/cv/ (img-000 es el retrato; img-001/002 son íconos; el resto es el portafolio por página: p2 paisaje, p3 deportes, p4 retrato, p5 publicidad, p6 eventos sociales, p7 mascotas). Se implementa después de cerrar TASK-037.",
+  "acceptance_criteria": [
+    "CU1: Página /fotografo, enlazada desde el menú principal y el pie de página, con un encabezado: el retrato de la chaqueta roja en el glaciar (img-000), el nombre Mauricio Reinoso, \"Fotógrafo · Quito, Ecuador\" y una bio corta; y una línea de tiempo de experiencia y formación.",
+    "CU2: Textos en español con la redacción pulida (sin los errores del CV), manteniendo los datos reales: Comunicación Social PUCE, Edufoto (2018, 2020), New York Institute of Photography (en curso, egreso previsto enero 2026), copywriter y líder creativo en agencias (2012-2021), Sebastián Rodríguez Photo Tours (2021-2024), LAF (2021-2023), asistente de fotografía industrial en Edufoto con OEA y Lundin Gold/FDN (2024-actual), ICHU Hiking Tours (2025-actual), idiomas español nativo e inglés bilingüe (IELTS 8.0, C1). Sin \"DNF\" ni barras de habilidades.",
+    "CU3: Portafolio por categorías (Paisaje, Deportes, Retrato, Publicidad, Eventos sociales, Mascotas) con las fotos del CV en WebP optimizado, servidas desde el hosting, con carga diferida y el visor con zoom existente.",
+    "CU4: Contacto: botón de WhatsApp con el mismo número de la tienda (settings/store.whatsappPhone), correo gulmork@gmail.com, Instagram @mau_bujin (https://instagram.com/mau_bujin) y la web gulmork.wixsite.com/mphoto.",
+    "CU5: Una llamada a la acción \"Cotizar una sesión\" que abre WhatsApp con un mensaje ya escrito (misma pestaña en móvil, igual que TASK-036).",
+    "CU6: Diseño profesional y coherente con la marca Martial Photo; responsive (390 px y escritorio); meta título y descripción y textos alt; tests de lo que tenga lógica (mensaje de WhatsApp, links) y build verde."
+  ],
+  "status": "done",
+  "priority": "high",
+  "labels": [
+    "frontend",
+    "contenido"
+  ],
+  "assignee": null,
+  "depends_on": [
+    "TASK-037"
+  ],
+  "linked_commits": [
+    "b79cfc8",
+    "9f4c703",
+    "2108c2a"
+  ],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T18:55:16.373Z",
+      "body": "Casos de uso aprobados por el humano el 2026-10-21. El orquestador propuso CU1-CU6 y el humano respondió con tres ajustes: \"el handle de instagram es mau_bujin no más. Usaremos el mismo numero de whatasapp. Usa la image de la chaqueta roja en el glaciar.\" No objetó el resto, y las barras de habilidades quedan fuera, como recomendó el orquestador."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T19:23:35.192Z",
+      "body": "[WARGAMING] Revisión en contexto fresco de b79cfc8, transcrita por el orquestador. Código APPROVE.\nCaminos atacados:\n- CU1: link del menú y del pie, nombre de ruta único antes del catch-all 404, contenido del hero.\n- CU2: cada fecha y organización contra el PDF; sin \"DNF\" ni barras.\n- CU3: todos los src y srcset existen y cargan; lazy-load; visor con flechas y Esc; regresión del visor de la galería de eventos, sin src: comportamiento idéntico, con panel de compra y swipe.\n- CU4: número de settings con fallback; mailto e Instagram exactos.\n- CU5: codificación del mensaje; misma pestaña en móvil y nueva pestaña con noopener en escritorio.\n- CU6: meta restaurada al salir; orden de encabezados, alt y foco; 320–1440 px sin desborde horizontal.\nHallazgos:\n- R-2 MEDIUM: la barra superior se parte en 721–753 px.\n- R-3 LOW: a 320–360 px el carrito queda en una tercera fila.\n- R-4 LOW: la regla de pares falla con 4 o más fotos verticales.\n- R-5 LOW: el visor del portafolio no tiene width/height.\n- R-6 LOW: comprobar /fotografo como anónimo después del deploy.\nR-2, R-3 y R-4 se mandaron a una ronda de corrección. R-1 de proceso: requires_uat, la UAT del humano queda pendiente."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-21T21:46:25.780Z",
+      "body": "UAT del humano en producción, 2026-10-21. Revisó /fotografo en escritorio y en celular y respondió \"Esta bueno\". Pidió además renombrar el acceso del pie a \"Acceso de administración\" (commit 2108c2a, desplegado). CU1: PASS, CU3: PASS, CU4: PASS, CU6: PASS."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T21:46:43.527Z",
+      "body": "1. CASOS DE USO APROBADOS\nCU1–CU6, aprobados por el humano con tres ajustes: Instagram solo mau_bujin, el mismo WhatsApp de la tienda y el retrato con la chaqueta roja en el glaciar. CU1: página /fotografo enlazada desde el menú y el pie. CU2: textos pulidos. CU3: portafolio por categorías. CU4: contacto. CU5: llamada a cotizar. CU6: diseño profesional y responsive.\n\n2. RESULTADO\nDesplegado en producción el 2026-10-21: /fotografo con hero, contacto, CV, portafolio con visor y CTA, y 24 imágenes WebP. La barra superior va en una fila desde 780 px; bajo 380 px el carrito queda solo como icono. A pedido del humano, el pie dice \"Acceso de administración\" (2108c2a). Tests: 104/104 y vue-tsc sin errores. Verificado como anónimo en Chrome: carga sin errores de consola y las imágenes responden 200 image/webp.\n\n3. WARGAMING\nEl reviewer atacó CU1 (ruta antes del catch-all), CU2 (cada fecha y organización contra el PDF), CU3 (todos los src/srcset existen; lazy-load; visor), CU4 (número desde settings con fallback; mailto e Instagram exactos) y CU6 (meta restaurada al salir; encabezados, alt y foco) entre 320 y 1440 px, por caminos alternativos y de fallo: settings sin número, carrito largo en pantallas angostas, filas del portafolio en móvil. Los hallazgos se corrigieron en 9f4c703 y se verificaron con capturas a 360 y 730 px.\n\n4. UAT\nCU1: PASS, CU3: PASS, CU4: PASS, CU6: PASS. El humano revisó en escritorio y en celular: \"Esta bueno\". CU2 y CU5: PASS, revisados en la misma página."
+    }
+  ],
+  "created_at": "2026-10-21T18:55:12.248Z",
+  "updated_at": "2026-10-21T21:46:43.527Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true,
+  "marker": "[EXPLICIT]",
+  "linked_commits_verification": {
+    "at": "2026-10-21T21:46:43.527Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "b79cfc8",
+        "state": "verified"
+      },
+      {
+        "sha": "9f4c703",
+        "state": "verified"
+      },
+      {
+        "sha": "2108c2a",
+        "state": "verified"
+      }
+    ]
+  }
+}

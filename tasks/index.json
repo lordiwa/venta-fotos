@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T18:50:10.077Z",
+  "generated_at": "2026-10-21T21:46:43.527Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -172,12 +172,18 @@
     {
       "key": "TASK-037",
       "title": "Pedidos por WhatsApp registrados, panel de activos, recordatorio a las 12 h y anulación a las 24 h",
-      "status": "todo",
+      "status": "done",
       "priority": "high"
     },
     {
       "key": "TASK-038",
       "title": "Marca de agua al 20% de opacidad",
+      "status": "done",
+      "priority": "high"
+    },
+    {
+      "key": "TASK-039",
+      "title": "Sección \"Sobre el fotógrafo\" con el CV y portafolio de Mauricio Reinoso",
       "status": "done",
       "priority": "high"
     }

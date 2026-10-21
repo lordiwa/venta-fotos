@@ -132,6 +132,24 @@
       "type": "task",
       "ref": "tasks/TASK-036.json",
       "label": "El botón de WhatsApp abre el chat en la app del celular"
+    },
+    {
+      "id": "task-037",
+      "type": "task",
+      "ref": "tasks/TASK-037.json",
+      "label": "Pedidos por WhatsApp registrados, panel de activos, recordatorio a las 12 h y anulación a las 24 h"
+    },
+    {
+      "id": "task-038",
+      "type": "task",
+      "ref": "tasks/TASK-038.json",
+      "label": "Marca de agua al 20% de opacidad"
+    },
+    {
+      "id": "task-039",
+      "type": "task",
+      "ref": "tasks/TASK-039.json",
+      "label": "Sección \"Sobre el fotógrafo\" con el CV y portafolio de Mauricio Reinoso"
     }
   ],
   "edges": []
