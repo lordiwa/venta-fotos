@@ -29,19 +29,21 @@ describe("planCover (TASK-028)", () => {
     expect(coverSource(null, "e", "p1", parseOriginalPath)).toBeNull();
     expect(photoChangeAffectsCover(ok, { ...ok, visible: false })).toBe(true);
     expect(photoChangeAffectsCover(ok, { ...ok })).toBe(false);
+    expect(photoChangeAffectsCover({ ...ok, visible: false }, ok)).toBe(true); // mostrarla
+    // L-3: subida masiva -> foto nueva processing->ready (nunca pudo ser portada) u oculta en ambos lados: no lee el evento
+    expect(photoChangeAffectsCover({ status: "processing", visible: true, originalPath: "originals/e/p1.jpg" }, ok)).toBe(false);
+    expect(photoChangeAffectsCover({ status: "processing", visible: false }, { ...ok, visible: false })).toBe(false);
+    // re-subida de una foto que ya estuvo lista (tiene thumbPath): si cuenta
+    expect(photoChangeAffectsCover({ status: "processing", visible: true, thumbPath: "thumbs/e/p1.jpg" }, ok)).toBe(true);
   });
 
-  // Previene: que la limpieza de una invocacion borre la portada vigente que otra acaba de generar (A->B->A, M-1).
-  it("la limpieza nunca borra la portada vigente ni lo creado tras empezar; si borra la de una foto retirada", () => {
-    const files = [
-      { name: "covers/e/a.jpg", timeCreatedMs: 100 },
-      { name: "covers/e/b.jpg", timeCreatedMs: 100 },
-      { name: "covers/e/c.jpg", timeCreatedMs: 500 },
-    ];
-    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/b.jpg" }, 200)).toEqual([]);
-    expect(coversToDelete(files, "e", { coverPhotoId: "a" }, 200)).toEqual(["covers/e/b.jpg"]);
-    expect(coversToDelete(files, "e", null, 1000)).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
-    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/a.jpg" }, 200, "covers/e/a.jpg")).toEqual(["covers/e/a.jpg", "covers/e/b.jpg"]);
+  // Previene: que la limpieza borre la portada vigente (releida tras listar) o deje la de una foto retirada (M-1).
+  it("la limpieza nunca borra la portada vigente; si borra la de una foto retirada", () => {
+    const files = [{ name: "covers/e/a.jpg" }, { name: "covers/e/b.jpg" }, { name: "covers/e/c.jpg" }];
+    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/b.jpg" })).toEqual(["covers/e/c.jpg"]);
+    expect(coversToDelete(files, "e", { coverPhotoId: "a" })).toEqual(["covers/e/b.jpg", "covers/e/c.jpg"]);
+    expect(coversToDelete(files, "e", null)).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
+    expect(coversToDelete(files, "e", { coverPhotoId: "a", coverPath: "covers/e/a.jpg" }, "covers/e/a.jpg")).toEqual(["covers/e/a.jpg", "covers/e/b.jpg", "covers/e/c.jpg"]);
   });
 });
 

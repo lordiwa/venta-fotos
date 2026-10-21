@@ -37,6 +37,7 @@ export interface CoverPhoto {
   status?: unknown;
   visible?: unknown;
   originalPath?: unknown;
+  thumbPath?: unknown;
 }
 
 /**
@@ -49,19 +50,29 @@ export function coverSource(photo: CoverPhoto | null, eventId: string, photoId: 
   return ids && ids.eventId === eventId && ids.photoId === photoId ? photo.originalPath : null;
 }
 
-/** Un cambio de la foto que puede cambiar su portada (ocultar/mostrar, reprocesar, reemplazar el original). */
+const couldBeCover = (p: CoverPhoto) => p.status === "ready" && p.visible === true;
+
+/**
+ * Un cambio de la foto que puede cambiar su portada (ocultar/mostrar, reprocesar, reemplazar el original). Filtro
+ * barato sin leer el evento (L-3), que solo descarta casos donde no hay nada que generar NI que retirar:
+ * - ni antes ni despues podia ser portada (oculta o no lista en ambos lados: si la hubo, ya se retiro);
+ * - foto recien subida (nunca estuvo lista: sin thumbPath previo), que el admin aun no pudo elegir como portada.
+ */
 export function photoChangeAffectsCover(before: CoverPhoto, after: CoverPhoto): boolean {
-  return before.visible !== after.visible || before.status !== after.status || before.originalPath !== after.originalPath;
+  if (before.visible === after.visible && before.status === after.status && before.originalPath === after.originalPath) return false;
+  if (!couldBeCover(before) && !couldBeCover(after)) return false;
+  if (before.status !== "ready" && before.thumbPath === undefined) return false;
+  return true;
 }
 
 /**
- * Archivos de covers/{eventId}/ a borrar. Nunca la portada vigente (coverPath y la de coverPhotoId, releidos justo
- * antes de llamar), ni un archivo creado despues de empezar la limpieza (otra invocacion lo acaba de generar).
+ * Archivos de covers/{eventId}/ a borrar: nunca la portada vigente (coverPath y la de coverPhotoId, releidos despues
+ * de listar). Quien llama borra con ifGenerationMatch del listado, asi un archivo regenerado despues no se toca (M-1).
  * `drop`: archivo de una foto que ya no puede ser portada (oculta, no lista): se borra aunque siga elegida.
  */
-export function coversToDelete(files: { name: string; timeCreatedMs: number }[], eventId: string, doc: CoverFields | null, startedMs: number, drop?: string): string[] {
+export function coversToDelete(files: { name: string }[], eventId: string, doc: CoverFields | null, drop?: string): string[] {
   const keep = new Set<unknown>([doc?.coverPath]);
   if (validId(doc?.coverPhotoId)) keep.add(coverFilePath(eventId, doc.coverPhotoId));
   if (drop) keep.delete(drop);
-  return files.filter((f) => f.name === drop || (!keep.has(f.name) && f.timeCreatedMs < startedMs)).map((f) => f.name);
+  return files.filter((f) => !keep.has(f.name)).map((f) => f.name);
 }
