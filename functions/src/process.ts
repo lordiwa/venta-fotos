@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import type { Bucket } from "@google-cloud/storage";
 import { makeDerivatives } from "./image";
+import { coverFilePath } from "./coverLogic";
 
 const ORIGINAL_RE = /^originals\/([^/]+)\/([^/]+)\.(jpe?g|png)$/i;
 
@@ -16,13 +17,14 @@ export function parseOriginalPath(path: string): { eventId: string; photoId: str
 export const previewPath = (eventId: string, photoId: string) => `previews/${eventId}/${photoId}.jpg`;
 export const thumbPath = (eventId: string, photoId: string) => `thumbs/${eventId}/${photoId}.jpg`;
 
-/** Borra previews/thumbs/originals de una foto (ignora los que no existan). */
+/** Borra previews/thumbs/originals de una foto y su portada dedicada si la tenia (ignora los que no existan). */
 export async function deletePhotoFiles(bucket: Bucket, eventId: string, photoId: string): Promise<void> {
   const [originals] = await bucket.getFiles({ prefix: `originals/${eventId}/${photoId}.` });
   await Promise.all([
     ...originals.map((f) => f.delete({ ignoreNotFound: true })),
     bucket.file(previewPath(eventId, photoId)).delete({ ignoreNotFound: true }),
     bucket.file(thumbPath(eventId, photoId)).delete({ ignoreNotFound: true }),
+    bucket.file(coverFilePath(eventId, photoId)).delete({ ignoreNotFound: true }),
   ]);
 }
 

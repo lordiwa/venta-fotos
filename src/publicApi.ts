@@ -2,18 +2,21 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, startAfter, wh
 import { db } from './firebase'
 import type { Event, Photo } from './types'
 import { PAGE_SIZE } from './galleryLogic'
+import { dedicatedCoverPath } from './eventsLogic'
 
 /** Consultas publicas: DEBEN filtrar como exigen las reglas (published; visible + status ready) o se deniegan. */
-export interface PublicEvent extends Event { coverThumbPath?: string }
+/** coverImagePath: portada dedicada (coverPath) o, si aun no existe, la miniatura de la foto de portada (TASK-028). */
+export interface PublicEvent extends Event { coverImagePath?: string }
 
 export async function listPublishedEvents(): Promise<PublicEvent[]> {
   const snap = await getDocs(query(collection(db, 'events'), where('published', '==', true), orderBy('date', 'desc')))
   return Promise.all(snap.docs.map(async (d) => {
     const ev = { id: d.id, ...d.data() } as PublicEvent
-    if (ev.coverPhotoId) {
+    ev.coverImagePath = dedicatedCoverPath(ev)
+    if (!ev.coverImagePath && ev.coverPhotoId) {
       try { // portada ausente/oculta/no lista -> sin portada (placeholder), no rompe la lista
         const p = await getDoc(doc(db, 'events', d.id, 'photos', ev.coverPhotoId))
-        if (p.exists() && p.data().thumbPath) ev.coverThumbPath = p.data().thumbPath
+        if (p.exists() && p.data().thumbPath) ev.coverImagePath = p.data().thumbPath
       } catch { /* sin portada */ }
     }
     return ev

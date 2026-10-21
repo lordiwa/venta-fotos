@@ -7,7 +7,7 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing'
-import { doc, getDoc, getDocs, setDoc, deleteDoc, collection, query, where, Timestamp } from 'firebase/firestore'
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, Timestamp } from 'firebase/firestore'
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage'
 
 let env: RulesTestEnvironment
@@ -48,7 +48,7 @@ beforeEach(async () => {
     await setDoc(doc(db, 'orders/o1'), { total: 5 })
     await setDoc(doc(db, 'users/u1'), { x: 1 })
     const st = ctx.storage()
-    for (const p of ['previews/pub/a.jpg', 'thumbs/pub/a.jpg', 'previews/draft/a.jpg', 'thumbs/draft/a.jpg', 'originals/pub/a.jpg'])
+    for (const p of ['previews/pub/a.jpg', 'thumbs/pub/a.jpg', 'previews/draft/a.jpg', 'thumbs/draft/a.jpg', 'originals/pub/a.jpg', 'covers/pub/a.jpg', 'covers/draft/a.jpg'])
       await uploadBytes(ref(st, p), bytes(), { contentType: 'image/jpeg' })
   })
 })
@@ -156,6 +156,18 @@ describe('Firestore', () => {
       await assertFails(deleteDoc(doc(ctx.firestore(), 'downloadAttempts/a')))
     }
   })
+  it('TASK-028 coverPath solo lo escribe la Function - evita apuntar la portada publica a un archivo arbitrario', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'events/c'), { name: 'C', date: Timestamp.now(), published: true, coverPhotoId: 'p1', coverPath: 'covers/c/p1.jpg' })
+    })
+    const db = admin().firestore()
+    await assertFails(setDoc(doc(db, 'events/n'), { name: 'N', date: Timestamp.now(), published: false, coverPath: 'originals/pub/a.jpg' }))
+    await assertFails(updateDoc(doc(db, 'events/c'), { coverPath: 'originals/pub/a.jpg' }))
+    await assertFails(updateDoc(doc(db, 'events/c'), { coverPath: deleteField() }))
+    // la edicion normal del admin sigue funcionando con coverPath presente
+    await assertSucceeds(updateDoc(doc(db, 'events/c'), { name: 'C2', coverPhotoId: 'p2' }))
+    await assertSucceeds(updateDoc(doc(db, 'events/c'), { coverPhotoId: deleteField() }))
+  })
   it('UC14 colecciones no declaradas denegadas - evita reabrir users/purchases del modelo viejo', async () => {
     const db = admin().firestore()
     await assertFails(getDoc(doc(db, 'users/u1')))
@@ -170,6 +182,13 @@ describe('Storage', () => {
     await assertSucceeds(getBytes(ref(st, 'thumbs/pub/a.jpg')))
     await assertFails(getBytes(ref(st, 'previews/draft/a.jpg')))
     await assertFails(getBytes(ref(st, 'thumbs/draft/a.jpg')))
+  })
+  it('TASK-028 covers/ legible solo si el evento esta publicado (o admin) y sin escritura de cliente - evita filtrar la portada de borradores', async () => {
+    await assertSucceeds(getBytes(ref(anon().storage(), 'covers/pub/a.jpg')))
+    await assertFails(getBytes(ref(anon().storage(), 'covers/draft/a.jpg')))
+    await assertSucceeds(getBytes(ref(admin().storage(), 'covers/draft/a.jpg')))
+    await assertFails(uploadBytes(ref(admin().storage(), 'covers/pub/n.jpg'), bytes(), { contentType: 'image/jpeg' }))
+    await assertFails(deleteObject(ref(admin().storage(), 'covers/pub/a.jpg')))
   })
   it('UC16 originales solo admin - evita la fuga de fotos en alta resolucion sin pagar', async () => {
     await assertFails(getBytes(ref(anon().storage(), 'originals/pub/a.jpg')))

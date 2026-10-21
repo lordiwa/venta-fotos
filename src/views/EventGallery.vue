@@ -5,6 +5,7 @@ import PhotoThumb from '../components/PhotoThumb.vue'
 import PhotoLightbox from '../components/PhotoLightbox.vue'
 import { fetchPhotosPage, getPublishedEvent, type PhotoCursor } from '../publicApi'
 import { eventPath, galleryState, photoNav, photoPath } from '../galleryLogic'
+import { dedicatedCoverPath } from '../eventsLogic'
 import { Alert, Button, Icon } from '../ui'
 import type { Event, Photo } from '../types'
 
@@ -30,6 +31,8 @@ const ids = () => photos.value.map((p) => p.id)
 const state = computed(() => galleryState({ loading: loading.value, error: loadError.value, eventFound: !!event.value, photoCount: photos.value.length }))
 const nav = computed(() => (photoId.value ? photoNav(ids(), photoId.value, hasMore.value) : null))
 const cover = computed(() => photos.value.find((p) => p.id === event.value?.coverPhotoId) ?? null)
+/** TASK-028: portada dedicada en alta si existe; si no, la miniatura (solo si la foto ya esta en la pagina cargada). */
+const heroPath = computed(() => (event.value && dedicatedCoverPath(event.value)) ?? cover.value?.thumbPath)
 const dateText = computed(() => {
   const e = event.value
   if (!e) return ''
@@ -138,7 +141,7 @@ onBeforeUnmount(() => observer?.disconnect())
   </div>
   <template v-else>
     <section class="hero">
-      <div v-if="cover" class="hero-img"><PhotoThumb :path="cover.thumbPath" fill /></div>
+      <div v-if="heroPath" class="hero-img"><PhotoThumb :path="heroPath" fill /></div>
       <div class="hero-shade" aria-hidden="true" />
       <div class="hero-body">
         <RouterLink to="/" class="back"><Icon name="flecha-izquierda" :size="16" />Eventos</RouterLink>

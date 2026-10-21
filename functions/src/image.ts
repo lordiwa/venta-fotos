@@ -41,3 +41,14 @@ export async function makeDerivatives(input: Buffer, watermarkText: unknown): Pr
 
   return { thumb, preview, width, height };
 }
+
+export const COVER_SIZE = 1920;
+
+/** TASK-028: portada dedicada del evento, ~1920px lado largo, SIN marca de agua. Lanza si el archivo no es una imagen valida. */
+export function makeCover(input: Buffer): Promise<Buffer> {
+  return sharp(input, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
+    .rotate()
+    .resize(COVER_SIZE, COVER_SIZE, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 82 })
+    .toBuffer();
+}

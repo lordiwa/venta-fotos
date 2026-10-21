@@ -23,7 +23,10 @@ service cloud.firestore {
     // Eventos: el publico solo lee los publicados (las consultas deben filtrar por published == true).
     match /events/{eventId} {
       allow read: if isAdmin() || resource.data.published == true;
-      allow create, update: if isAdmin() && validEvent();
+      // coverPath (TASK-028) lo escribe solo la Function syncEventCover: ni el admin lo crea ni lo cambia desde el cliente.
+      allow create: if isAdmin() && validEvent() && !('coverPath' in request.resource.data);
+      allow update: if isAdmin() && validEvent()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coverPath']);
       allow delete: if isAdmin();
 
       // Fotos (metadatos): visibles de eventos publicados.

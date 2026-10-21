@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { db } from '../firebase'
 import { deleteEvent, getEvent, setCover, setPublished } from '../eventsApi'
+import { dedicatedCoverPath } from '../eventsLogic'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import PhotoUploader from '../components/PhotoUploader.vue'
 import { deletePhoto, setPhotoVisible } from '../photosApi'
@@ -19,7 +20,8 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 let unsub: (() => void) | undefined
 
-const coverPath = computed(() => photos.value.find((p) => p.id === event.value?.coverPhotoId && p.status === 'ready')?.thumbPath)
+/** TASK-028: portada dedicada si ya la genero la Function; si no, la miniatura de la foto elegida. */
+const coverPath = computed(() => (event.value && dedicatedCoverPath(event.value)) ?? photos.value.find((p) => p.id === event.value?.coverPhotoId && p.status === 'ready')?.thumbPath)
 
 async function load() {
   try {

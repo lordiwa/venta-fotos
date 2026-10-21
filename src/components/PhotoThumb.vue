@@ -3,7 +3,7 @@ import { ref, watchEffect } from 'vue'
 import { getDownloadURL, ref as storageRef } from 'firebase/storage'
 import { storage } from '../firebase'
 
-/** Miniatura de una foto. Solo recibe rutas de thumbs/ (nunca del original: CU9 de TASK-013). */
+/** Miniatura de una foto. Solo recibe rutas publicas: thumbs/ o covers/ (TASK-028); nunca del original (CU9 de TASK-013). */
 const props = defineProps<{ path?: string; fill?: boolean }>()
 const url = ref<string | null>(null)
 

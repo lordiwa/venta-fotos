@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { deleteEventGuarded, editableFields, newEventData, validateEventForm } from './eventsLogic'
+import { dedicatedCoverPath, deleteEventGuarded, editableFields, newEventData, validateEventForm } from './eventsLogic'
 
 const ok = { name: ' Boda ', date: '2026-05-04', place: ' Lima ', description: '' }
 
@@ -37,5 +37,13 @@ describe('eventsLogic', () => {
     }
     expect(await deleteEventGuarded('e1', deps)).toEqual({ ok: true })
     expect(calls).toEqual(['photos', 'event'])
+  })
+
+  // Previene: mostrar la portada ANTERIOR (o un archivo ya borrado) tras cambiar de portada, mientras la Function genera la nueva (TASK-028).
+  it('TASK-028 usa coverPath solo si corresponde a la portada elegida; si no, cae a la miniatura', () => {
+    expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p1', coverPath: 'covers/e/p1.jpg' })).toBe('covers/e/p1.jpg')
+    expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p2', coverPath: 'covers/e/p1.jpg' })).toBeUndefined()
+    expect(dedicatedCoverPath({ id: 'e', coverPhotoId: 'p1' })).toBeUndefined()
+    expect(dedicatedCoverPath({ id: 'e', coverPath: 'covers/e/p1.jpg' })).toBeUndefined()
   })
 })

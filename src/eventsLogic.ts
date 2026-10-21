@@ -57,3 +57,11 @@ export async function deleteEventGuarded(id: string, deps: DeleteDeps): Promise<
   await deps.deleteEvent(id)
   return { ok: true }
 }
+
+/**
+ * TASK-028: ruta de la portada dedicada (~1920px) solo si corresponde a la portada elegida. Mientras la Function
+ * genera la nueva (o si no pudo), devuelve undefined y la vista cae a la miniatura en lugar de mostrar la anterior.
+ */
+export function dedicatedCoverPath(e: { id: string; coverPhotoId?: string; coverPath?: string }): string | undefined {
+  return e.coverPhotoId && e.coverPath === `covers/${e.id}/${e.coverPhotoId}.jpg` ? e.coverPath : undefined
+}

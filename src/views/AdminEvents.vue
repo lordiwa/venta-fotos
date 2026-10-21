@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import { listEvents } from '../eventsApi'
+import { dedicatedCoverPath } from '../eventsLogic'
 import { getPhoto } from '../ordersApi'
 import { Alert, Badge, Button, Icon } from '../ui'
 import type { Event } from '../types'
@@ -20,7 +21,10 @@ onMounted(async () => {
     loading.value = false
   }
   // Las portadas se completan despues de mostrar la lista; sin portada queda el recuadro vacio.
+  // TASK-028: la portada dedicada (coverPath) no requiere leer la foto; sin ella se cae a la miniatura.
   await Promise.all(events.value.filter((e) => e.coverPhotoId).map(async (e) => {
+    covers.value[e.id] = dedicatedCoverPath(e)
+    if (covers.value[e.id]) return
     try { covers.value[e.id] = (await getPhoto(e.id, e.coverPhotoId!))?.thumbPath } catch { /* sin portada */ }
   }))
 })

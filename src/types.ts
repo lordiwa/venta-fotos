@@ -10,6 +10,8 @@ export interface Event {
   place?: string
   description?: string
   coverPhotoId?: string
+  /** Portada dedicada (~1920px, sin marca) en covers/{eventId}/{coverPhotoId}.jpg. Solo la escribe la Function syncEventCover (TASK-028). */
+  coverPath?: string
 }
 
 export type PhotoStatus = 'processing' | 'ready' | 'error'

@@ -1,0 +1,27 @@
+// Uso: node scripts/backfill-covers.mjs [--prod]   (emulador: FIRESTORE_EMULATOR_HOST=127.0.0.1:8080)
+// TASK-028: re-dispara syncEventCover en los eventos con portada elegida pero sin su portada dedicada. Quita y vuelve
+// a poner coverPhotoId (lo mismo que re-elegir la portada en el admin); la Function genera covers/{id}/{foto}.jpg.
+import { initializeApp, applicationDefault } from 'firebase-admin/app'
+import { FieldValue, getFirestore } from 'firebase-admin/firestore'
+
+const prod = process.argv.includes('--prod')
+const projectId = process.env.GCLOUD_PROJECT || process.env.VITE_FIREBASE_PROJECT_ID || 'demo-venta-fotos'
+const host = process.env.FIRESTORE_EMULATOR_HOST
+if (!host && !prod) {
+  console.error('FIRESTORE_EMULATOR_HOST no esta definido: esto afectaria PRODUCCION. Si es intencional, agrega --prod.')
+  process.exit(1)
+}
+console.log(host ? `Destino: emulador de Firestore (${host})` : `Destino: PRODUCCION, proyecto ${projectId}`)
+initializeApp(host ? { projectId } : { projectId, credential: applicationDefault() })
+const db = getFirestore()
+
+let n = 0
+for (const d of (await db.collection('events').get()).docs) {
+  const { coverPhotoId, coverPath } = d.data()
+  if (typeof coverPhotoId !== 'string' || !coverPhotoId || coverPath === `covers/${d.id}/${coverPhotoId}.jpg`) continue
+  await d.ref.update({ coverPhotoId: FieldValue.delete() })
+  await d.ref.update({ coverPhotoId })
+  console.log(`Portada re-disparada: events/${d.id} (foto ${coverPhotoId})`)
+  n++
+}
+console.log(n ? `${n} evento(s) re-disparado(s). La portada dedicada aparece en unos segundos (coverPath).` : 'Nada que hacer: todas las portadas ya tienen su version dedicada.')

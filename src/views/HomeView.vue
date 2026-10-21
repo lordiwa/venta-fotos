@@ -21,7 +21,7 @@ onMounted(async () => {
 
 <template>
   <section class="hero">
-    <div v-if="featured?.coverThumbPath" class="hero-img"><PhotoThumb :path="featured.coverThumbPath" fill /></div>
+    <div v-if="featured?.coverImagePath" class="hero-img"><PhotoThumb :path="featured.coverImagePath" fill /></div>
     <div class="hero-shade" aria-hidden="true" />
     <div class="hero-body">
       <span class="eyebrow hero-eyebrow">Fotografía de eventos</span>
@@ -39,7 +39,7 @@ onMounted(async () => {
   <Alert v-else-if="!events.length">Todavía no hay eventos publicados.</Alert>
   <template v-else>
     <RouterLink v-if="featured" :to="eventPath(featured.id)" class="card feature">
-      <div class="feature-img"><PhotoThumb :path="featured.coverThumbPath" fill /></div>
+      <div class="feature-img"><PhotoThumb :path="featured.coverImagePath" fill /></div>
       <div class="feature-body">
         <Eyebrow>Más reciente</Eyebrow>
         <span class="display-lg feature-name">{{ featured.name }}</span>
@@ -50,7 +50,7 @@ onMounted(async () => {
     <ul v-if="rest.length" class="events">
       <li v-for="e in rest" :key="e.id">
         <RouterLink :to="eventPath(e.id)" class="card item">
-          <div class="item-img"><PhotoThumb :path="e.coverThumbPath" fill /></div>
+          <div class="item-img"><PhotoThumb :path="e.coverImagePath" fill /></div>
           <span class="display-sm">{{ e.name }}</span>
           <span class="mono-sm muted">{{ meta(e) }}</span>
         </RouterLink>
