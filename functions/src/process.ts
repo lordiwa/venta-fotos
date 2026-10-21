@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import type { Bucket } from "@google-cloud/storage";
+import { logger } from "firebase-functions";
 import { makeDerivatives } from "./image";
 import { DERIVED_SAVE, derivedPath, derivedPrefix, ownsPath, type DerivedPhoto } from "./derived";
 
@@ -30,7 +31,8 @@ export async function deletePhotoFiles(bucket: Bucket, eventId: string, photoId:
  * TASK-033: genera miniatura y vista previa WebP versionadas, las sube y las publica en el documento (transaccion);
  * recien despues borra las que reemplazo (jpg viejo o version anterior), nunca antes. Asi el documento nunca apunta a
  * un archivo borrado. `accept`: condicion sobre el documento releido (el backfill no pisa una foto reprocesada
- * entretanto); si no se cumple no se publica y se borra lo subido. Lanza si la foto ya no existe.
+ * entretanto); si no se cumple no se publica y lo subido NO se borra: otra escritura con el mismo contenido tiene la
+ * misma ruta y puede estar por publicarla (R-3); a lo sumo queda un huerfano. Lanza si la foto ya no existe.
  */
 export async function publishDerivatives(
   db: Firestore,
@@ -53,14 +55,16 @@ export async function publishDerivatives(
     tx.update(ref, { status: "ready", ...out, width, height });
     return { cur: data, written: true };
   });
-  const live = written ? [out.thumbPath, out.previewPath] : [cur.thumbPath, cur.previewPath];
-  const doomed = written ? [cur.thumbPath, cur.previewPath] : [out.thumbPath, out.previewPath];
-  await Promise.all(
-    doomed
-      .filter((p) => !live.includes(p) && (ownsPath(p, "thumbs", eventId, photoId) || ownsPath(p, "previews", eventId, photoId)))
-      .map((p) => bucket.file(p as string).delete({ ignoreNotFound: true })),
+  if (!written) return false;
+  const live: unknown[] = [out.thumbPath, out.previewPath];
+  const doomed = [cur.thumbPath, cur.previewPath].filter(
+    (p): p is string => !live.includes(p) && (ownsPath(p, "thumbs", eventId, photoId) || ownsPath(p, "previews", eventId, photoId)),
   );
-  return written;
+  // R-2: la foto ya esta publicada y bien; un fallo al borrar lo reemplazado solo deja un huerfano, no un error.
+  await Promise.all(doomed.map((p) => bucket.file(p).delete({ ignoreNotFound: true }).catch((e) => {
+    logger.warn("photo.derivatives: no se pudo borrar la version reemplazada", { eventId, photoId, path: p, error: String(e) });
+  })));
+  return true;
 }
 
 /**

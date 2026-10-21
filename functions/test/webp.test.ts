@@ -41,12 +41,32 @@ describe("publishDerivatives (TASK-033)", () => {
     expect(seenAtDelete).toEqual([["thumbs/e/p.jpg", doc.thumbPath], ["previews/e/p.jpg", doc.thumbPath]]);
   });
 
-  // Previene: que el backfill pise una foto reprocesada (o cambiada) mientras convertia, o deje huerfanos sus webp.
-  it("si la condicion releida no se cumple no publica, borra lo subido y conserva los .jpg", async () => {
+  // Previene: que el backfill pise una foto reprocesada mientras convertia, o (R-3) que al no publicar borre por nombre
+  // una ruta webp que otra escritura con el mismo contenido acaba de publicar (miniatura rota para siempre).
+  it("si la condicion releida no se cumple no publica ni borra nada: la ruta compartida sobrevive", async () => {
     const f = seed();
-    expect(await publishDerivatives(f.db, f.bucket, "e", "p", original, "MUESTRA", () => false)).toBe(false);
-    expect(f.docs.get("events/e/photos/p")!.data).toEqual(legacy);
-    expect([...f.files.keys()].sort()).toEqual(["originals/e/p.jpg", "previews/e/p.jpg", "thumbs/e/p.jpg"]);
+    let other: Record<string, unknown> = {};
+    const reject = (cur: Record<string, unknown>) => {
+      // otro reproceso con el mismo contenido ya publico las mismas rutas (y cambio algo que la condicion mira)
+      other = { ...cur, originalPath: "originals/e/p.png", thumbPath: [...f.files.keys()].find((n) => n.startsWith("thumbs/e/p.") && n.endsWith(".webp")) };
+      f.write("events/e/photos/p", other);
+      return false;
+    };
+    expect(await publishDerivatives(f.db, f.bucket, "e", "p", original, "MUESTRA", reject)).toBe(false);
+    expect(f.docs.get("events/e/photos/p")!.data).toEqual(other);
+    expect(f.files.has(other.thumbPath as string)).toBe(true);
+    expect(f.files.has("thumbs/e/p.jpg") && f.files.has("previews/e/p.jpg")).toBe(true);
+  });
+
+  // Previene (R-2): que un fallo transitorio al borrar el .jpg reemplazado marque como "error" una foto ya publicada.
+  it("si falla el borrado de lo reemplazado la foto queda lista con las rutas nuevas", async () => {
+    const f = seed();
+    f.faults.failDelete = "thumbs/e/p.jpg";
+    expect(await processOriginal(f.db, f.bucket, "originals/e/p.jpg")).toBe("ready");
+    const doc = f.docs.get("events/e/photos/p")!.data;
+    expect(doc.status).toBe("ready");
+    expect(isDerivedPath(doc.thumbPath, "thumbs", "e", "p") && f.files.has(doc.thumbPath as string)).toBe(true);
+    expect(f.files.has("previews/e/p.jpg")).toBe(false);
   });
 });
 
