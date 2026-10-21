@@ -105,8 +105,8 @@ GCLOUD_PROJECT=venta-fotos-estudio GOOGLE_CLOUD_QUOTA_PROJECT=venta-fotos-estudi
 
 ### Regenerar vistas previas por cambio de marca de agua (TASK-035)
 
-Desde TASK-035 la vista previa lleva el logo de Martial Photo en mosaico (35% de opacidad desde TASK-038; antes 50%) (variante final: `dark`, círculo
-blanco; `WATERMARK_LOGO` en `functions/src/watermark.ts`) y el documento anota `watermarkVersion` (`logo-dark-2` desde TASK-038; `logo-dark-1` era el 50%).
+Desde TASK-035 la vista previa lleva el logo de Martial Photo en mosaico (20% de opacidad desde TASK-038; antes 50% y 35%) (variante final: `dark`, círculo
+blanco; `WATERMARK_LOGO` en `functions/src/watermark.ts`) y el documento anota `watermarkVersion` (`logo-dark-3` desde TASK-038; `logo-dark-1` era el 50% y `logo-dark-2` el 35%).
 El mismo `backfill:webp` regenera toda foto con otra versión o sin ella (las de la marca de texto). Los originales
 solo se leen; la miniatura no cambia (mismo contenido, misma ruta); la vista previa vieja se borra recién después
 de publicar la nueva.

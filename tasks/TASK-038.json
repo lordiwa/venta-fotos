@@ -1,11 +1,11 @@
 {
   "key": "TASK-038",
-  "title": "Marca de agua al 35% de opacidad",
+  "title": "Marca de agua al 20% de opacidad",
   "description": "Pedido del humano (2026-10-21): \"baja la opacidad de las marcas de agua a 35%\". La marca actual es el logo de círculo blanco en mosaico al 50% (TASK-035, versión logo-dark-1).",
   "acceptance_criteria": [
-    "La vista previa lleva el mismo mosaico de logo (círculo blanco) con 35% de opacidad.",
+    "La vista previa lleva el mismo mosaico de logo (círculo blanco) con 20% de opacidad.",
     "Cambia la versión de marca (watermarkVersion) para que el backfill regenere las vistas previas existentes; nombre nuevo por contenido.",
-    "El test de opacidad verifica ~35% (y falla con 50%); tests y build pasan."
+    "El test de opacidad verifica ~20% (y falla con 35% y 50%); tests y build pasan."
   ],
   "status": "todo",
   "priority": "high",
@@ -16,8 +16,19 @@
   "depends_on": [],
   "linked_commits": [],
   "linked_prs": [],
-  "comments": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T16:52:36.577Z",
+      "body": "[FINDING-RESOLVED: R-1] Casos de uso: los 3 AC del ticket, del pedido del humano del 2026-10-21 (\"baja la opacidad de las marcas de agua a 35%\"). El humano vio la muestra sample1-dark-35.jpg y dijo \"ahora\" para desplegar ya, sin esperar a TASK-037.\n\nDeploy desde un worktree limpio en 72be55c, para no llevar a producción los cambios de TASK-037 que todavía no tienen commit.\n\nMEDIUM y LOW pendientes, no funcionales (docstring de image.ts y textos de deploy-prod): quedan para un chore."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T16:52:36.622Z",
+      "body": "[WARGAMING] Revisión en contexto fresco de 72be55c (transcrita por el orquestador). Código: PASS.\n\nCaminos atacados:\n- AC1: variante o geometría cambiadas, opacidad aplicada dos veces, imágenes diminutas.\n- AC2: documento con logo-dark-1, documento sin versión, documento sin webp, caché del preview anterior al 50%, lib desactualizada en el backfill, processPhoto todavía sin desplegar.\n- AC3: test con 0.5 (falla en la constante y en los píxeles), tolerancia.\n\nTodos sobreviven.\n\nPendientes: MEDIUM docstring de image.ts; LOW falta un test para logo-dark-1 y los textos del runbook."
+    }
+  ],
   "created_at": "2026-10-21T16:48:01.158Z",
-  "updated_at": "2026-10-21T16:48:01.158Z",
+  "updated_at": "2026-10-21T16:52:36.622Z",
   "jira_key": null
 }

@@ -3,7 +3,7 @@ import sharp from "sharp";
 import type { OverlayOptions } from "sharp";
 
 // TASK-035: marca de agua con el logo de Martial Photo en mosaico sobre las vistas previas
-// (TASK-038: opacidad bajada del 50% al 35%). Reemplaza al
+// (TASK-038: opacidad bajada del 50% al 35% y luego al 20%). Reemplaza al
 // texto MUESTRA (settings.watermarkText queda sin uso). El PNG viaja con las Functions (functions/assets).
 
 /** 'light': circulo negro; 'dark': circulo blanco (la elegida por el humano, TASK-035). Ambas con el luchador rojo. */
@@ -12,13 +12,13 @@ export const LOGO_VARIANTS: readonly LogoVariant[] = ["light", "dark"];
 /** Variante en uso. Cambiarla cambia WATERMARK_VERSION y el backfill regenera las vistas previas. */
 export const WATERMARK_LOGO: LogoVariant = "dark";
 /** Version del diseno de la marca (subirla si cambia tamano, separacion u opacidad). */
-const LAYOUT_VERSION = 2; // 2: opacidad 35% (TASK-038)
+const LAYOUT_VERSION = 3; // 2: opacidad 35%, 3: opacidad 20% (TASK-038)
 export const watermarkVersion = (logo: LogoVariant) => `logo-${logo}-${LAYOUT_VERSION}`;
 /** Lo que publishDerivatives escribe en el documento; needsWebp marca para regenerar toda foto con otro valor. */
 export const WATERMARK_VERSION = watermarkVersion(WATERMARK_LOGO);
 
-/** Opacidad del logo (TASK-038: 35%). Cambiarla exige subir LAYOUT_VERSION. */
-export const LOGO_OPACITY = 0.35;
+/** Opacidad del logo (TASK-038: 20%). Cambiarla exige subir LAYOUT_VERSION. */
+export const LOGO_OPACITY = 0.2;
 /** Ancho del logo respecto del lado corto: igual proporcion en fotos horizontales y verticales. */
 export const LOGO_SCALE = 0.2;
 /** Paso entre logos (en anchos/altos de logo): huecos de 0.7 logo en la fila, 0.5 entre filas. */

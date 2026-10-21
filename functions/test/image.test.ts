@@ -45,11 +45,11 @@ describe("makeDerivatives", () => {
     }
   });
 
-  // Previene (TASK-035): una marca opaca (tapa la foto) o casi invisible (no protege): el logo va al 35% (TASK-038).
-  it("TASK-038 el logo se aplica al 35% de opacidad, en ambas variantes", async () => {
-    expect(LOGO_OPACITY).toBe(0.35);
-    // Sin perdida: blanco liso + logo claro (circulo negro) -> lo mas oscuro es ~166; negro + logo oscuro (blanco) -> ~89.
-    for (const [variant, bg, expected] of [["light", 255, 166], ["dark", 0, 89]] as const) {
+  // Previene (TASK-035): una marca opaca (tapa la foto) o casi invisible (no protege): el logo va al 20% (TASK-038).
+  it("TASK-038 el logo se aplica al 20% de opacidad, en ambas variantes", async () => {
+    expect(LOGO_OPACITY).toBe(0.2);
+    // Sin perdida: blanco liso + logo claro (circulo negro) -> lo mas oscuro es ~204; negro + logo oscuro (blanco) -> ~51.
+    for (const [variant, bg, expected] of [["light", 255, 204], ["dark", 0, 51]] as const) {
       const base = sharp({ create: { width: 600, height: 400, channels: 3, background: { r: bg, g: bg, b: bg } } });
       const out = await base.composite(await logoTiles(600, 400, variant)).png().toBuffer();
       const { data } = await sharp(out).removeAlpha().raw().toBuffer({ resolveWithObject: true });

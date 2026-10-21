@@ -19,7 +19,7 @@ export interface Derivatives {
 }
 
 /**
- * Miniatura (~400px lado largo, sin marca) y vista previa (~1600px) con el logo en mosaico al 50% (TASK-035), ambas
+ * Miniatura (~400px lado largo, sin marca) y vista previa (~1600px) con el logo en mosaico al 20% de opacidad (TASK-035, TASK-038), ambas
  * WebP (TASK-033). Lanza si el archivo no es una imagen valida.
  */
 export async function makeDerivatives(input: Buffer, logo: LogoVariant = WATERMARK_LOGO): Promise<Derivatives> {

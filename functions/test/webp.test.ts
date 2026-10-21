@@ -99,6 +99,14 @@ describe("plan del backfill (TASK-033)", () => {
     expect(legacyToDelete(names, new Set(["thumbs/e/a.jpg", "covers/e/d.jpg", undefined]))).toEqual(["thumbs/e/b.jpg", "covers/e/c.jpg"]);
   });
 
+  // Previene (TASK-038): que fotos ya desplegadas con la marca al 50% o 35% (logo-dark-1/2) queden sin regenerar al 20%.
+  it("TASK-038 una foto con watermarkVersion logo-dark-1 o logo-dark-2 se marca para regenerar", () => {
+    const webp = { ...legacy, thumbPath: "thumbs/e/p.0123456789ab.webp", previewPath: "previews/e/p.0123456789ab.webp" };
+    expect(WATERMARK_VERSION).toBe("logo-dark-3");
+    for (const v of ["logo-dark-1", "logo-dark-2"]) expect(webpReason({ ...webp, watermarkVersion: v }, "e", "p")).toBe("watermark");
+    expect(webpReason({ ...webp, watermarkVersion: WATERMARK_VERSION }, "e", "p")).toBeNull();
+  });
+
   // Previene (TASK-035): que el backfill deje vistas previas con la marca vieja (sin version o de otra variante), o
   // que al regenerarlas toque el original o borre la miniatura que sigue en uso (mismo contenido, misma ruta).
   it("TASK-035 regenera la vista previa con marca vieja: original intacto, miniatura igual, preview vieja borrada", async () => {
