@@ -59,6 +59,14 @@ describe("makeDerivatives", () => {
     }
   });
 
+  // Previene (TASK-035): que una foto diminuta o muy angosta quede en "error" porque el logo es mas grande que ella.
+  it("TASK-035 fotos diminutas o muy angostas se procesan (el logo no supera la imagen)", async () => {
+    for (const [w, h] of [[5, 5], [1600, 10]]) {
+      const r = await makeDerivatives(await gray(w, h));
+      expect(await sharp(r.preview).metadata()).toMatchObject({ width: w, height: h });
+    }
+  });
+
   // Previene: que un archivo dañado se publique como "listo" o tumbe el procesamiento de las demas fotos (CU6).
   it("CU6 un archivo dañado lanza error", async () => {
     await expect(makeDerivatives(Buffer.from("esto no es una imagen"))).rejects.toThrow();

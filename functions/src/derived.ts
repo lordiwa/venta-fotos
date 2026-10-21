@@ -43,17 +43,19 @@ export interface DerivedPhoto {
 }
 
 /**
- * Backfill: foto lista con original cuya miniatura o vista previa no esta aun en webp versionado, o (TASK-035) cuya
- * vista previa se hizo con otra marca de agua (`watermarkVersion` distinto del actual o ausente).
+ * Backfill: por que hay que rehacer los derivados de la foto lista con original. "format": la miniatura o la vista
+ * previa no esta aun en webp versionado; "watermark" (TASK-035): ya lo esta, pero la vista previa se hizo con otra
+ * marca de agua (`watermarkVersion` distinto del actual o ausente). null: nada que hacer.
  */
-export const needsWebp = (photo: DerivedPhoto, eventId: string, photoId: string) =>
-  photo.status === "ready" &&
-  typeof photo.originalPath === "string" &&
-  !(
-    isDerivedPath(photo.thumbPath, "thumbs", eventId, photoId) &&
-    isDerivedPath(photo.previewPath, "previews", eventId, photoId) &&
-    photo.watermarkVersion === WATERMARK_VERSION
-  );
+export function webpReason(photo: DerivedPhoto, eventId: string, photoId: string): "format" | "watermark" | null {
+  if (photo.status !== "ready" || typeof photo.originalPath !== "string") return null;
+  if (!(isDerivedPath(photo.thumbPath, "thumbs", eventId, photoId) && isDerivedPath(photo.previewPath, "previews", eventId, photoId))) {
+    return "format";
+  }
+  return photo.watermarkVersion === WATERMARK_VERSION ? null : "watermark";
+}
+
+export const needsWebp = (photo: DerivedPhoto, eventId: string, photoId: string) => webpReason(photo, eventId, photoId) !== null;
 
 /**
  * Backfill: .jpg viejos de thumbs/, previews/ o covers/ que ningun documento referencia (los que dejo una conversion

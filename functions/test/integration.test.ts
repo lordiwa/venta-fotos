@@ -27,7 +27,6 @@ describe("pipeline de fotos (emuladores)", () => {
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
     await db.doc(`events/${EVENT}`).set({ name: "E", date: admin.firestore.Timestamp.now(), published: false });
-    await db.doc("settings/store").set({ watermarkText: "PRUEBA" });
     const jpeg = await sharp({ create: { width: 2400, height: 1600, channels: 3, background: "#4080c0" } }).jpeg().toBuffer();
     const save = (name: string, buf: Buffer) =>
       bucket.file(`originals/${EVENT}/${name}.jpg`).save(buf, { contentType: "image/jpeg", metadata: { metadata: { originalName: `${name}.jpg` } } });

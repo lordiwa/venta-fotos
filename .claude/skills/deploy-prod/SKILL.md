@@ -103,6 +103,22 @@ GCLOUD_PROJECT=venta-fotos-estudio GOOGLE_CLOUD_QUOTA_PROJECT=venta-fotos-estudi
 
 `--prod` sin `--functions-deployed` se niega a correr. ADC como rmatovelle84@gmail.com (ver Cuentas).
 
+### Regenerar vistas previas por cambio de marca de agua (TASK-035)
+
+Desde TASK-035 la vista previa lleva el logo de Martial Photo en mosaico al 50% (variante final: `dark`, círculo
+blanco; `WATERMARK_LOGO` en `functions/src/watermark.ts`) y el documento anota `watermarkVersion` (`logo-dark-1`).
+El mismo `backfill:webp` regenera toda foto con otra versión o sin ella (las de la marca de texto). Los originales
+solo se leen; la miniatura no cambia (mismo contenido, misma ruta); la vista previa vieja se borra recién después
+de publicar la nueva.
+
+1. Desplegar las Functions con la variante final (`dark`) y esperar el rollout (si no, un processPhoto viejo
+   volvería a escribir la marca de texto; una nueva corrida lo corrige).
+2. Ensayo con la misma línea `--dry-run` de arriba. Imprime por evento y en total cuántas fotos son
+   "por convertir a webp" y cuántas "por regenerar la marca": esperar ~501 por regenerar la marca y 0 por convertir.
+3. Corrida real (misma línea sin `--dry-run`). Una segunda corrida debe dar 0 y 0.
+
+Si se cambia la variante o el diseño (tamaño, separación, opacidad: subir `LAYOUT_VERSION`), repetir 1-3.
+
 Región: southamerica-east1. Bucket de Storage: `venta-fotos-estudio.firebasestorage.app`.
 
 ### Permisos IAM de la primera vez (2nd gen + Eventarc)

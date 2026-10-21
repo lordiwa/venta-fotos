@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import sharp from "sharp";
 import { deletePhotoFiles, processOriginal, publishDerivatives } from "../src/process";
-import { CACHE_CONTROL, isDerivedPath, legacyToDelete, needsWebp } from "../src/derived";
+import { CACHE_CONTROL, isDerivedPath, legacyToDelete, needsWebp, webpReason } from "../src/derived";
 import { WATERMARK_VERSION, watermarkVersion } from "../src/watermark";
 import { fakes } from "./fakes";
 
@@ -104,6 +104,7 @@ describe("plan del backfill (TASK-033)", () => {
   it("TASK-035 regenera la vista previa con marca vieja: original intacto, miniatura igual, preview vieja borrada", async () => {
     const webp = { ...legacy, thumbPath: "thumbs/e/p.0123456789ab.webp", previewPath: "previews/e/p.0123456789ab.webp" };
     expect(needsWebp(webp, "e", "p")).toBe(true); // sin watermarkVersion (marca de texto)
+    expect([webpReason(legacy, "e", "p"), webpReason(webp, "e", "p")]).toEqual(["format", "watermark"]); // conteo del dry-run
     const other = watermarkVersion(WATERMARK_VERSION.includes("light") ? "dark" : "light");
     expect(needsWebp({ ...webp, watermarkVersion: other }, "e", "p")).toBe(true);
 
