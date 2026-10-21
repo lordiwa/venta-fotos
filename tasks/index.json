@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T16:02:10.337Z",
+  "generated_at": "2026-10-21T16:04:39.703Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -136,7 +136,7 @@
     {
       "key": "TASK-031",
       "title": "Zoom con dos dedos en el visor de fotos en móviles",
-      "status": "in_review",
+      "status": "done",
       "priority": "medium"
     },
     {

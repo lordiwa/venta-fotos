@@ -9,7 +9,7 @@
     "Un gesto con varios dedos nunca cambia de foto (se mantiene el comportamiento actual).",
     "Test unitario de la lógica que decide si un gesto cambia de foto (incluye el caso ampliado)."
   ],
-  "status": "in_review",
+  "status": "done",
   "priority": "medium",
   "labels": [
     "frontend",
@@ -17,16 +17,44 @@
   ],
   "assignee": null,
   "depends_on": [],
-  "linked_commits": [],
+  "linked_commits": [
+    "79ab9b5",
+    "8c6946c"
+  ],
   "linked_prs": [],
   "comments": [
     {
       "author": "orchestrator",
       "at": "2026-10-21T12:30:08.828Z",
       "body": "Casos de uso: los criterios de aceptación salen del pedido del humano del 2026-10-21 (\"asegurate de que todos los previews funcionen en moviles\").\n\nCommits:\n- 79ab9b5: pinch-zoom y swipeAction.\n- 8c6946c (M-1 y L-1 de la revisión): touch-action manipulation, overscroll-behavior-x contain y pruebas del límite 1.01.\n\nRevisión en contexto fresco: APPROVE, sin HIGH. M-1 y L-1 resueltos en 8c6946c. L-2 (cableado del componente sin test) y L-3 (escala residual de 1.02 bloquea el swipe) se aceptan.\n\n[WARGAMING] Caminos atacados por criterio:\n- AC1: pinch sobre la imagen, sobre los campos de PurchasePanel y sobre los botones.\n- AC2: swipe con escala 1, sin hasNext/hasPrev y sin visualViewport.\n- AC3: arrastre con un dedo estando ampliada, con escala residual de 1.005 y de 1.02.\n- AC4: pinch soltando los dedos en cualquier orden, con 3 dedos, con A abajo/B abajo/A arriba y B deslizando, y con touchcancel.\n\nTodos sobreviven.\n\nVerificado en vivo tras el deploy de hosting: .lb tiene touch-action manipulation y overscroll-behavior-x contain, y la vista previa carga (1600px).\n\nBarrido a 390px antes del cambio:\n- Galería: las 501 miniaturas cargan, ninguna rota.\n- Visor: vistas previas horizontales y verticales.\n- Portada, inicio y carrito, más las 502 imágenes del admin.\n- Las 501 fotos tienen previewPath y thumbPath presentes en Storage.\n\nPendiente: UAT del humano en un teléfono real.\n- Zoom con dos dedos.\n- Mover la foto ampliada con un dedo sin que cambie de foto.\n- Swipe normal que cambia de foto."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-21T16:04:29.744Z",
+      "body": "[WARGAMING] Fresh-context review of 79ab9b5, transcribed by the orchestrator: APPROVE, no HIGH findings. M-1 (no horizontal pan when zoomed) and L-1 (1.01 boundary) were fixed in 8c6946c.\n\nPaths attacked:\n- AC1: pinch on the image, on the PurchasePanel inputs and on the buttons.\n- AC2: swipe at scale 1, with no hasNext/hasPrev, with no visualViewport.\n- AC3: one-finger drag while zoomed, residual scales of 1.005 and 1.02.\n- AC4: pinch released in any order, 3 fingers, finger A down / B down / A up / B swipes, touchcancel.\n\nAll survive."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-21T16:04:39.703Z",
+      "body": "1. CASOS DE USO APROBADOS\nVienen del pedido del humano del 2026-10-21 (\"asegurate de que todos los previews funcionen en moviles\").\n- CU1: zoom con dos dedos en el visor.\n- CU2: el swipe horizontal cambia de foto sin zoom.\n- CU3: arrastrar con un dedo estando ampliada no cambia de foto.\n- CU4: un gesto multitáctil nunca cambia de foto.\n- CU5: test unitario.\n\n2. RESULTADO\nCommits 79ab9b5 y 8c6946c, desplegados en hosting. En vivo: .lb con touch-action manipulation y overscroll-behavior-x contain. swipeAction ignora el swipe con varios dedos o con scale > 1.01.\n\n3. WARGAMING\nCaminos alternativos y de fallo atacados:\n- CU1: pinch sobre la imagen, los campos y los botones.\n- CU2: escala 1, sin hasNext, sin visualViewport.\n- CU3: arrastre con zoom, escala residual 1.005 y 1.02. Fallaba el paneo horizontal (M-1); corregido en 8c6946c.\n- CU4: pinch soltando los dedos en distinto orden, 3 dedos, A abajo/B abajo/A arriba con swipe de B, touchcancel.\nTodo sobrevive. Revisión: APPROVE.\n\n4. UAT\nPASS: el humano probó en su teléfono el zoom con dos dedos, el arrastre con la foto ampliada y el swipe. Su respuesta: \"esta bien\" (2026-10-21)."
     }
   ],
   "created_at": "2026-10-21T12:25:13.338Z",
-  "updated_at": "2026-10-21T12:30:08.886Z",
-  "jira_key": null
+  "updated_at": "2026-10-21T16:04:39.703Z",
+  "jira_key": null,
+  "linked_commits_verification": {
+    "at": "2026-10-21T16:04:39.703Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "79ab9b5",
+        "state": "verified"
+      },
+      {
+        "sha": "8c6946c",
+        "state": "verified"
+      }
+    ]
+  }
 }
