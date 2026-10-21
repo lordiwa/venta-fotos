@@ -9,7 +9,7 @@ import { dedicatedCoverPath } from '../eventsLogic'
 import { getActiveCatalog } from '../productsApi'
 import { formatMoney } from '../productsLogic'
 import { packsInfo, type PacksInfo } from '../packsInfo'
-import { Alert, Button, Eyebrow, Icon } from '../ui'
+import { Alert, Button, Icon } from '../ui'
 import type { Event, Photo } from '../types'
 
 const route = useRoute()
