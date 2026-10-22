@@ -86,6 +86,7 @@ function add() {
       <section v-if="hasPrintOffer(offered)" class="fineart">
         <h3 class="label">Impresión fine art</h3>
         <p class="body-sm muted">Cada foto se imprime en calidad fine art y se entrega montada en bastidor, lista para colgar. Garantía de duración del color de más de 200 años.</p>
+        <p class="body-sm muted">El envío corre por cuenta del comprador.</p>
       </section>
       <div v-if="!isDigital" class="qty">
         <span class="label muted">Cantidad</span>

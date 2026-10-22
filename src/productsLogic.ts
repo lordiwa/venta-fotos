@@ -98,7 +98,7 @@ export const offeredProducts = <T extends { kind: string }>(xs: T[], printOnly: 
   xs.filter((p) => (p.kind === 'print' || p.kind === 'digital') && !(printOnly && p.kind === 'digital'))
 
 /** TASK-040: true si entre los productos ofrecidos hay alguna impresion (muestra la explicacion fine art). */
-export const hasPrintOffer = (xs: { kind: string }[]): boolean => xs.some((p) => p.kind !== 'digital')
+export const hasPrintOffer = (xs: { kind: string }[]): boolean => xs.some((p) => p.kind === 'print')
 
 /** Orden numerico-aware por nombre: "9x13" antes que "20x25". */
 export const sortByName = <T extends { name: string }>(xs: T[]): T[] =>

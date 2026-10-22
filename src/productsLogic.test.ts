@@ -1,6 +1,6 @@
 // Prevents: guardar precios/costos invalidos (vacio, 0, negativo, texto) que romperian el total de un pedido.
 import { describe, it, expect, vi } from 'vitest'
-import { offeredProducts, hasPrintOffer,packFields, validatePackForm, PACK_DUPLICATE_ERROR, PACK_QUANTITY_ERROR, withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
+import { offeredProducts, hasPrintOffer, packFields, validatePackForm, PACK_DUPLICATE_ERROR, PACK_QUANTITY_ERROR, withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
 
 describe('productsLogic', () => {
   it('CU1/CU2: precio valido se normaliza (coma o punto)', () => {
@@ -79,6 +79,7 @@ describe('productsLogic', () => {
   it('TASK-040: hasPrintOffer es true solo si hay alguna impresion', () => {
     expect(hasPrintOffer([{ kind: 'digital' }, { kind: 'print' }])).toBe(true)
     expect(hasPrintOffer([{ kind: 'digital' }])).toBe(false)
+    expect(hasPrintOffer([{ kind: 'pack' }])).toBe(false)
     expect(hasPrintOffer([])).toBe(false)
   })
   // Previene: guardar paquetes de 1 foto, fraccionarios o gratis, o dos paquetes de la misma cantidad que vuelven ambiguo el desglose.
