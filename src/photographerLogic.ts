@@ -20,7 +20,7 @@ export const EXPERIENCE: TimelineItem[] = [
 ]
 
 export const EDUCATION: TimelineItem[] = [
-  { when: '2025', title: 'Fotografía profesional', org: 'New York Institute of Photography · en línea' },
+  { when: '2025 — en curso', title: 'Fotografía profesional', org: 'New York Institute of Photography · en línea' },
   { when: '2020', title: 'Fotografía digital y edición', org: 'Edufoto · Quito' },
   { when: '2018', title: 'Fotografía avanzada', org: 'Edufoto · Quito' },
   { when: '2006 — 2011', title: 'Comunicación Social', org: 'Pontificia Universidad Católica del Ecuador (estudios)' },

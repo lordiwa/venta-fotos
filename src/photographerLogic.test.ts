@@ -28,7 +28,7 @@ describe('photographerLogic', () => {
       expect(p.alt.length).toBeGreaterThan(10)
     }
     expect(PORTFOLIO.map((c) => c.name)).toEqual(['Paisaje', 'Deportes', 'Retrato', 'Publicidad', 'Eventos sociales', 'Mascotas'])
-    expect(EDUCATION[0]).toMatchObject({ when: '2025', org: expect.stringContaining('New York Institute of Photography') })
+    expect(EDUCATION[0]).toMatchObject({ when: '2025 — en curso', org: expect.stringContaining('New York Institute of Photography') })
   })
 
   // Daño: en movil una horizontal queda achicada al lado de otra foto, una vertical queda sola a media pantalla, o 4+ verticales se apretan en una fila.
