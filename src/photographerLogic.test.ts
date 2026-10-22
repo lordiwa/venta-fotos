@@ -28,7 +28,12 @@ describe('photographerLogic', () => {
       expect(p.alt.length).toBeGreaterThan(10)
     }
     expect(PORTFOLIO.map((c) => c.name)).toEqual(['Paisaje', 'Deportes', 'Retrato', 'Publicidad', 'Eventos sociales', 'Mascotas'])
-    expect(EDUCATION[0]).toMatchObject({ when: '2025 — en curso', org: expect.stringContaining('New York Institute of Photography') })
+  })
+
+  // Daño: el curso NYIP, que el fotógrafo pidió retirar, reaparece en la página pública /fotografo.
+  it('EDUCATION: no menciona New York Institute y empieza por Edufoto 2020', () => {
+    expect(EDUCATION.some((e) => /New York Institute/i.test(`${e.title} ${e.org}`))).toBe(false)
+    expect(EDUCATION[0]).toMatchObject({ when: '2020', org: expect.stringContaining('Edufoto') })
   })
 
   // Daño: en movil una horizontal queda achicada al lado de otra foto, una vertical queda sola a media pantalla, o 4+ verticales se apretan en una fila.
