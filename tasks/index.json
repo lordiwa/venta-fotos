@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T21:50:15.381Z",
+  "generated_at": "2026-10-22T14:49:19.522Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -186,6 +186,12 @@
       "title": "Sección \"Sobre el fotógrafo\" con el CV y portafolio de Mauricio Reinoso",
       "status": "done",
       "priority": "high"
+    },
+    {
+      "key": "TASK-040",
+      "title": "Explicación de la impresión fine art en el panel de compra de cada foto",
+      "status": "in_review",
+      "priority": "medium"
     }
   ]
 }

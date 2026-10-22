@@ -1,0 +1,46 @@
+{
+  "key": "TASK-040",
+  "title": "Explicación de la impresión fine art en el panel de compra de cada foto",
+  "description": "El humano pidió una explicación breve de la impresión en el panel de compra de cada foto: calidad fine art, montada en bastidor y con garantía de duración del color de más de 200 años. Solo va en el panel de cada foto (PurchasePanel), no en el carrito.",
+  "acceptance_criteria": [
+    "CU1: En PurchasePanel, si entre las opciones ofrecidas hay al menos un producto de tipo impresión, debajo de las opciones aparece un bloque breve titulado \"Impresión fine art\" con este texto: \"Cada foto se imprime en calidad fine art y se entrega montada en bastidor, lista para colgar. Garantía de duración del color de más de 200 años.\"",
+    "CU2: Si la foto no ofrece impresiones (solo digital, o no hay productos a la venta), el bloque no aparece.",
+    "CU3: El meta de cada opción impresa cambia de \"Copia impresa\" a \"Fine art en bastidor\". El meta digital no cambia.",
+    "CU4: El estilo es coherente con la marca (tokens existentes, sin colores nuevos) y se lee bien a 390 px y en escritorio. Si se usa un ícono, sale de icons.ts.",
+    "CU5: El carrito y las demás vistas no cambian.",
+    "CU6: Hay un test de regresión que cubre que el bloque aparece con impresiones y no aparece sin ellas."
+  ],
+  "status": "in_review",
+  "priority": "medium",
+  "labels": [
+    "tienda",
+    "copy"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "reviewer",
+      "at": "2026-10-22T14:07:24.551Z",
+      "body": "[WARGAMING] Ataqué CU1–CU6 por caminos alternativos y de fallo:\n- foto printOnly con y sin impresiones;\n- catálogo vacío;\n- catálogo solo digital;\n- catálogo mixto con la opción digital seleccionada;\n- estados de carga y de error con reintento;\n- precio 0;\n- kind inesperado (lo filtra offeredProducts);\n- textos largos a 390 px (el CSS los ajusta en columna flex sin nowrap).\nNingún camino rompe un CU. Falta la verificación visual real.\n\nVeredicto: APPROVE del código, commit 5e15b79. Tests 105/105 y vue-tsc sin errores. El texto de CU1 coincide carácter por carácter (PurchasePanel.vue:86-89). CU3 está en PurchasePanel.vue:83. Solo se usan tokens existentes. No hay cambios fuera de alcance.\n[FINDING-HIGH: R-1] El ticket tiene requires_uat y no hay comentario uat. Falta la UAT del humano en producción a 390 px y en escritorio.\n[FINDING-HIGH: R-2] Falta registrar el wargaming y la aprobación humana de los CU.\nLOW L-1: en productsLogic.ts:101, hasPrintOffer usa kind !== 'digital'; sería más estricto usar === 'print'. Hoy no se alcanza desde la vista.\nLOW L-2: falta un espacio en el import de productsLogic.test.ts:3."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-22T14:07:24.605Z",
+      "body": "[FINDING-RESOLVED: R-2] El wargaming quedó registrado arriba. El humano aprobó los CU el 2026-10-22: definió el contenido (\"bastidor y garantía de color en calidad fine art\", \"garantía de duración del color de más de 200 años\") y la ubicación (\"está bien en el panel de cada foto\"). El texto final y el meta \"Fine art en bastidor\" son los de la propuesta que se le mostró. R-1 queda abierto hasta la UAT después del deploy."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-22T14:49:19.522Z",
+      "body": "Ampliación pedida por el humano el 2026-10-22: \"Tambien aclarar que el envio es de parte del comprador\". Se agrega CU7. En el bloque \"Impresión fine art\" de PurchasePanel, después del texto de CU1, va un segundo párrafo con esta frase exacta: \"El envío corre por cuenta del comprador.\" Aparece con las mismas condiciones del bloque, es decir, solo cuando la foto tiene impresiones a la venta."
+    }
+  ],
+  "created_at": "2026-10-22T14:04:51.498Z",
+  "updated_at": "2026-10-22T14:49:19.522Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true,
+  "marker": "[EXPLICIT]"
+}
