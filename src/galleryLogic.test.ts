@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { galleryState, photoNav, photoPath, swipeAction, swipeDirection } from './galleryLogic'
+import { galleryState, photoNav, photoPath, swipeAction, swipeDirection, isPrintOnly } from './galleryLogic'
 
 describe('galleryLogic', () => {
   // Prevents: prev/next que se traba o salta en el limite de pagina de la cuadricula.
@@ -43,5 +43,12 @@ describe('galleryLogic', () => {
     // Prevents: un fallo de red que se muestra como "evento sin fotos" o "no disponible".
     expect(galleryState({ loading: false, error: true, eventFound: true, photoCount: 0 })).toBe('error')
     expect(galleryState({ loading: false, error: true, eventFound: false, photoCount: 0 })).toBe('error')
+  })
+  // Daño: marcar como "Solo impresión" una foto normal (o no marcar la que sí lo es) confunde al comprador antes de abrir el visor.
+  it('TASK-041: isPrintOnly es true solo con printOnly === true', () => {
+    expect(isPrintOnly({ printOnly: true })).toBe(true)
+    expect(isPrintOnly({ printOnly: false })).toBe(false)
+    expect(isPrintOnly({})).toBe(false)
+    expect(isPrintOnly(null)).toBe(false)
   })
 })

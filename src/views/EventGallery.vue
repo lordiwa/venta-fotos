@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import PhotoLightbox from '../components/PhotoLightbox.vue'
 import { fetchPhotosPage, getPublishedEvent, type PhotoCursor } from '../publicApi'
-import { eventPath, galleryState, photoNav, photoPath } from '../galleryLogic'
+import { eventPath, galleryState, isPrintOnly, PRINT_ONLY_LABEL, photoNav, photoPath } from '../galleryLogic'
 import { dedicatedCoverPath } from '../eventsLogic'
 import { getActiveCatalog } from '../productsApi'
 import { formatMoney } from '../productsLogic'
@@ -180,8 +180,9 @@ onBeforeUnmount(() => observer?.disconnect())
     <Alert v-if="state === 'empty' && !failed" class="gap">Este evento todavía no tiene fotos.</Alert>
     <ul v-else-if="state === 'ready'" class="es-gallery">
       <li v-for="(p, i) in photos" :key="p.id">
-        <a :href="photoPath(eventId, p.id)" :aria-label="`Ver foto ${i + 1}`" class="es-tile" :class="spanOf(i)" @click.prevent="open(p.id)">
+        <a :href="photoPath(eventId, p.id)" :aria-label="`Ver foto ${i + 1}${isPrintOnly(p) ? ` (${PRINT_ONLY_LABEL.toLowerCase()})` : ''}`" class="es-tile" :class="spanOf(i)" @click.prevent="open(p.id)">
           <PhotoThumb :path="p.thumbPath" fill />
+          <span v-if="isPrintOnly(p)" class="es-print-tag" aria-hidden="true">{{ PRINT_ONLY_LABEL }}</span>
           <span class="es-tile-veil" aria-hidden="true"><span>#{{ i + 1 }}</span><span class="es-tile-cta">Ver</span></span>
         </a>
       </li>

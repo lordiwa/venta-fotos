@@ -33,6 +33,11 @@ export function swipeAction(dx: number, dy: number, g: { multi: boolean; scale?:
 export const eventPath = (eventId: string) => `/eventos/${encodeURIComponent(eventId)}`
 export const photoPath = (eventId: string, photoId: string) => `${eventPath(eventId)}/fotos/${encodeURIComponent(photoId)}`
 
+/** TASK-041: texto de la etiqueta que marca en la galeria y el visor las fotos que solo se venden impresas. */
+export const PRINT_ONLY_LABEL = 'Solo impresión'
+/** TASK-041: solo con printOnly === true (undefined o false = foto normal). */
+export const isPrintOnly = (photo: { printOnly?: boolean } | null | undefined): boolean => photo?.printOnly === true
+
 /** Estado de la pagina de evento: un evento ausente/no publicado es "unavailable"; publicado sin fotos listas es "empty". */
 export function galleryState(s: { loading: boolean; error?: boolean; eventFound: boolean; photoCount: number }): 'loading' | 'error' | 'unavailable' | 'empty' | 'ready' {
   if (s.loading) return 'loading'

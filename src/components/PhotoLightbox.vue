@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import { publicUrl } from '../photosApi'
 import PurchasePanel from './PurchasePanel.vue'
-import { swipeAction } from '../galleryLogic'
+import { swipeAction, isPrintOnly, PRINT_ONLY_LABEL } from '../galleryLogic'
 import { Icon } from '../ui'
 import type { Photo } from '../types'
 
@@ -60,7 +60,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
 <template>
   <div ref="root" class="lb" role="dialog" aria-modal="true" aria-label="Foto ampliada" @touchstart.passive="start" @touchend.passive="end">
     <div class="top">
-      <span class="mono-sm caption">{{ caption }}</span>
+      <span class="mono-sm caption">{{ caption }}<span v-if="isPrintOnly(photo)" class="es-print-tag print-tag">{{ PRINT_ONLY_LABEL }}</span></span>
       <button ref="closeBtn" class="round" aria-label="Cerrar" @click="emit('close')"><Icon name="cerrar" :size="18" /></button>
     </div>
     <div class="stage">
@@ -82,6 +82,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
 .lb { position: fixed; inset: 0; background: var(--overlay); color: var(--on-rail); display: flex; flex-direction: column; z-index: 10; overflow-y: auto; touch-action: manipulation; overscroll-behavior-x: contain; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-6) 0; }
 .caption { color: var(--on-rail-muted); padding-left: var(--space-4); min-width: 0; overflow-wrap: anywhere; }
+.print-tag { margin-left: var(--space-3); vertical-align: middle; }
 .stage { flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-6); padding: var(--space-4) var(--space-6) var(--space-8); min-width: 0; }
 .viewer { position: relative; flex: 999 1 560px; min-width: 0; display: flex; align-items: center; gap: var(--space-3); }
 .photo { flex: 1; min-width: 0; min-height: 200px; margin: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background: var(--surface-sunken); box-shadow: var(--shadow-lightbox); color: var(--ink-muted); }
