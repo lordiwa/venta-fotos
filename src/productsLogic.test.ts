@@ -1,6 +1,6 @@
 // Prevents: guardar precios/costos invalidos (vacio, 0, negativo, texto) que romperian el total de un pedido.
 import { describe, it, expect, vi } from 'vitest'
-import { offeredProducts, packFields, validatePackForm, PACK_DUPLICATE_ERROR, PACK_QUANTITY_ERROR, withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
+import { offeredProducts, hasPrintOffer,packFields, validatePackForm, PACK_DUPLICATE_ERROR, PACK_QUANTITY_ERROR, withOfflineNotice, SHIPPING_ERROR, PERMISSION_MESSAGE, NETWORK_MESSAGE, saveErrorMessage, settingsToForm, sortByName, parseMoney, validateProductForm, validateSettingsForm, productFields, settingsFields, PRICE_ERROR, NAME_ERROR } from './productsLogic'
 
 describe('productsLogic', () => {
   it('CU1/CU2: precio valido se normaliza (coma o punto)', () => {
@@ -74,6 +74,12 @@ describe('productsLogic', () => {
     expect(offeredProducts(xs, false).map((p) => p.id)).toEqual(['a4', 'digital'])
     expect(offeredProducts(xs, true).map((p) => p.id)).toEqual(['a4'])
     expect(offeredProducts([{ id: 'digital', kind: 'digital' }], true)).toEqual([])
+  })
+  // Daño: mostrar la explicacion fine art sin impresiones a la venta, u ocultarla cuando si las hay.
+  it('TASK-040: hasPrintOffer es true solo si hay alguna impresion', () => {
+    expect(hasPrintOffer([{ kind: 'digital' }, { kind: 'print' }])).toBe(true)
+    expect(hasPrintOffer([{ kind: 'digital' }])).toBe(false)
+    expect(hasPrintOffer([])).toBe(false)
   })
   // Previene: guardar paquetes de 1 foto, fraccionarios o gratis, o dos paquetes de la misma cantidad que vuelven ambiguo el desglose.
   it('TASK-029: paquete con cantidad entera 2..100 sin repetir y precio > 0; el nombre sale de la cantidad', () => {

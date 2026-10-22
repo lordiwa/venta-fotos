@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { getActiveCatalog } from '../productsApi'
-import { formatMoney, offeredProducts } from '../productsLogic'
+import { formatMoney, hasPrintOffer, offeredProducts } from '../productsLogic'
 import { getSettings } from '../settingsApi'
 import { buildWhatsAppMessage, currentLinkEnv, resolveWhatsappDigits, whatsappLinkAttrs, whatsappUrl } from '../whatsappLogic'
 import { useCartStore } from '../stores/cart'
@@ -80,9 +80,13 @@ function add() {
         <legend class="sr">Producto</legend>
         <OptionCard
           v-for="p in offered" :key="p.id" v-model="productId" name="producto" :value="p.id"
-          :label="p.name" :meta="p.kind === 'digital' ? 'Descarga en alta resolución' : 'Copia impresa'" :price="formatMoney(p.price)"
+          :label="p.name" :meta="p.kind === 'digital' ? 'Descarga en alta resolución' : 'Fine art en bastidor'" :price="formatMoney(p.price)"
         />
       </fieldset>
+      <section v-if="hasPrintOffer(offered)" class="fineart">
+        <h3 class="label">Impresión fine art</h3>
+        <p class="body-sm muted">Cada foto se imprime en calidad fine art y se entrega montada en bastidor, lista para colgar. Garantía de duración del color de más de 200 años.</p>
+      </section>
       <div v-if="!isDigital" class="qty">
         <span class="label muted">Cantidad</span>
         <Stepper v-model="qty" />
@@ -109,6 +113,8 @@ fieldset { margin: 0; padding: 0; border: 0; display: flex; flex-direction: colu
 .qty { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .muted { color: var(--ink-muted); }
 .note { margin: 0; }
+.fineart { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+.fineart h3 { margin: 0; }
 p { margin: 0; }
 .cart-link { font-weight: 500; color: inherit; }
 @media (max-width: 720px) {

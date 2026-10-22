@@ -97,6 +97,9 @@ export function saveErrorMessage(e: unknown): string {
 export const offeredProducts = <T extends { kind: string }>(xs: T[], printOnly: boolean): T[] =>
   xs.filter((p) => (p.kind === 'print' || p.kind === 'digital') && !(printOnly && p.kind === 'digital'))
 
+/** TASK-040: true si entre los productos ofrecidos hay alguna impresion (muestra la explicacion fine art). */
+export const hasPrintOffer = (xs: { kind: string }[]): boolean => xs.some((p) => p.kind !== 'digital')
+
 /** Orden numerico-aware por nombre: "9x13" antes que "20x25". */
 export const sortByName = <T extends { name: string }>(xs: T[]): T[] =>
   [...xs].sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true }))
