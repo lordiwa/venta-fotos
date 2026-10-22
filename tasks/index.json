@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T14:49:19.522Z",
+  "generated_at": "2026-10-22T15:00:02.613Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -190,7 +190,13 @@
     {
       "key": "TASK-040",
       "title": "Explicación de la impresión fine art en el panel de compra de cada foto",
-      "status": "in_review",
+      "status": "done",
+      "priority": "medium"
+    },
+    {
+      "key": "TASK-041",
+      "title": "Marcar en la galería las fotos que son solo para impresión",
+      "status": "in_progress",
       "priority": "medium"
     }
   ]

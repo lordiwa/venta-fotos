@@ -156,6 +156,12 @@
       "type": "task",
       "ref": "tasks/TASK-039.json",
       "label": "Sección \"Sobre el fotógrafo\" con el CV y portafolio de Mauricio Reinoso"
+    },
+    {
+      "id": "task-040",
+      "type": "task",
+      "ref": "tasks/TASK-040.json",
+      "label": "Explicación de la impresión fine art en el panel de compra de cada foto"
     }
   ],
   "edges": []

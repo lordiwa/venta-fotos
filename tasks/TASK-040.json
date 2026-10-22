@@ -10,7 +10,7 @@
     "CU5: El carrito y las demás vistas no cambian.",
     "CU6: Hay un test de regresión que cubre que el bloque aparece con impresiones y no aparece sin ellas."
   ],
-  "status": "in_review",
+  "status": "done",
   "priority": "medium",
   "labels": [
     "tienda",
@@ -18,7 +18,10 @@
   ],
   "assignee": null,
   "depends_on": [],
-  "linked_commits": [],
+  "linked_commits": [
+    "5e15b79",
+    "0ec65d4"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -35,12 +38,42 @@
       "author": "orchestrator",
       "at": "2026-10-22T14:49:19.522Z",
       "body": "Ampliación pedida por el humano el 2026-10-22: \"Tambien aclarar que el envio es de parte del comprador\". Se agrega CU7. En el bloque \"Impresión fine art\" de PurchasePanel, después del texto de CU1, va un segundo párrafo con esta frase exacta: \"El envío corre por cuenta del comprador.\" Aparece con las mismas condiciones del bloque, es decir, solo cuando la foto tiene impresiones a la venta."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-22T14:59:45.427Z",
+      "body": "[FINDING-DEGRADED: R-1 — El 2026-10-22 el humano pidió cerrar directamente (\"cerrar task 40\") después del deploy de 0ec65d4. No hay una UAT visual registrada; en producción todavía no hay tamaños de impresión cargados, así que el bloque aún no se ve. Se acepta el cierre por decisión del humano. Si al cargar un tamaño se ve algo mal, se abre un ticket nuevo.]"
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-22T14:59:50.334Z",
+      "body": "El humano aceptó el cierre el 2026-10-22 con \"cerrar task 40\", después de ver la propuesta y aprobar el texto final del bloque. CU1–CU7: PASS por aceptación del humano. No se hizo una revisión visual en producción, porque todavía no hay tamaños de impresión cargados (ver FINDING-DEGRADED R-1)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-22T15:00:02.613Z",
+      "body": "1. CASOS DE USO APROBADOS\nCU1–CU7, aprobados por el humano:\n- CU1: bloque \"Impresión fine art\" con bastidor y garantía de duración del color de más de 200 años, en el panel de cada foto.\n- CU2: el bloque no aparece si la foto no tiene impresiones.\n- CU3: el meta de cada opción impresa dice \"Fine art en bastidor\".\n- CU4: usa los tokens de la marca y se ve bien a 390 px.\n- CU5: el carrito no cambia.\n- CU6: test de regresión.\n- CU7: \"El envío corre por cuenta del comprador.\"\n\n2. RESULTADO\nCommits 5e15b79 y 0ec65d4, con el hosting desplegado el 2026-10-22. Tests 106/106 y vue-tsc sin errores. Verifiqué que el bundle publicado contiene el texto y la configuración de Firebase. hasPrintOffer usa kind === 'print' y el test cubre un pack.\n\n3. WARGAMING\nEl reviewer atacó CU1–CU6 por caminos alternativos y de fallo:\n- foto printOnly con y sin impresiones;\n- catálogo vacío y catálogo solo digital;\n- catálogo mixto con la opción digital seleccionada;\n- estados de carga y de error con reintento;\n- precio 0;\n- kind inesperado;\n- textos largos a 390 px.\nNingún camino rompió un CU. Resultado: APPROVE. Los hallazgos LOW L-1 y L-2 se corrigieron en 0ec65d4.\n\n4. UAT\nCU1: PASS, CU2: PASS, CU3: PASS, CU4: PASS, CU5: PASS, CU6: PASS, CU7: PASS, por aceptación del humano (\"cerrar task 40\"). No hubo revisión visual en producción, porque aún no hay tamaños de impresión cargados. R-1 quedó degradado con justificación."
     }
   ],
   "created_at": "2026-10-22T14:04:51.498Z",
-  "updated_at": "2026-10-22T14:49:19.522Z",
+  "updated_at": "2026-10-22T15:00:02.613Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true,
-  "marker": "[EXPLICIT]"
+  "marker": "[EXPLICIT]",
+  "linked_commits_verification": {
+    "at": "2026-10-22T15:00:02.613Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "5e15b79",
+        "state": "verified"
+      },
+      {
+        "sha": "0ec65d4",
+        "state": "verified"
+      }
+    ]
+  }
 }
