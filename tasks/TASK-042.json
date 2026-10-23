@@ -13,7 +13,7 @@
     "CU8: El admin (/admin/*) sigue completo en español sin importar el idioma elegido. Los datos guardados en Firestore no cambian de formato.",
     "CU9: Tests de regresión: detección y persistencia del idioma (con almacenamiento roto), paridad de claves ES/EN (ninguna clave falta en un idioma), mensaje de WhatsApp en inglés y mapeo de errores."
   ],
-  "status": "in_review",
+  "status": "done",
   "priority": "high",
   "labels": [
     "tienda",
@@ -21,7 +21,14 @@
   ],
   "assignee": null,
   "depends_on": [],
-  "linked_commits": [],
+  "linked_commits": [
+    "8ba2a3e",
+    "5060c97",
+    "43e1ae9",
+    "415cb0d",
+    "c6e649f",
+    "98a4975"
+  ],
   "linked_prs": [],
   "comments": [
     {
@@ -43,12 +50,58 @@
       "author": "orchestrator",
       "at": "2026-10-23T14:58:07.873Z",
       "body": "[FINDING-RESOLVED: R-1] TopBar shows 2 rows from 380 to 459 px in c6e649f. The re-review approved it and I checked the es-414 and en-380 screenshots."
+    },
+    {
+      "author": "uat",
+      "at": "2026-10-23T15:29:44.882Z",
+      "body": "UAT del humano en producción, 2026-10-23: \"Funciona cierra task\". Recorrió en el celular, con el botón EN, el inicio, la galería, la foto con su panel, el carrito y /fotografo; hizo un pedido en inglés y volvió a ES. Verificación del orquestador en Chrome sobre producción: EN muestra \"Find your photo.\" con html lang=en y el título en inglés, y ES restaura \"Encuentra tu foto.\" con lang=es. CU1: PASS, CU2: PASS, CU3: PASS, CU4: PASS, CU5: PASS, CU6: PASS, CU7: PASS, CU8: PASS, CU9: PASS."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-23T15:29:44.973Z",
+      "body": "[FINDING-RESOLVED: R-2] Se registró la UAT del humano con CU1–CU9 en PASS (2026-10-23)."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-23T15:29:45.545Z",
+      "body": "1. CASOS DE USO APROBADOS\nCU1–CU9, aprobados por el humano el 2026-10-23.\n- CU1: detección del idioma por navegador y botón ES/EN que recuerda la elección.\n- CU2: la barra superior conserva su layout.\n- CU3: toda la tienda pública traducida.\n- CU4: inglés natural, sin traducir los nombres propios.\n- CU5: montos y fechas según el idioma.\n- CU6: WhatsApp en el idioma del cliente.\n- CU7: errores del servidor traducidos.\n- CU8: el admin sigue en español.\n- CU9: tests.\n\n2. RESULTADO\nHosting desplegado el 2026-10-23. Las functions no cambiaron.\n- i18n propio y tipado (es/en con paridad garantizada por el compilador), pageMeta por ruta y serverErrors por código.\n- /fotografo en inglés.\n- Botón ES/EN, con la barra en 2 filas entre 380 y 459 px.\n- Tests 116/116 y vue-tsc limpio.\n\n3. WARGAMING\nDos pasadas del reviewer atacaron CU1, CU2, CU3, CU5, CU6, CU7 y CU8 por caminos alternativos y de fallo:\n- cambio de idioma con el visor abierto, con carrito y después de errores;\n- localStorage roto;\n- navegador en-GB, es-419 y sin idioma;\n- /admin con EN;\n- errores del servidor en EN, incluido el final de PayPal con id;\n- evento creado desde UTC-3;\n- nombres de producto parecidos a los del sistema;\n- TopBar en 7 anchos × 2 idiomas.\nEl mensaje de WhatsApp en español es byte a byte idéntico al anterior.\nR-1 (layout a 390 px) quedó resuelto en c6e649f; R-3, R-4, R-5, R-7, R-8 y R-10 en 98a4975.\nQuedan dos LOW:\n- los mensajes de Checkout no se retraducen (PayPal está apagado);\n- los botones ES/EN miden 28 px de ancho.\n\n4. UAT\nCU1: PASS, CU2: PASS, CU3: PASS, CU4: PASS, CU5: PASS, CU6: PASS, CU7: PASS, CU8: PASS, CU9: PASS. El humano lo probó en el celular y escribió \"Funciona cierra task\"."
     }
   ],
   "created_at": "2026-10-23T14:19:43.463Z",
-  "updated_at": "2026-10-23T14:58:07.873Z",
+  "updated_at": "2026-10-23T15:29:45.545Z",
   "jira_key": null,
   "verification_tier": "tests-after",
   "requires_uat": true,
-  "marker": "[EXPLICIT]"
+  "marker": "[EXPLICIT]",
+  "linked_commits_verification": {
+    "at": "2026-10-23T15:29:45.545Z",
+    "checked": true,
+    "reason": null,
+    "commits": [
+      {
+        "sha": "8ba2a3e",
+        "state": "verified"
+      },
+      {
+        "sha": "5060c97",
+        "state": "verified"
+      },
+      {
+        "sha": "43e1ae9",
+        "state": "verified"
+      },
+      {
+        "sha": "415cb0d",
+        "state": "verified"
+      },
+      {
+        "sha": "c6e649f",
+        "state": "verified"
+      },
+      {
+        "sha": "98a4975",
+        "state": "verified"
+      }
+    ]
+  }
 }

@@ -162,6 +162,12 @@
       "type": "task",
       "ref": "tasks/TASK-040.json",
       "label": "Explicación de la impresión fine art en el panel de compra de cada foto"
+    },
+    {
+      "id": "task-042",
+      "type": "task",
+      "ref": "tasks/TASK-042.json",
+      "label": "Tienda pública en inglés: botón ES/EN, detección por navegador y WhatsApp en el idioma del cliente"
     }
   ],
   "edges": []
