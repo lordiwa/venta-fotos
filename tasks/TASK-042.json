@@ -1,0 +1,54 @@
+{
+  "key": "TASK-042",
+  "title": "Tienda pública en inglés: botón ES/EN, detección por navegador y WhatsApp en el idioma del cliente",
+  "description": "El humano pidió avanzar con el sitio en inglés (2026-10-23). Decisiones que tomó:\n- Alcance: la tienda pública (inicio, galería, visor, panel de compra, carrito y formulario, /pedido, descargas, /fotografo, barra superior y pie). El admin queda en español.\n- Cómo se elige el idioma: un botón ES/EN en la barra superior. En la primera visita se usa el idioma del navegador. La elección se recuerda.\n- Contenido: el mensaje de WhatsApp sale en el idioma del cliente. Los nombres de eventos se muestran tal como se cargaron en el admin.\nHoy el proyecto no tiene i18n.",
+  "acceptance_criteria": [
+    "CU1: En la primera visita, si navigator.language empieza con 'en' el sitio abre en inglés; si no, abre en español. Un botón ES/EN en la barra superior cambia el idioma sin recargar. La elección se guarda en localStorage con try/catch y, si el almacenamiento falla, se vuelve a detectar. Se actualiza <html lang>.",
+    "CU2: El botón ES/EN cabe en la barra superior sin romper el layout de TASK-039: una fila desde 780 px y dos filas en móvil a 360–390 px. Se puede usar con teclado y su nombre accesible es claro.",
+    "CU3: Todos los textos de la tienda pública se traducen: TopBar, pie, Home, EventGallery con las etiquetas 'Solo impresión', PhotoLightbox, PurchasePanel con el bloque fine art y el envío, CartView con el formulario y los mensajes de validación, OrderView con los estados del pedido, DescargasView, NotFound, PhotographerView (bio, experiencia, formación, portafolio, CTA) y los títulos y meta description de cada vista. En los componentes públicos no queda español escrito a mano.",
+    "CU4: El inglés es natural y profesional, no una traducción literal. Los nombres propios no se traducen: Martial Photo, ICHU Hiking Tours, Edufoto, PUCE y los nombres de eventos.",
+    "CU5: Montos y fechas se formatean según el idioma (USD, America/Guayaquil).",
+    "CU6: Si el cliente compra en inglés, el mensaje de WhatsApp del pedido y el de 'cotizar una sesión' salen en inglés; si compra en español, igual que hoy. Si el servidor arma algún texto, recibe un parámetro lang validado ('es'|'en', por defecto 'es').",
+    "CU7: Los errores del servidor que ve el cliente (carrito vacío, pedido no encontrado, límite anti-abuso, etc.) se muestran traducidos según el código de error. En inglés no aparece texto crudo en español del servidor.",
+    "CU8: El admin (/admin/*) sigue completo en español sin importar el idioma elegido. Los datos guardados en Firestore no cambian de formato.",
+    "CU9: Tests de regresión: detección y persistencia del idioma (con almacenamiento roto), paridad de claves ES/EN (ninguna clave falta en un idioma), mensaje de WhatsApp en inglés y mapeo de errores."
+  ],
+  "status": "in_review",
+  "priority": "high",
+  "labels": [
+    "tienda",
+    "i18n"
+  ],
+  "assignee": null,
+  "depends_on": [],
+  "linked_commits": [],
+  "linked_prs": [],
+  "comments": [
+    {
+      "author": "orchestrator",
+      "at": "2026-10-23T14:23:57.079Z",
+      "body": "El humano aprobó CU1–CU9 tal como están escritos (\"si\", 2026-10-23), después de ver el resumen numerado."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-23T14:49:59.037Z",
+      "body": "[WARGAMING] I attacked CU1, CU2, CU3, CU5, CU6, CU7 and CU8 along alternative and failure paths:\n- switching language with the lightbox open and with items in the cart;\n- localStorage throwing an exception;\n- navigator.language set to en-GB, es-419 and undefined;\n- /admin with EN selected;\n- server errors in EN;\n- a product name typed by hand;\n- a printOnly photo in EN;\n- an empty cart in EN;\n- /pedido in EN;\n- a byte-for-byte regression check of the Spanish WhatsApp message (identical);\n- the time zone of an event created from UTC-3;\n- the TopBar at 360, 390, 780 and 1280 px.\n\nVerdict: REQUEST-CHANGES. Tests 116/116 and vue-tsc clean. Spanish and admin are unchanged.\n[FINDING-HIGH: R-1] CU2: at 390 px the TopBar takes 3 rows (components.css:159-180). It fits in 2 only below 380 px.\n[FINDING-HIGH: R-2] The UAT is missing (requires_uat).\nMEDIUM R-3: a final PayPal error in EN loses the reference id (serverErrors.ts:17-24,31). Latent, since PayPal is off.\nMEDIUM R-4: formatting event dates in Guayaquil time shows the previous day for events created from UTC-3 (format.ts:12-13).\nLOW:\n- R-5: error strings don't re-translate, and the pending notice in Checkout turns into a danger alert.\n- R-6: product names typed by hand stay in Spanish.\n- R-7: format.ts duplicates DIGITAL_NAME and packName.\n- R-8: downloadNotice is coupled to the server text.\n- R-9: approximate EN errors.\n- R-10: \"03:30 PM\" should be \"3:30 PM\"; \"Social Communication\" should be \"Communication Studies\"."
+    },
+    {
+      "author": "reviewer",
+      "at": "2026-10-23T14:58:07.804Z",
+      "body": "[WARGAMING] I re-reviewed fixes c6e649f and 98a4975. I attacked CU2, CU3, CU5, CU7 and CU8 on alternative and failure paths:\n- the TopBar at the 360/380 and 459/460 boundaries, in both languages (14 screenshots), including a 2-digit counter at es-380;\n- an event created from UTC-3;\n- the final PayPal error in EN, with and without the id;\n- switching languages after an error in Cart, Descargas, Order and Checkout;\n- product names that look like the system names;\n- an unknown download notice;\n- a byte-for-byte check of the Spanish WhatsApp message against 6c516e0 (ALL_SAME true);\n- admin amounts (\"5.00\").\n\nVerdict: APPROVE. Tests 116/116, vue-tsc clean. R-1, R-3, R-4, R-5, R-7, R-8 and R-10 are resolved.\n[FINDING-HIGH: R-2] still open: UAT with the human is missing.\nLOW:\n- L-1: Checkout messages are still stored as strings (PayPal is off).\n- L-2: the ES/EN buttons are 28 px wide in the 380–459 range."
+    },
+    {
+      "author": "orchestrator",
+      "at": "2026-10-23T14:58:07.873Z",
+      "body": "[FINDING-RESOLVED: R-1] TopBar shows 2 rows from 380 to 459 px in c6e649f. The re-review approved it and I checked the es-414 and en-380 screenshots."
+    }
+  ],
+  "created_at": "2026-10-23T14:19:43.463Z",
+  "updated_at": "2026-10-23T14:58:07.873Z",
+  "jira_key": null,
+  "verification_tier": "tests-after",
+  "requires_uat": true,
+  "marker": "[EXPLICIT]"
+}

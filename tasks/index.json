@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T15:00:02.613Z",
+  "generated_at": "2026-10-23T14:58:07.873Z",
   "tasks": [
     {
       "key": "TASK-001",
@@ -196,8 +196,14 @@
     {
       "key": "TASK-041",
       "title": "Marcar en la galería las fotos que son solo para impresión",
-      "status": "in_progress",
+      "status": "in_review",
       "priority": "medium"
+    },
+    {
+      "key": "TASK-042",
+      "title": "Tienda pública en inglés: botón ES/EN, detección por navegador y WhatsApp en el idioma del cliente",
+      "status": "in_review",
+      "priority": "high"
     }
   ]
 }
