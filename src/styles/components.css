@@ -1,4 +1,4 @@
-:where(.es-btn, .es-input, .es-stepper-btn, .es-rail-item, .es-topbar-link, .es-cart, .es-tile, .es-option):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+:where(.es-btn, .es-input, .es-stepper-btn, .es-rail-item, .es-topbar-link, .es-cart, .es-lang-btn, .es-tile, .es-option):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* Wordmark */
 .es-wordmark { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
@@ -121,6 +121,14 @@ textarea.es-input { padding: 12px 14px; resize: vertical; line-height: 1.5; }
 .es-cart:hover { transform: translateY(-1px); color: var(--ink); }
 .es-cart-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: var(--radius-pill); background: var(--amber); color: var(--on-amber); font: 500 12px var(--font-mono); }
 
+/* Selector de idioma ES/EN (TASK-042): grupo de dos botones con aria-pressed, junto al carrito. */
+.es-topbar-tools { display: flex; align-items: center; gap: var(--space-3); }
+.es-lang { display: inline-flex; box-sizing: border-box; min-height: var(--control-md); border: 1px solid var(--line-strong); border-radius: var(--radius-pill); overflow: hidden; }
+.es-lang-btn { box-sizing: border-box; min-width: 40px; padding: 0 var(--space-2); border: 0; background: transparent; color: var(--ink-muted); font: 500 12px var(--font-mono); letter-spacing: .06em; cursor: pointer; }
+.es-lang-btn:hover { color: var(--ink); }
+.es-lang-btn[aria-pressed="true"] { background: var(--amber); color: var(--on-amber); }
+.es-lang-btn:focus-visible { outline-offset: -2px; }
+
 /* SideNav */
 .es-rail { flex: 1 1 var(--rail-width); display: flex; flex-direction: column; gap: var(--space-7); box-sizing: border-box; padding: var(--space-7) var(--space-4); background: var(--rail); color: var(--on-rail); }
 .es-rail-brand { display: flex; flex-direction: column; gap: 4px; padding: 0 14px; text-decoration: none; color: var(--on-rail); }
@@ -152,10 +160,22 @@ textarea.es-input { padding: 12px 14px; resize: vertical; line-height: 1.5; }
   .es-topbar { padding: var(--space-4); gap: 0 var(--space-3); }
   .es-topbar-nav { order: 1; flex-basis: 100%; margin-left: 0; gap: var(--space-5); }
 }
+/* Entre 780 y 959px la fila unica lleva ademas el selector de idioma: se aprietan margenes y separaciones para que siga cabiendo. */
+@media (min-width: 780px) and (max-width: 959.98px) {
+  .es-topbar { padding-left: var(--space-5); padding-right: var(--space-5); gap: var(--space-4); }
+  .es-topbar-nav { gap: var(--space-5); }
+  .es-topbar-tools { gap: var(--space-2); }
+  .es-lang-btn { min-width: 32px; padding: 0 var(--space-1); }
+  .es-cart { padding: 0 var(--space-4); gap: var(--space-2); }
+}
 /* Pantallas angostas: el carrito queda en icono + contador (el aria-label del enlace sigue diciendo "Carrito, ..."). */
 @media (max-width: 379.98px) {
   .es-cart { padding: 0 var(--space-3); gap: var(--space-2); }
   .es-cart-text { display: none; }
+  .es-topbar-tools { gap: var(--space-2); }
+  .es-lang-btn { min-width: 30px; padding: 0 var(--space-1); }
+  .es-topbar .es-wordmark { font-size: 17px; gap: 8px; }
+  .es-topbar .es-wordmark-logo { width: 34px; height: 34px; }
   .es-topbar-nav { gap: var(--space-4); }
 }
 
