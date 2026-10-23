@@ -1,27 +1,31 @@
 <script setup lang="ts">
-import { PHOTOGRAPHER, PORTRAIT, photoSources, type ContactLinks } from '../../photographerLogic'
+import { computed } from 'vue'
+import { photographerContent, photoSources, type ContactLinks } from '../../photographerLogic'
+import { useI18n } from '../../i18n'
 import type { whatsappLinkAttrs } from '../../whatsappLogic'
 import ContactList from './ContactList.vue'
 import { Button } from '../../ui'
 
 defineProps<{ links: ContactLinks; waAttrs: ReturnType<typeof whatsappLinkAttrs> }>()
-const portrait = photoSources(PORTRAIT)
+const { t, locale } = useI18n()
+const c = computed(() => photographerContent(locale.value))
+const portrait = computed(() => photoSources(c.value.portrait))
 </script>
 
 <template>
   <section class="hero" aria-labelledby="fotografo-nombre">
     <figure class="portrait">
-      <img :src="portrait.src" :alt="PORTRAIT.alt" :width="PORTRAIT.width" :height="PORTRAIT.height" fetchpriority="high" />
+      <img :src="portrait.src" :alt="c.portrait.alt" :width="c.portrait.width" :height="c.portrait.height" fetchpriority="high" />
     </figure>
     <div class="body">
-      <span class="eyebrow kicker">Martial Photo · El fotógrafo</span>
+      <span class="eyebrow kicker">{{ t.photographer.kicker }}</span>
       <h1 id="fotografo-nombre" class="name">Mauricio <em>Reinoso</em></h1>
-      <p class="role">{{ PHOTOGRAPHER.role }}</p>
+      <p class="role">{{ c.role }}</p>
       <span class="rule" aria-hidden="true" />
-      <p class="lead bio">{{ PHOTOGRAPHER.bio }}</p>
+      <p class="lead bio">{{ c.bio }}</p>
       <div class="actions">
-        <Button variant="accent" size="lg" icon="telefono" :href="links.quote" v-bind="waAttrs">Cotizar una sesión</Button>
-        <a class="see" href="#portafolio">Ver portafolio <span aria-hidden="true">↓</span></a>
+        <Button variant="accent" size="lg" icon="telefono" :href="links.quote" v-bind="waAttrs">{{ t.photographer.quote }}</Button>
+        <a class="see" href="#portafolio">{{ t.photographer.seePortfolio }} <span aria-hidden="true">↓</span></a>
       </div>
       <ContactList :links="links" :wa-attrs="waAttrs" on-dark />
     </div>

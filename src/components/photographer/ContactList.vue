@@ -2,14 +2,17 @@
 import { PHOTOGRAPHER, type ContactLinks } from '../../photographerLogic'
 import type { whatsappLinkAttrs } from '../../whatsappLogic'
 import { Icon } from '../../ui'
+import { useI18n } from '../../i18n'
+
+const { t } = useI18n()
 
 defineProps<{ links: ContactLinks; waAttrs: ReturnType<typeof whatsappLinkAttrs>; onDark?: boolean }>()
 </script>
 
 <template>
-  <ul class="contact" :class="{ dark: onDark }" aria-label="Contacto">
+  <ul class="contact" :class="{ dark: onDark }" :aria-label="t.photographer.contact.aria">
     <li><a :href="links.whatsapp" v-bind="waAttrs"><Icon name="telefono" /><span class="sr">WhatsApp: </span>{{ links.whatsappLabel }}</a></li>
-    <li><a :href="links.email"><Icon name="correo" /><span class="sr">Correo: </span>{{ PHOTOGRAPHER.email }}</a></li>
+    <li><a :href="links.email"><Icon name="correo" /><span class="sr">{{ t.photographer.contact.email }}: </span>{{ PHOTOGRAPHER.email }}</a></li>
     <li><a :href="links.instagram" target="_blank" rel="noopener"><Icon name="instagram" /><span class="sr">Instagram: </span>@{{ PHOTOGRAPHER.instagram }}</a></li>
     <li><span class="place"><Icon name="ubicacion" />Quito, Ecuador</span></li>
   </ul>

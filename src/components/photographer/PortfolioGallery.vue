@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import PhotoLightbox from '../PhotoLightbox.vue'
-import { PORTFOLIO, mobileRows, photoSources } from '../../photographerLogic'
+import { mobileRows, photoSources, photographerContent } from '../../photographerLogic'
+import { useI18n } from '../../i18n'
 
+const { t, locale } = useI18n()
 const num = (i: number) => String(i + 1).padStart(2, '0')
-const categories = PORTFOLIO.map((c) => {
+const categories = computed(() => photographerContent(locale.value).portfolio.map((c) => {
   const tiles = c.photos.map((p) => ({ ...p, ...photoSources(p) }))
   return { ...c, tiles, rows: mobileRows(c.photos).map((r) => r.map((i) => tiles[i])) }
-})
+}))
 // El visor recorre todo el portafolio, en orden de categorias.
-const all = categories.flatMap((c, ci) => c.tiles.map((t, i) => ({ ...t, caption: `${num(ci)} · ${c.name} · ${i + 1} de ${c.tiles.length}` })))
+const all = computed(() => categories.value.flatMap((c, ci) => c.tiles.map((tile, i) => ({ ...tile, caption: t.value.photographer.portfolio.caption(num(ci), c.name, i + 1, c.tiles.length) }))))
 const open = ref<number | null>(null)
-const current = computed(() => (open.value === null ? null : all[open.value]))
-const show = (slug: string) => { open.value = all.findIndex((t) => t.slug === slug) }
-const step = (d: number) => { if (open.value !== null) open.value = Math.min(all.length - 1, Math.max(0, open.value + d)) }
+const current = computed(() => (open.value === null ? null : all.value[open.value]))
+const show = (slug: string) => { open.value = all.value.findIndex((tile) => tile.slug === slug) }
+const step = (d: number) => { if (open.value !== null) open.value = Math.min(all.value.length - 1, Math.max(0, open.value + d)) }
 </script>
 
 <template>
   <section id="portafolio" class="folio" aria-labelledby="portafolio-titulo">
     <div class="folio-head">
-      <h2 id="portafolio-titulo" class="display-md">Portafolio</h2>
-      <nav class="cats" aria-label="Categorías del portafolio">
+      <h2 id="portafolio-titulo" class="display-md">{{ t.photographer.portfolio.title }}</h2>
+      <nav class="cats" :aria-label="t.photographer.portfolio.categoriesAria">
         <a v-for="c in categories" :key="c.id" :href="`#${c.id}`">{{ c.name }}</a>
       </nav>
     </div>
@@ -33,9 +35,9 @@ const step = (d: number) => { if (open.value !== null) open.value = Math.min(all
       <!-- Escritorio: una sola fila (las filas de movil son display: contents). Movil: una fila por grupo de mobileRows. -->
       <div class="row">
         <div v-for="(r, ri) in c.rows" :key="ri" class="mrow">
-          <div v-for="t in r" :key="t.slug" class="tile" :style="{ flexGrow: t.width / t.height, aspectRatio: `${t.width} / ${t.height}` }">
-            <button type="button" class="open" :aria-label="`Ampliar: ${t.alt}`" @click="show(t.slug)">
-              <img :src="t.src" :srcset="t.srcset" sizes="(max-width: 720px) 100vw, 50vw" :alt="t.alt" :width="t.width" :height="t.height" loading="lazy" decoding="async" />
+          <div v-for="tile in r" :key="tile.slug" class="tile" :style="{ flexGrow: tile.width / tile.height, aspectRatio: `${tile.width} / ${tile.height}` }">
+            <button type="button" class="open" :aria-label="t.photographer.portfolio.enlarge(tile.alt)" @click="show(tile.slug)">
+              <img :src="tile.src" :srcset="tile.srcset" sizes="(max-width: 720px) 100vw, 50vw" :alt="tile.alt" :width="tile.width" :height="tile.height" loading="lazy" decoding="async" />
             </button>
           </div>
         </div>

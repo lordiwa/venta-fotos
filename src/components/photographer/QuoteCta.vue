@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { whatsappLinkAttrs } from '../../whatsappLogic'
 import { Button } from '../../ui'
+import { useI18n } from '../../i18n'
+
+const { t } = useI18n()
 
 defineProps<{ quoteHref: string; waAttrs: ReturnType<typeof whatsappLinkAttrs> }>()
 </script>
@@ -8,11 +11,11 @@ defineProps<{ quoteHref: string; waAttrs: ReturnType<typeof whatsappLinkAttrs> }
 <template>
   <section class="cta" aria-labelledby="cta-titulo">
     <div class="copy">
-      <span class="eyebrow kicker">Trabajemos juntos</span>
-      <h2 id="cta-titulo" class="display-md title">¿Una sesión, un evento o una campaña?</h2>
-      <p class="lead text">Escríbeme por WhatsApp, cuéntame qué tienes en mente y te envío una propuesta.</p>
+      <span class="eyebrow kicker">{{ t.photographer.cta.eyebrow }}</span>
+      <h2 id="cta-titulo" class="display-md title">{{ t.photographer.cta.title }}</h2>
+      <p class="lead text">{{ t.photographer.cta.text }}</p>
     </div>
-    <Button variant="accent" size="lg" icon="telefono" :href="quoteHref" v-bind="waAttrs">Cotizar una sesión</Button>
+    <Button variant="accent" size="lg" icon="telefono" :href="quoteHref" v-bind="waAttrs">{{ t.photographer.quote }}</Button>
   </section>
 </template>
 

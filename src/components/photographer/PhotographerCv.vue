@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { EDUCATION, EXPERIENCE, LANGUAGES, PORTFOLIO, TOOLS } from '../../photographerLogic'
+import { computed } from 'vue'
+import { photographerContent } from '../../photographerLogic'
+import { useI18n } from '../../i18n'
+
+const { t, locale } = useI18n()
+const c = computed(() => photographerContent(locale.value))
 </script>
 
 <template>
-  <section class="cv" aria-label="Trayectoria">
+  <section class="cv" :aria-label="t.photographer.cv.aria">
     <div>
-      <h2 class="head">Experiencia</h2>
+      <h2 class="head">{{ t.photographer.cv.experience }}</h2>
       <ol class="timeline">
-        <li v-for="x in EXPERIENCE" :key="x.title" class="item">
+        <li v-for="x in c.experience" :key="x.title" class="item">
           <span class="when">{{ x.when }}</span>
           <div>
             <h3 class="display-xs title">{{ x.title }}</h3>
@@ -19,9 +24,9 @@ import { EDUCATION, EXPERIENCE, LANGUAGES, PORTFOLIO, TOOLS } from '../../photog
     </div>
     <div class="side">
       <div>
-        <h2 class="head">Formación</h2>
+        <h2 class="head">{{ t.photographer.cv.education }}</h2>
         <ol class="edu">
-          <li v-for="x in EDUCATION" :key="x.title">
+          <li v-for="x in c.education" :key="x.title">
             <span class="when">{{ x.when }}</span>
             <h3 class="title-sm">{{ x.title }}</h3>
             <p class="org">{{ x.org }}</p>
@@ -29,21 +34,21 @@ import { EDUCATION, EXPERIENCE, LANGUAGES, PORTFOLIO, TOOLS } from '../../photog
         </ol>
       </div>
       <div>
-        <h2 class="head">Idiomas</h2>
+        <h2 class="head">{{ t.photographer.cv.languages }}</h2>
         <dl class="langs">
-          <div v-for="l in LANGUAGES" :key="l.name"><dt>{{ l.name }}</dt><dd>{{ l.level }}</dd></div>
+          <div v-for="l in c.languages" :key="l.name"><dt>{{ l.name }}</dt><dd>{{ l.level }}</dd></div>
         </dl>
       </div>
       <div>
-        <h2 class="head">Especialidades</h2>
+        <h2 class="head">{{ t.photographer.cv.specialties }}</h2>
         <ul class="tags">
-          <li v-for="c in PORTFOLIO" :key="c.id"><a :href="`#${c.id}`">{{ c.name }}</a></li>
+          <li v-for="cat in c.portfolio" :key="cat.id"><a :href="`#${cat.id}`">{{ cat.name }}</a></li>
         </ul>
       </div>
       <div>
-        <h2 class="head">Herramientas</h2>
+        <h2 class="head">{{ t.photographer.cv.tools }}</h2>
         <ul class="tags">
-          <li v-for="t in TOOLS" :key="t"><span>{{ t }}</span></li>
+          <li v-for="tool in c.tools" :key="tool"><span>{{ tool }}</span></li>
         </ul>
       </div>
     </div>
