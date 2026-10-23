@@ -1,6 +1,5 @@
 /** Logica pura de productos y ajustes de tienda (sin Firebase): validacion y normalizacion. */
 import { MAX_PACK_QUANTITY } from './packPricing'
-import { formatMoney as formatMoneyIn } from './i18n/format'
 import type { Locale } from './i18n/messages'
 
 export const PRICE_ERROR = 'El precio debe ser un número mayor que 0'
@@ -107,4 +106,5 @@ export const sortByName = <T extends { name: string }>(xs: T[]): T[] =>
   [...xs].sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true }))
 
 /** Importe sin simbolo. Espanol (y todo el admin): "10.00". Ingles de la tienda: "1,250.00" (TASK-042). */
-export const formatMoney = (n: number, lang: Locale = 'es') => formatMoneyIn(n, lang)
+const moneyEn = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+export const formatMoney = (n: number, lang: Locale = 'es') => (lang === 'en' ? moneyEn.format(n) : n.toFixed(2))

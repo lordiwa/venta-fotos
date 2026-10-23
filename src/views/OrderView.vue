@@ -26,32 +26,34 @@ const order = computed(() => loadSummary(number.value))
 const savings = computed(() => (order.value ? packSavings(order.value) : 0))
 const wantsLinks = computed(() => !!order.value?.email && hasDigital(order.value.lines))
 const links = ref<DownloadResult | null>(null)
-const linksError = ref('')
+const linksErr = ref<{ e: unknown } | null>(null) // el error, no el texto: cambiar de idioma retraduce
+const linksError = computed(() => (linksErr.value ? downloadErrorMessage(linksErr.value.e, locale.value) : ''))
 const busy = ref(false)
 
 async function loadLinks() {
   if (!order.value?.email || busy.value) return
   busy.value = true
-  linksError.value = ''
+  linksErr.value = null
   try {
     links.value = await getDownloadLinks(number.value, order.value.email)
   } catch (e) {
-    linksError.value = downloadErrorMessage(e, locale.value)
+    linksErr.value = { e }
   } finally {
     busy.value = false
   }
 }
 // TASK-037 CU9: sin resumen local (pedido por WhatsApp, u otro navegador) se consulta el estado publico, sin telefono ni correo completos.
 const status = ref<PublicOrder | null>(null)
-const statusError = ref('')
+const statusErr = ref<{ e: unknown } | null>(null)
+const statusError = computed(() => (statusErr.value ? statusErrorMessage(statusErr.value.e, locale.value) : ''))
 const statusLoading = ref(false)
 async function loadStatus() {
   statusLoading.value = true
-  statusError.value = ''
+  statusErr.value = null
   try {
     status.value = await getOrderStatus(number.value)
   } catch (e) {
-    statusError.value = statusErrorMessage(e, locale.value)
+    statusErr.value = { e }
   } finally {
     statusLoading.value = false
   }

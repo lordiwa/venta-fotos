@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import DownloadList from '../components/DownloadList.vue'
 import { getDownloadLinks } from '../downloadsApi'
 import { downloadErrorMessage, downloadNotice } from '../serverErrors'
@@ -12,7 +12,8 @@ const { t, locale } = useI18n()
 const number = ref('')
 const email = ref('')
 const busy = ref(false)
-const error = ref('')
+const err = ref<{ e: unknown } | null>(null) // el error, no el texto: cambiar de idioma retraduce
+const error = computed(() => (err.value ? downloadErrorMessage(err.value.e, locale.value) : ''))
 const result = ref<DownloadResult | null>(null)
 const resultNumber = ref('')
 
@@ -20,14 +21,14 @@ const resultNumber = ref('')
 async function submit() {
   if (busy.value) return
   busy.value = true
-  error.value = ''
+  err.value = null
   result.value = null
   try {
     const n = normalizeNumber(number.value)
     result.value = await getDownloadLinks(n, email.value.trim())
     resultNumber.value = n
   } catch (e) {
-    error.value = downloadErrorMessage(e, locale.value)
+    err.value = { e }
   } finally {
     busy.value = false
   }

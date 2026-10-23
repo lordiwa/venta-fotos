@@ -82,6 +82,9 @@ export const en: Messages = {
     invalidArgument: 'Something in your details or cart isn’t valid. Please review it and try again.',
     unavailable: 'A product or photo in your cart is no longer available. Please review your cart and try again.',
     paymentFailed: 'We couldn’t confirm your payment. If PayPal charged you, contact us with your receipt.',
+    paymentReview: (id) => `Your payment is under review at PayPal (id ${id}). We’ll be in touch.`,
+    paymentUnconfirmed: (id) => `We received your payment but couldn’t confirm your order. Please save this code: ${id}.`,
+    noticeGeneric: 'There is a notice about your files. If something looks wrong, please contact us.',
     downloadNotFound: 'We couldn’t find an order with those details.',
     downloadNoFiles: 'This order doesn’t include any digital files.', downloadMissing: 'Some photos are no longer available. Please contact us.',
   },
@@ -142,7 +145,7 @@ export const en: Messages = {
     education: [
       { when: '2020', title: 'Digital photography and editing', org: 'Edufoto · Quito' },
       { when: '2018', title: 'Advanced photography', org: 'Edufoto · Quito' },
-      { when: '2006 — 2011', title: 'Social Communication', org: 'Pontificia Universidad Católica del Ecuador (coursework)' },
+      { when: '2006 — 2011', title: 'Communication Studies', org: 'Pontificia Universidad Católica del Ecuador (coursework)' },
     ],
     languages: [{ name: 'Spanish', level: 'Native' }, { name: 'English', level: 'Bilingual · IELTS 8.0 (C1)' }],
     tools: ['Adobe Suite', 'Analog film development', 'Film scanning'],

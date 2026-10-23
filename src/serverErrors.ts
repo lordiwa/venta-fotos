@@ -23,12 +23,21 @@ function byCode(code: string, ctx: Ctx, m: Messages): string {
   }
 }
 
+/** Pago final (cobrado en PayPal sin pedido): conserva el id que el cliente debe guardar, sacado del mensaje del servidor. */
+function finalPaymentMessage(x: FnError, m: Messages): string | null {
+  const msg = x.message ?? ''
+  const review = /\(id ([\w-]+)\)/.exec(msg)
+  if (review) return m.errors.paymentReview(review[1])
+  const code = /c[oó]digo: ([\w-]+)\.?/.exec(msg)
+  return code ? m.errors.paymentUnconfirmed(code[1]) : null
+}
+
 function serverErrorMessage(err: unknown, ctx: Ctx, lang: Locale): string {
   const m = messagesFor(lang)
   const x = (err ?? {}) as FnError
   const business = !!x.code && !INTERNAL.includes(x.code)
   if (!business) return fallback(m, ctx)
-  if (lang === 'en') return byCode(x.code!, ctx, m)
+  if (lang === 'en') return (ctx === 'checkout' && x.code === 'functions/failed-precondition' && finalPaymentMessage(x, m)) || byCode(x.code!, ctx, m)
   // Espanol: el texto de la Function (si no trae, el generico). El de descargas/pagos trae a veces el sufijo tecnico "[404]".
   return x.message ? stripStatusSuffix(x.message) : fallback(m, ctx)
 }
@@ -51,5 +60,5 @@ export function downloadNotice(message: string | undefined, lang: Locale = 'es')
   if (!message || lang === 'es') return message
   const m = messagesFor('en')
   const known = new Map([[messagesFor('es').errors.downloadNoFiles, m.errors.downloadNoFiles], [messagesFor('es').errors.downloadMissing, m.errors.downloadMissing]])
-  return known.get(message) ?? m.errors.downloadMissing
+  return known.get(message) ?? m.errors.noticeGeneric
 }

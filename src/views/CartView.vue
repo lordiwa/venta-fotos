@@ -95,12 +95,14 @@ const customerErrors = computed(() => validateCustomer(customer, hasDigital.valu
 const submitted = ref(false)
 const shownErrors = computed(() => (submitted.value ? customerErrors.value : {}))
 const ordering = ref(false)
-const orderError = ref('')
+// Se guarda el error (no el texto) para que cambiar de idioma retraduzca el mensaje.
+const orderErr = ref<{ e: unknown } | null>(null)
+const orderError = computed(() => (orderErr.value ? orderErrorMessage(orderErr.value.e, locale.value) : ''))
 
 /** CU1: valida, crea el pedido (precio del servidor) y abre WhatsApp con el detalle, el total, el numero y el link. */
 async function orderByWhatsapp() {
   submitted.value = true
-  orderError.value = ''
+  orderErr.value = null
   if (ordering.value || Object.keys(customerErrors.value).length) return
   const lines = view.value.lines.filter((r) => r.counted).map((r) => ({ ...r.line, quantity: r.quantity }))
   if (!lines.length) return
@@ -121,7 +123,7 @@ async function orderByWhatsapp() {
     if (whatsappLinkAttrs(linkEnv).target) await router.push({ name: 'order', params: { number: created.number } })
   } catch (e) {
     opener.cancel()
-    orderError.value = orderErrorMessage(e, locale.value)
+    orderErr.value = { e }
   } finally {
     ordering.value = false
   }

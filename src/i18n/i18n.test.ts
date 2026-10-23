@@ -2,9 +2,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DICTIONARIES } from './messages'
 import { detectLocale, LOCALE_KEY, readStoredLocale, setLocale, locale, writeStoredLocale } from './index'
-import { formatDeadline, formatMoney, productLabel } from './format'
+import { formatDate, formatDeadline, productLabel } from './format'
+import { DIGITAL_NAME, formatMoney, packName } from '../productsLogic'
 import { ADMIN_TITLE, isAdminRoute, pageMeta } from './pageMeta'
-import { downloadErrorMessage, downloadNotice, orderErrorMessage, statusErrorMessage } from '../serverErrors'
+import { checkoutErrorMessage, downloadErrorMessage, downloadNotice, orderErrorMessage, statusErrorMessage } from '../serverErrors'
 
 /** Todas las hojas del diccionario: "a.b.c" o "a.b[2].c" -> tipo ('string' | 'function' | 'null'); las listas aportan ademas su largo. */
 function leaves(v: unknown, path = ''): Record<string, string> {
@@ -93,14 +94,20 @@ describe('i18n', () => {
     expect(formatMoney(1250, 'en')).toBe('1,250.00')
     const ms = Date.UTC(2026, 9, 22, 20, 30) // 15:30 en Ecuador
     expect(formatDeadline(ms, 'es')).toMatch(/22 de octubre, 03:30\sp\.\s?m\./)
-    expect(formatDeadline(ms, 'en')).toMatch(/Thursday, October 22.*03:30\sPM/)
+    expect(formatDeadline(ms, 'en')).toMatch(/Thursday, October 22.* 3:30\sPM/)
+    // Una fecha de evento (medianoche local de un admin en UTC-3) sigue siendo el dia 15 para quien la ve en esa zona, no se corre a Ecuador.
+    const argentina = Date.UTC(2026, 9, 15, 3, 0)
+    expect(formatDate(argentina, 'en', 'America/Argentina/Buenos_Aires')).toBe('October 15, 2026')
+    expect(formatDate(argentina, 'es', 'America/Argentina/Buenos_Aires')).toBe('15 de octubre de 2026')
   })
 
   // Daño: el nombre del producto del sistema queda en espanol en el ingles, o un producto cargado por el admin se "traduce" mal.
   it('productLabel: traduce solo "Archivo digital" y "Paquete N fotos digitales"; el resto tal cual', () => {
     const en = DICTIONARIES.en
-    expect(productLabel('Archivo digital', en, 'en')).toBe('Digital file')
-    expect(productLabel('Paquete 5 fotos digitales', en, 'en')).toBe('Pack of 5 digital photos')
+    // Amarrado a las constantes con las que la tienda crea esos productos: si cambian, la traduccion no se pierde en silencio.
+    expect(productLabel(DIGITAL_NAME, en, 'en')).toBe('Digital file')
+    expect(productLabel(packName(5), en, 'en')).toBe('Pack of 5 digital photos')
+    expect(productLabel('Paquete 5 fotos digitales extra', en, 'en')).toBe('Paquete 5 fotos digitales extra')
     expect(productLabel('20x30 Fine art', en, 'en')).toBe('20x30 Fine art')
     expect(productLabel('Archivo digital', DICTIONARIES.es, 'es')).toBe('Archivo digital')
   })
@@ -121,7 +128,15 @@ describe('i18n', () => {
     expect(downloadErrorMessage({ code: 'functions/not-found', message: 'No encontramos un pedido con esos datos' }, 'en')).toBe('We couldn’t find an order with those details.')
     expect(statusErrorMessage({ code: 'functions/resource-exhausted' }, 'en')).toBe('Too many attempts. Please try again later.')
     expect(downloadNotice('Algunas fotos ya no están disponibles. Contáctanos.', 'en')).toBe('Some photos are no longer available. Please contact us.')
-    expect(downloadNotice('Mensaje nuevo del servidor', 'en')).not.toMatch(/servidor/)
+    expect(downloadNotice('Mensaje nuevo del servidor', 'en')).toBe(DICTIONARIES.en.errors.noticeGeneric) // desconocido: neutro, no "fotos no disponibles"
+    // Pago final: el id que el cliente debe guardar sobrevive a la traduccion.
+    const review = { code: 'functions/failed-precondition', message: 'Tu pago está en revisión en PayPal (id 5O190127TN364715T). Te contactaremos.', details: { final: true } }
+    const unconfirmed = { code: 'functions/failed-precondition', message: 'Recibimos tu pago pero no pudimos confirmar el pedido. Guarda este código: 5O190127TN364715T.', details: { final: true } }
+    for (const e of [review, unconfirmed]) {
+      expect(checkoutErrorMessage(e, 'en')).toContain('5O190127TN364715T')
+      expect(checkoutErrorMessage(e, 'en')).not.toMatch(/[áéíóúñ¿¡]|pago/)
+      expect(checkoutErrorMessage(e, 'es')).toBe(e.message)
+    }
     expect(downloadNotice('Este pedido no incluye archivos digitales.', 'es')).toBe('Este pedido no incluye archivos digitales.')
   })
 

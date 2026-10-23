@@ -126,7 +126,7 @@ describe('whatsappLogic', () => {
     expect(en).toContain('Applied: Pack of 5 digital photos × 1 (15.00 each) – Run 2026')
     expect(en).toContain('Pack savings: −5.00')
     expect(en).toContain('Total: USD 1,250.00')
-    expect(en).toMatch(/Pay by: Thursday, October 22 at 03:30\sPM|Pay by: Thursday, October 22, 03:30\sPM/)
+    expect(en).toMatch(/Pay by: Thursday, October 22 at 3:30\sPM|Pay by: Thursday, October 22, 3:30\sPM/)
     expect(en).toContain('My order: https://x.example/pedido/ABCD2345')
     expect(en).not.toMatch(/Hola|Foto |Ahorro|Pago hasta|Mi pedido/)
     expect(whatsappOrderMessage(o, opts)).toContain('Hola, soy Ana. Hice el pedido ABCD2345:')

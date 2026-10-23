@@ -54,6 +54,7 @@ const shown = computed(() => (submitted.value ? errors.value : {}))
 function ready(): boolean {
   submitted.value = true
   message.value = ''
+  pendingNotice.value = false
   if (busy.value || retryId.value) return false
   if (blocked.value) { message.value = t.value.checkout.removeUnavailable; return false }
   return Object.keys(errors.value).length === 0
@@ -70,6 +71,7 @@ async function finish(paypalOrderId: string, recovered = false) {
     cart.clear()
     await router.push({ name: 'order', params: { number: summary.number } })
   } catch (e) {
+    pendingNotice.value = false // el aviso informativo deja paso al resultado (error) de este intento
     const outcome = classifyCaptureError(e)
     message.value = recovered && outcome === 'definitive'
       ? t.value.checkout.recoverFailed
@@ -132,7 +134,7 @@ onMounted(async () => {
   await nextTick()
   await mountButtons()
   const pending = loadPending() // un pago anterior quedo sin confirmar: reintentar la captura del mismo id
-  if (pending) { pendingNotice.value = true; message.value = t.value.checkout.pending; await finish(pending, true) }
+  if (pending) { pendingNotice.value = true; await finish(pending, true) }
 })
 </script>
 
@@ -182,7 +184,7 @@ onMounted(async () => {
         <li v-if="packSavings"><span class="lname">{{ t.checkout.packSavings }}</span><span class="mono-sm">−{{ money(packSavings) }}</span></li>
       </ul>
       <p class="total"><strong>{{ t.checkout.total }}</strong> <span class="display-md amount">{{ money(total) }} <span class="label muted">{{ CURRENCY }}</span></span></p>
-      <Alert v-if="message" :tone="pendingNotice && message === t.checkout.pending ? 'neutral' : 'danger'">{{ message }}</Alert>
+      <Alert v-if="pendingNotice || message" :tone="pendingNotice ? 'neutral' : 'danger'">{{ pendingNotice ? t.checkout.pending : message }}</Alert>
       <Button v-if="retryId" variant="secondary" :disabled="busy" @click="retryCapture">{{ t.checkout.retryConfirm }}</Button>
       <Alert v-if="!clientId">{{ t.checkout.paypalMissing }}</Alert>
       <div v-show="!finalMessage" ref="paypalContainer" :aria-busy="busy" :class="{ off: busy }" />
