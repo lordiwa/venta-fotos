@@ -6,15 +6,18 @@ import { listScrollAfterLoad } from '../router'
 import { listPublishedEvents, type PublicEvent } from '../publicApi'
 import { eventPath } from '../galleryLogic'
 import { Alert, Eyebrow, Icon } from '../ui'
+import { useI18n } from '../i18n'
+import { formatDate } from '../i18n/format'
 
 const route = useRoute()
+const { t, locale } = useI18n()
 const events = ref<PublicEvent[]>([])
 const loading = ref(true)
 const failed = ref(false)
 const featured = computed(() => events.value[0] ?? null)
 const rest = computed(() => events.value.slice(1))
 const meta = (e: PublicEvent) => `${fmt(e)}${e.place ? ` · ${e.place}` : ''}`
-const fmt = (e: PublicEvent) => e.date.toDate().toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })
+const fmt = (e: PublicEvent) => formatDate(e.date.toDate(), locale.value)
 
 onMounted(async () => {
   try { events.value = await listPublishedEvents() } catch { failed.value = true }
@@ -29,27 +32,27 @@ onMounted(async () => {
     <div v-if="featured?.coverImagePath" class="hero-img"><PhotoThumb :path="featured.coverImagePath" fill /></div>
     <div class="hero-shade" aria-hidden="true" />
     <div class="hero-body">
-      <span class="eyebrow hero-eyebrow">Fotografía de eventos</span>
-      <h1 class="display-xl hero-title">Encuentra tu foto.</h1>
-      <p class="lead hero-lead">Elige el evento, busca tu momento y llévatelo impreso o en digital.</p>
+      <span class="eyebrow hero-eyebrow">{{ t.home.eyebrow }}</span>
+      <h1 class="display-xl hero-title">{{ t.home.title }}</h1>
+      <p class="lead hero-lead">{{ t.home.lead }}</p>
     </div>
   </section>
 
   <div class="list-head">
-    <h2 id="eventos" class="display-md">Eventos</h2>
-    <span v-if="events.length" class="mono-sm muted">{{ events.length }} {{ events.length === 1 ? 'evento publicado' : 'eventos publicados' }}</span>
+    <h2 id="eventos" class="display-md">{{ t.home.events }}</h2>
+    <span v-if="events.length" class="mono-sm muted">{{ t.home.published(events.length) }}</span>
   </div>
-  <p v-if="loading" class="mono-sm muted">Cargando…</p>
-  <Alert v-else-if="failed" tone="danger">No pudimos cargar los eventos. Intenta de nuevo más tarde.</Alert>
-  <Alert v-else-if="!events.length">Todavía no hay eventos publicados.</Alert>
+  <p v-if="loading" class="mono-sm muted">{{ t.common.loading }}</p>
+  <Alert v-else-if="failed" tone="danger">{{ t.home.loadFailed }}</Alert>
+  <Alert v-else-if="!events.length">{{ t.home.none }}</Alert>
   <template v-else>
     <RouterLink v-if="featured" :to="eventPath(featured.id)" class="card feature">
       <div class="feature-img"><PhotoThumb :path="featured.coverImagePath" fill /></div>
       <div class="feature-body">
-        <Eyebrow>Más reciente</Eyebrow>
+        <Eyebrow>{{ t.home.latest }}</Eyebrow>
         <span class="display-lg feature-name">{{ featured.name }}</span>
         <span class="mono-sm muted">{{ meta(featured) }}</span>
-        <span class="feature-cta">Ver las fotos <Icon name="flecha-derecha" :size="18" /></span>
+        <span class="feature-cta">{{ t.home.viewPhotos }} <Icon name="flecha-derecha" :size="18" /></span>
       </div>
     </RouterLink>
     <ul v-if="rest.length" class="events">

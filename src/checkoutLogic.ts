@@ -1,6 +1,7 @@
 /** Logica pura del checkout (TASK-017): espejo de la validacion del servidor (functions/src/checkout.ts), que es la que manda. */
 import type { CartLine } from './cartLogic'
 import type { Delivery, OrderPack } from './types'
+import { messagesFor, type Locale } from './i18n/messages'
 
 /** Debe coincidir con CURRENCY de functions/src/checkout.ts. */
 export const CURRENCY = 'USD'
@@ -9,12 +10,13 @@ export interface CheckoutForm { name: string; email: string; phone: string; meth
 export type CheckoutErrors = Partial<Record<'name' | 'email' | 'phone' | 'address', string>>
 
 /** CU2/CU4: un mensaje por campo; en retiro (o carrito solo digital) la direccion no se pide. */
-export function validateCheckoutForm(f: CheckoutForm, hasPrints: boolean): CheckoutErrors {
+export function validateCheckoutForm(f: CheckoutForm, hasPrints: boolean, lang: Locale = 'es'): CheckoutErrors {
   const errors: CheckoutErrors = {}
-  if (!f.name.trim()) errors.name = 'Escribe tu nombre.'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) errors.email = 'Escribe un correo válido.'
-  if (f.phone.replace(/\D/g, '').length < 7) errors.phone = 'Escribe un teléfono válido (mínimo 7 dígitos).'
-  if (hasPrints && f.method === 'envio' && !f.address.trim()) errors.address = 'Escribe la dirección de envío.'
+  const v = messagesFor(lang).validation
+  if (!f.name.trim()) errors.name = v.name
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) errors.email = v.emailInvalid
+  if (f.phone.replace(/\D/g, '').length < 7) errors.phone = v.checkoutPhone
+  if (hasPrints && f.method === 'envio' && !f.address.trim()) errors.address = v.address
   return errors
 }
 

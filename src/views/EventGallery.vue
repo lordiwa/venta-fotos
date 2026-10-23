@@ -4,16 +4,20 @@ import { useRoute, useRouter } from 'vue-router'
 import PhotoThumb from '../components/PhotoThumb.vue'
 import PhotoLightbox from '../components/PhotoLightbox.vue'
 import { fetchPhotosPage, getPublishedEvent, type PhotoCursor } from '../publicApi'
-import { eventPath, galleryState, isPrintOnly, PRINT_ONLY_LABEL, photoNav, photoPath } from '../galleryLogic'
+import { eventPath, galleryState, isPrintOnly, photoNav, photoPath } from '../galleryLogic'
 import { dedicatedCoverPath } from '../eventsLogic'
 import { getActiveCatalog } from '../productsApi'
 import { formatMoney } from '../productsLogic'
 import { packsInfo, type PacksInfo } from '../packsInfo'
 import { Alert, Button, Icon } from '../ui'
+import { useI18n } from '../i18n'
+import { formatDate } from '../i18n/format'
+import { eventTitle } from '../i18n/pageMeta'
 import type { Event, Photo } from '../types'
 
 const route = useRoute()
 const router = useRouter()
+const { t, locale } = useI18n()
 const eventId = computed(() => String(route.params.eventId))
 const photoId = computed(() => (route.params.photoId ? String(route.params.photoId) : null))
 
@@ -39,13 +43,13 @@ const heroPath = computed(() => (event.value && dedicatedCoverPath(event.value))
 const dateText = computed(() => {
   const e = event.value
   if (!e) return ''
-  return `${e.date.toDate().toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}${e.place ? ` · ${e.place}` : ''}`
+  return `${formatDate(e.date.toDate(), locale.value)}${e.place ? ` · ${e.place}` : ''}`
 })
 const position = computed(() => photos.value.findIndex((p) => p.id === photoId.value) + 1) // 0 si aun no se cargo
-const tag = computed(() => (position.value ? `Foto #${position.value}` : ''))
+const tag = computed(() => (position.value ? t.value.gallery.tag(position.value) : ''))
 const caption = computed(() => {
   if (!position.value) return event.value?.name ?? ''
-  return `${event.value?.name ?? ''} · Foto ${position.value}${hasMore.value ? '' : ` de ${photos.value.length}`}`
+  return t.value.gallery.caption(event.value?.name ?? '', position.value, hasMore.value ? null : photos.value.length)
 })
 // Mosaico: algunas miniaturas ocupan mas espacio (patron cada 15 fotos, como en el diseno).
 const spanOf = (i: number) => ([0, 7].includes(i % 15) ? 'es-tile-big' : [3, 9].includes(i % 15) ? 'es-tile-wide' : '')
@@ -127,68 +131,70 @@ function observe() {
 }
 watch(sentinel, observe)
 onMounted(load)
+// Titulo de la pestaña: el nombre del evento (tal como se cargo en el admin) una vez cargado.
+watch(() => event.value?.name ?? null, (n) => { eventTitle.value = n }, { immediate: true })
 // Cambio de evento (no de foto) recarga; cambiar de foto no.
 watch(eventId, load)
-onBeforeUnmount(() => observer?.disconnect())
+onBeforeUnmount(() => { observer?.disconnect(); eventTitle.value = null })
 </script>
 
 <template>
-  <p v-if="state === 'loading'" class="mono-sm muted">Cargando…</p>
+  <p v-if="state === 'loading'" class="mono-sm muted">{{ t.common.loading }}</p>
   <div v-else-if="state === 'error'" class="stack">
     <Alert tone="danger">
-      No pudimos cargar el evento. Revisa tu conexión e intenta de nuevo.
-      <template #action><Button @click="load">Reintentar</Button></template>
+      {{ t.gallery.loadError }}
+      <template #action><Button @click="load">{{ t.common.retry }}</Button></template>
     </Alert>
   </div>
   <div v-else-if="state === 'unavailable'" class="stack">
-    <h1 class="display-lg">Evento no disponible</h1>
-    <p class="muted">Este evento no existe o todavía no fue publicado.</p>
-    <Button variant="secondary" to="/#eventos">Ver todos los eventos</Button>
+    <h1 class="display-lg">{{ t.gallery.unavailableTitle }}</h1>
+    <p class="muted">{{ t.gallery.unavailableText }}</p>
+    <Button variant="secondary" to="/#eventos">{{ t.gallery.seeAll }}</Button>
   </div>
   <template v-else>
     <section class="hero">
       <div v-if="heroPath" class="hero-img"><PhotoThumb :path="heroPath" fill /></div>
       <div class="hero-shade" aria-hidden="true" />
       <div class="hero-body">
-        <RouterLink to="/#eventos" class="back"><Icon name="flecha-izquierda" :size="16" />Eventos</RouterLink>
+        <RouterLink to="/#eventos" class="back"><Icon name="flecha-izquierda" :size="16" />{{ t.gallery.back }}</RouterLink>
         <div class="hero-row">
           <div class="hero-title-box">
             <h1 class="display-lg hero-title">{{ event!.name }}</h1>
             <span class="mono-sm hero-meta">{{ dateText }}</span>
           </div>
-          <span v-if="state === 'ready' && !hasMore" class="mono-sm hero-meta">{{ photos.length }} {{ photos.length === 1 ? 'foto' : 'fotos' }}</span>
+          <span v-if="state === 'ready' && !hasMore" class="mono-sm hero-meta">{{ t.gallery.count(photos.length) }}</span>
         </div>
       </div>
     </section>
     <section v-if="packs && state === 'ready'" class="packs" aria-labelledby="packs-title">
-      <h2 id="packs-title" class="es-eyebrow packs-title">Paquetes digitales</h2>
+      <h2 id="packs-title" class="es-eyebrow packs-title">{{ t.gallery.packsTitle }}</h2>
       <ul class="packs-list" role="list">
-        <li class="pack"><span class="pack-qty">1 foto</span><span class="sr">: </span><span class="pack-price">{{ formatMoney(packs.unitPrice) }}</span></li>
+        <li class="pack"><span class="pack-qty">{{ t.gallery.onePhoto }}</span><span class="sr">: </span><span class="pack-price">{{ formatMoney(packs.unitPrice, locale) }}</span></li>
         <li v-for="r in packs.packs" :key="r.quantity" class="pack">
-          <span class="pack-qty">{{ r.quantity }} fotos</span><span class="sr">: </span><span class="pack-price">{{ formatMoney(r.price) }}</span><span class="sr">, </span>
-          <span class="pack-save">ahorras {{ formatMoney(r.savings) }}</span>
+          <span class="pack-qty">{{ t.gallery.nPhotos(r.quantity) }}</span><span class="sr">: </span><span class="pack-price">{{ formatMoney(r.price, locale) }}</span><span class="sr">, </span>
+          <span class="pack-save">{{ t.gallery.save(formatMoney(r.savings, locale)) }}</span>
         </li>
       </ul>
       <p class="body-sm muted packs-note">
-        Elige tus fotos y agrégalas al carrito como archivo digital: el paquete se aplica solo y siempre pagas el precio más bajo combinando paquetes y fotos sueltas del mismo evento. Las copias impresas se cobran aparte y las fotos de solo impresión no entran en los paquetes.
+        {{ t.gallery.packsNote }}
       </p>
     </section>
     <Alert v-if="failed" tone="danger" class="gap">
-      No pudimos cargar todas las fotos.
-      <template #action><Button @click="retryMore">Reintentar</Button></template>
+      {{ t.gallery.loadAllFailed }}
+      <template #action><Button @click="retryMore">{{ t.common.retry }}</Button></template>
     </Alert>
-    <Alert v-if="state === 'empty' && !failed" class="gap">Este evento todavía no tiene fotos.</Alert>
+    <Alert v-if="state === 'empty' && !failed" class="gap">{{ t.gallery.empty }}</Alert>
     <ul v-else-if="state === 'ready'" class="es-gallery">
       <li v-for="(p, i) in photos" :key="p.id">
-        <a :href="photoPath(eventId, p.id)" :aria-label="`Ver foto ${i + 1}${isPrintOnly(p) ? ` (${PRINT_ONLY_LABEL.toLowerCase()})` : ''}`" class="es-tile" :class="spanOf(i)" @click.prevent="open(p.id)">
+        <a :href="photoPath(eventId, p.id)" :aria-label="t.gallery.viewPhoto(i + 1, isPrintOnly(p))" class="es-tile" :class="spanOf(i)" @click.prevent="open(p.id)">
           <PhotoThumb :path="p.thumbPath" fill />
-          <span v-if="isPrintOnly(p)" class="es-print-tag" aria-hidden="true">{{ PRINT_ONLY_LABEL }}</span>
-          <span class="es-tile-veil" aria-hidden="true"><span>#{{ i + 1 }}</span><span class="es-tile-cta">Ver</span></span>
+          <span v-if="isPrintOnly(p)" class="es-print-tag" aria-hidden="true">{{ t.gallery.printOnly }}</span>
+          <span class="es-tile-veil" aria-hidden="true"><span>#{{ i + 1 }}</span><span class="es-tile-cta">{{ t.gallery.view }}</span></span>
         </a>
       </li>
     </ul>
     <div ref="sentinel" class="sentinel" />
-    <p v-if="loadingMore" role="status" class="more"><span class="more-bar" aria-hidden="true" />Cargando más…</p>
+    <p v-if="loadingMore" role="status" class="more"><span class="more-bar" aria-hidden="true" />{{ t.gallery.loadingMore }}</p>
   </template>
 
   <PhotoLightbox

@@ -1,6 +1,8 @@
 /** Logica pura del pedido por WhatsApp (TASK-026): sin Firebase ni DOM. */
 import { formatMoney } from './productsLogic'
 import { packBreakdown, type reconcile } from './cartLogic'
+import { formatDeadline, productLabel } from './i18n/format'
+import { messagesFor, type Locale } from './i18n/messages'
 
 export const DEFAULT_WHATSAPP_PHONE = '+593998565995'
 export const WHATSAPP_PHONE_ERROR = 'Escribe un número válido con código de país, sin el 0 inicial: solo + y dígitos, de 8 a 15 (ej. +593998565995)'
@@ -46,8 +48,8 @@ export interface WhatsAppLine {
 }
 
 /** Una linea: "Evento – Foto X – Producto × N – 10.00" (las partes desconocidas se omiten). */
-export function whatsappLine(l: WhatsAppLine): string {
-  return [l.event, `Foto ${l.photo}`, `${l.product} × ${l.quantity}`, l.subtotal == null ? undefined : formatMoney(l.subtotal)]
+export function whatsappLine(l: WhatsAppLine, lang: Locale = 'es'): string {
+  return [l.event, messagesFor(lang).wa.photo(l.photo), `${l.product} × ${l.quantity}`, l.subtotal == null ? undefined : formatMoney(l.subtotal, lang)]
     .filter(Boolean)
     .join(' – ')
 }
@@ -63,13 +65,14 @@ export interface WhatsAppPacks {
  * Mensaje del pedido. `total` solo se incluye cuando se conoce (hay catalogo). Las fotos digitales cobradas por paquete
  * van sin importe propio; su precio sale en el desglose de `packs`, igual que en el carrito.
  */
-export function buildWhatsAppMessage({ lines, packs = [], total }: { lines: WhatsAppLine[]; packs?: WhatsAppPacks[]; total?: number }): string {
-  const parts = ['Hola, quisiera pedir estas fotos:', ...lines.map((l) => `• ${whatsappLine(l)}`)]
+export function buildWhatsAppMessage({ lines, packs = [], total }: { lines: WhatsAppLine[]; packs?: WhatsAppPacks[]; total?: number }, lang: Locale = 'es'): string {
+  const w = messagesFor(lang).wa
+  const parts = [w.hello, ...lines.map((l) => `• ${whatsappLine(l, lang)}`)]
   for (const g of packs) {
-    parts.push(...g.items.map((i) => `• ${[g.event, `${i.label} × ${i.quantity}`, formatMoney(i.subtotal)].filter(Boolean).join(' – ')}`))
-    parts.push(`  Ahorro por paquetes${g.event ? ` (${g.event})` : ''}: ${formatMoney(g.savings)}`)
+    parts.push(...g.items.map((i) => `• ${[g.event, `${i.label} × ${i.quantity}`, formatMoney(i.subtotal, lang)].filter(Boolean).join(' – ')}`))
+    parts.push(`  ${w.packSavings(g.event)}: ${formatMoney(g.savings, lang)}`)
   }
-  if (total != null) parts.push(`Total estimado: USD ${formatMoney(total)}`)
+  if (total != null) parts.push(`${w.estimated}: USD ${formatMoney(total, lang)}`)
   return parts.join('\n')
 }
 
@@ -78,13 +81,14 @@ export function whatsappFromCart(
   view: ReturnType<typeof reconcile>,
   eventName: (eventId: string) => string | undefined,
   photoName: (eventId: string, photoId: string) => string,
+  lang: Locale = 'es',
 ): { lines: WhatsAppLine[]; packs: WhatsAppPacks[]; total: number } {
   return {
     lines: view.lines.filter((r) => r.counted).map((r): WhatsAppLine => ({
       event: eventName(r.line.eventId), photo: photoName(r.line.eventId, r.line.photoId),
-      product: r.product?.name ?? r.line.productName ?? 'Producto', quantity: r.quantity, subtotal: r.inPack ? undefined : r.subtotal,
+      product: productLabel(r.product?.name ?? r.line.productName ?? messagesFor(lang).common.product, messagesFor(lang), lang), quantity: r.quantity, subtotal: r.inPack ? undefined : r.subtotal,
     })),
-    packs: view.groups.filter((g) => g.pricing.packs.length).map((g) => ({ event: eventName(g.eventId), items: packBreakdown(g), savings: g.pricing.savingsCents / 100 })),
+    packs: view.groups.filter((g) => g.pricing.packs.length).map((g) => ({ event: eventName(g.eventId), items: packBreakdown(g, lang), savings: g.pricing.savingsCents / 100 })),
     total: view.total,
   }
 }
@@ -126,14 +130,15 @@ export const CUSTOMER_KEY = 'venta-fotos:customer'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** CU1: nombre y WhatsApp obligatorios; correo obligatorio solo si hay fotos digitales (las descargas se validan con el). Espejo de parseCustomer del servidor. */
-export function validateCustomer(f: CustomerForm, hasDigital: boolean): CustomerErrors {
+export function validateCustomer(f: CustomerForm, hasDigital: boolean, lang: Locale = 'es'): CustomerErrors {
   const e: CustomerErrors = {}
-  if (!f.name.trim()) e.name = 'Escribe tu nombre.'
-  if (!normalizePhone(f.phone)) e.phone = 'Escribe tu WhatsApp con código de país, sin el 0 inicial (ej. +593 99 856 5995).'
+  const v = messagesFor(lang).validation
+  if (!f.name.trim()) e.name = v.name
+  if (!normalizePhone(f.phone)) e.phone = v.phone
   // Sin digitales el correo no se muestra ni se envia: uno viejo e invalido guardado no debe bloquear el pedido.
   const email = f.email.trim()
-  if (hasDigital && !email) e.email = 'Escribe tu correo: con él descargas tus fotos digitales.'
-  else if (hasDigital && !EMAIL_RE.test(email)) e.email = 'Escribe un correo válido.'
+  if (hasDigital && !email) e.email = v.emailRequired
+  else if (hasDigital && !EMAIL_RE.test(email)) e.email = v.emailInvalid
   return e
 }
 
@@ -164,24 +169,26 @@ export interface CreatedOrder {
 }
 
 /** Hora limite legible en la hora de la tienda (Ecuador), igual para el cliente y el admin. */
-export const deadlineText = (ms: number, timeZone = 'America/Guayaquil'): string =>
-  new Date(ms).toLocaleString('es-EC', { timeZone, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+export const deadlineText = (ms: number, lang: Locale = 'es', timeZone?: string): string => formatDeadline(ms, lang, timeZone)
 
 /**
  * CU1: mensaje del pedido registrado, con lo que devolvio el servidor (no el total del carrito). Las lineas van a precio
  * suelto y el ahorro por paquetes se resta aparte, para que la cuenta cuadre con el total.
  */
-export function whatsappOrderMessage(o: CreatedOrder, opts: { name: string; link: string; eventName: (id: string) => string | undefined; photoName: (eventId: string, photoId: string) => string }): string {
+export function whatsappOrderMessage(o: CreatedOrder, opts: { name: string; link: string; eventName: (id: string) => string | undefined; photoName: (eventId: string, photoId: string) => string; lang?: Locale }): string {
+  const lang = opts.lang ?? 'es'
+  const m = messagesFor(lang)
+  const w = m.wa
   const parts = [
-    `Hola, soy ${opts.name}. Hice el pedido ${o.number}:`,
-    ...o.lines.map((l) => `• ${whatsappLine({ event: opts.eventName(l.eventId), photo: opts.photoName(l.eventId, l.photoId), product: l.productName, quantity: l.quantity, subtotal: l.unitPrice * l.quantity })}`),
+    w.helloOrder(opts.name, o.number),
+    ...o.lines.map((l) => `• ${whatsappLine({ event: opts.eventName(l.eventId), photo: opts.photoName(l.eventId, l.photoId), product: productLabel(l.productName, m, lang), quantity: l.quantity, subtotal: l.unitPrice * l.quantity }, lang)}`),
     ...o.packs.map((p) => {
       const ev = opts.eventName(p.eventId)
-      return `  Aplicado: ${p.name} × ${p.times} (${formatMoney(p.price)} c/u)${ev ? ` – ${ev}` : ''}`
+      return `  ${w.applied(productLabel(p.name, m, lang), p.times, formatMoney(p.price, lang))}${ev ? ` – ${ev}` : ''}`
     }),
   ]
-  if (o.savings > 0) parts.push(`Ahorro por paquetes: −${formatMoney(o.savings)}`)
-  parts.push(`Total: USD ${formatMoney(o.total)}`, `Pago hasta: ${deadlineText(o.expiresAt)}`, `Mi pedido: ${opts.link}`)
+  if (o.savings > 0) parts.push(`${w.savings}: −${formatMoney(o.savings, lang)}`)
+  parts.push(`${w.total}: USD ${formatMoney(o.total, lang)}`, `${w.payBy}: ${deadlineText(o.expiresAt, lang)}`, `${w.myOrder}: ${opts.link}`)
   return parts.join('\n')
 }
 

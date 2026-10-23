@@ -114,4 +114,25 @@ describe('whatsappLogic', () => {
     expect(rem).toMatch(/22 de octubre, 03:30\sp\.\s?m\./)
     expect(rem).toContain(link)
   })
+  // Previene: que un cliente que compra en ingles reciba (y le mande al fotografo) un pedido en espanol, o que el espanol cambie (TASK-042 CU6).
+  it('TASK-042 CU6: pedido, pedido registrado y validacion salen en ingles con lang="en"; sin lang son los de siempre', () => {
+    const expiresAt = Date.UTC(2026, 9, 22, 20, 30)
+    const lines = [{ eventId: 'e1', photoId: 'p1', productName: 'Archivo digital', unitPrice: 10, quantity: 1 }]
+    const o = { number: 'ABCD2345', total: 1250, savings: 5, expiresAt, lines, packs: [{ eventId: 'e1', name: 'Paquete 5 fotos digitales', times: 1, price: 15 }] }
+    const opts = { name: 'Ana', link: 'https://x.example/pedido/ABCD2345', eventName: () => 'Run 2026', photoName: (_e: string, p: string) => p }
+    const en = whatsappOrderMessage(o, { ...opts, lang: 'en' })
+    expect(en).toContain('Hello, I’m Ana. I placed order ABCD2345:')
+    expect(en).toContain('• Run 2026 – Photo p1 – Digital file × 1 – 10.00')
+    expect(en).toContain('Applied: Pack of 5 digital photos × 1 (15.00 each) – Run 2026')
+    expect(en).toContain('Pack savings: −5.00')
+    expect(en).toContain('Total: USD 1,250.00')
+    expect(en).toMatch(/Pay by: Thursday, October 22 at 03:30\sPM|Pay by: Thursday, October 22, 03:30\sPM/)
+    expect(en).toContain('My order: https://x.example/pedido/ABCD2345')
+    expect(en).not.toMatch(/Hola|Foto |Ahorro|Pago hasta|Mi pedido/)
+    expect(whatsappOrderMessage(o, opts)).toContain('Hola, soy Ana. Hice el pedido ABCD2345:')
+    const cart = buildWhatsAppMessage({ lines: [{ event: 'Run', photo: 'p1', product: 'Digital file', quantity: 1, subtotal: 3 }], total: 3 }, 'en')
+    expect(cart.startsWith('Hello, I’d like to order these photos:\n• Run – Photo p1 – Digital file × 1 – 3.00')).toBe(true)
+    expect(cart.endsWith('Estimated total: USD 3.00')).toBe(true)
+    expect(validateCustomer({ name: '', phone: 'x', email: '' }, false, 'en')).toEqual({ name: 'Please enter your name.', phone: expect.stringContaining('country code') })
+  })
 })

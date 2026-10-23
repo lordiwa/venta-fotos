@@ -9,16 +9,23 @@ import {
   buildWhatsAppMessage, currentLinkEnv, CUSTOMER_KEY, customerPayload, orderLink, parseStoredCustomer, resolveWhatsappDigits, validateCustomer,
   whatsappFromCart, whatsappLinkAttrs, whatsappOrderMessage, whatsappUrl, type WhatsAppLine,
 } from '../whatsappLogic'
-import { createWhatsappOrder, orderErrorMessage, whatsappOpener } from '../whatsappOrderApi'
-import { packBreakdown, reconcile, STATUS_MESSAGE, type PhotoAvailability } from '../cartLogic'
+import { createWhatsappOrder, whatsappOpener } from '../whatsappOrderApi'
+import { orderErrorMessage } from '../serverErrors'
+import { packBreakdown, reconcile, type PhotoAvailability } from '../cartLogic'
 import { formatMoney } from '../productsLogic'
 import { currentPaymentMode } from '../paymentMode'
 import { useCartStore } from '../stores/cart'
 import { Alert, Button, Card, Field, Stepper } from '../ui'
+import { useI18n } from '../i18n'
+import { productLabel } from '../i18n/format'
 import type { Photo, Product } from '../types'
 
 const cart = useCartStore()
 const router = useRouter()
+const { t, locale } = useI18n()
+// Nombre de un producto en el idioma activo (solo se traducen los que crea la tienda; el resto va como lo cargo el admin).
+const pname = (name: string | undefined) => productLabel(name ?? t.value.common.product, t.value, locale.value)
+const money = (n: number) => formatMoney(n, locale.value)
 const paypal = currentPaymentMode() === 'paypal'
 const products = ref<Product[]>([])
 const photos = ref<Record<string, PhotoAvailability>>({})
@@ -71,8 +78,8 @@ const view = computed(() => reconcile(cart.lines, products.value, photos.value))
 const whatsappHref = computed(() => {
   const name = (eventId: string, photoId: string) => photoNames.value[`${eventId}/${photoId}`] ?? photoId
   const msg = error.value
-    ? buildWhatsAppMessage({ lines: cart.lines.map((l): WhatsAppLine => ({ photo: l.photoId, product: l.productName ?? 'Producto', quantity: l.quantity })) })
-    : buildWhatsAppMessage(whatsappFromCart(view.value, (id) => eventNames.value[id], name))
+    ? buildWhatsAppMessage({ lines: cart.lines.map((l): WhatsAppLine => ({ photo: l.photoId, product: pname(l.productName), quantity: l.quantity })) }, locale.value)
+    : buildWhatsAppMessage(whatsappFromCart(view.value, (id) => eventNames.value[id], name, locale.value), locale.value)
   return whatsappUrl(whatsappDigits.value, msg)
 })
 
@@ -84,7 +91,7 @@ const readStored = () => { try { return localStorage.getItem(CUSTOMER_KEY) } cat
 const customer = reactive(parseStoredCustomer(readStored()))
 watch(customer, (v) => { try { localStorage.setItem(CUSTOMER_KEY, JSON.stringify(v)) } catch { /* sin almacenamiento */ } })
 const hasDigital = computed(() => view.value.lines.some((r) => r.counted && r.product?.kind === 'digital'))
-const customerErrors = computed(() => validateCustomer(customer, hasDigital.value))
+const customerErrors = computed(() => validateCustomer(customer, hasDigital.value, locale.value))
 const submitted = ref(false)
 const shownErrors = computed(() => (submitted.value ? customerErrors.value : {}))
 const ordering = ref(false)
@@ -107,13 +114,14 @@ async function orderByWhatsapp() {
       link: orderLink(window.location.origin, created.number),
       eventName: (id) => eventNames.value[id],
       photoName: (eventId, photoId) => photoNames.value[`${eventId}/${photoId}`] ?? photoId,
+      lang: locale.value,
     })
     cart.clear() // el pedido ya existe: volver a pedir lo mismo crearia un duplicado
     opener.go(whatsappUrl(whatsappDigits.value, msg))
     if (whatsappLinkAttrs(linkEnv).target) await router.push({ name: 'order', params: { number: created.number } })
   } catch (e) {
     opener.cancel()
-    orderError.value = orderErrorMessage(e)
+    orderError.value = orderErrorMessage(e, locale.value)
   } finally {
     ordering.value = false
   }
@@ -121,75 +129,75 @@ async function orderByWhatsapp() {
 
 /** TASK-029: desglose por evento de las digitales cobradas con paquetes (el resto del resumen va linea por linea). */
 const packGroups = computed(() => view.value.groups.filter((g) => g.pricing.packs.length).map((g) => ({
-  eventId: g.eventId, event: eventNames.value[g.eventId], items: packBreakdown(g), savings: g.pricing.savingsCents / 100,
+  eventId: g.eventId, event: eventNames.value[g.eventId], items: packBreakdown(g, locale.value), savings: g.pricing.savingsCents / 100,
 })))
 </script>
 
 <template>
   <div class="head">
-    <h1 class="display-lg">Carrito</h1>
-    <span v-if="cart.lines.length" class="mono-sm muted">{{ cart.lines.length }} {{ cart.lines.length === 1 ? 'producto' : 'productos' }}</span>
+    <h1 class="display-lg">{{ t.cart.title }}</h1>
+    <span v-if="cart.lines.length" class="mono-sm muted">{{ t.cart.count(cart.lines.length) }}</span>
   </div>
   <Alert v-if="!cart.lines.length">
-    Tu carrito está vacío.
-    <template #action><RouterLink to="/#eventos">Ver las fotos</RouterLink></template>
+    {{ t.cart.empty }}
+    <template #action><RouterLink to="/#eventos">{{ t.cart.seePhotos }}</RouterLink></template>
   </Alert>
-  <p v-else-if="loading" class="mono-sm muted">Cargando…</p>
+  <p v-else-if="loading" class="mono-sm muted">{{ t.common.loading }}</p>
   <template v-else-if="error">
     <Alert tone="danger">
-      No pudimos actualizar tu carrito.
-      <template #action><Button @click="load">Reintentar</Button></template>
+      {{ t.cart.refreshFailed }}
+      <template #action><Button @click="load">{{ t.common.retry }}</Button></template>
     </Alert>
     <ul class="lines">
       <li v-for="l in cart.lines" :key="`${l.eventId}/${l.photoId}/${l.productId}`">
-        <span class="info display-sm">{{ l.productName ?? 'Producto' }} × {{ l.quantity }}</span>
-        <Button variant="ghost" icon="quitar" @click="cart.remove(`${l.eventId}/${l.photoId}/${l.productId}`)">Quitar</Button>
+        <span class="info display-sm">{{ pname(l.productName) }} × {{ l.quantity }}</span>
+        <Button variant="ghost" icon="quitar" @click="cart.remove(`${l.eventId}/${l.photoId}/${l.productId}`)">{{ t.cart.remove }}</Button>
       </li>
     </ul>
     <!-- TASK-037: sin catalogo no se puede registrar el pedido; en modo WhatsApp solo queda reintentar. -->
-    <Button v-if="paypal" variant="secondary" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
+    <Button v-if="paypal" variant="secondary" size="lg" :href="whatsappHref" v-bind="waLink">{{ t.cart.orderWhatsapp }}</Button>
   </template>
   <div v-else class="cols">
     <ul class="lines">
       <li v-for="r in view.lines" :key="r.key">
         <div class="thumb" :class="{ off: !r.counted }"><PhotoThumb :path="thumbs[`${r.line.eventId}/${r.line.photoId}`]" fill /></div>
         <div class="info" :class="{ off: !r.counted }">
-          <strong class="display-sm name">{{ r.product?.name ?? r.line.productName ?? 'Producto' }}</strong>
-          <span v-if="r.counted" class="mono-sm muted">{{ formatMoney(r.unitPrice) }} c/u</span>
-          <span v-if="STATUS_MESSAGE[r.status]" class="body-sm warn" role="status">{{ STATUS_MESSAGE[r.status] }}</span>
+          <strong class="display-sm name">{{ pname(r.product?.name ?? r.line.productName) }}</strong>
+          <span v-if="r.counted" class="mono-sm muted">{{ t.cart.each(money(r.unitPrice)) }}</span>
+          <span v-if="t.cart.status[r.status]" class="body-sm warn" role="status">{{ t.cart.status[r.status] }}</span>
         </div>
-        <Stepper v-if="r.counted && r.product?.kind !== 'digital'" :model-value="r.quantity" @update:model-value="cart.setQuantity(r.key, String($event))" />
+        <Stepper v-if="r.counted && r.product?.kind !== 'digital'" :model-value="r.quantity" :label="t.stepper.label" :less-label="t.stepper.less" :more-label="t.stepper.more" @update:model-value="cart.setQuantity(r.key, String($event))" />
         <span v-else-if="r.counted" class="mono-sm muted">× 1</span>
-        <span v-if="r.inPack" class="mono-sm muted sub">en paquete</span>
-        <span v-else class="mono-md sub">{{ r.counted ? formatMoney(r.subtotal) : '—' }}</span>
-        <Button variant="ghost" icon="quitar" icon-only :label="`Quitar ${r.product?.name ?? r.line.productName ?? 'producto'}`" @click="cart.remove(r.key)" />
+        <span v-if="r.inPack" class="mono-sm muted sub">{{ t.cart.inPack }}</span>
+        <span v-else class="mono-md sub">{{ r.counted ? money(r.subtotal) : '—' }}</span>
+        <Button variant="ghost" icon="quitar" icon-only :label="t.cart.removeLabel(pname(r.product?.name ?? r.line.productName))" @click="cart.remove(r.key)" />
       </li>
     </ul>
-    <Card as="aside" title="Resumen" aria-label="Resumen" class="summary">
+    <Card as="aside" :title="t.cart.summary" :aria-label="t.cart.summary" class="summary">
       <dl class="sum">
-        <div v-for="r in view.lines.filter((x) => x.counted && !x.inPack)" :key="r.key"><dt>{{ r.product?.name ?? r.line.productName ?? 'Producto' }} × {{ r.quantity }}</dt><dd class="mono-md">{{ formatMoney(r.subtotal) }}</dd></div>
+        <div v-for="r in view.lines.filter((x) => x.counted && !x.inPack)" :key="r.key"><dt>{{ pname(r.product?.name ?? r.line.productName) }} × {{ r.quantity }}</dt><dd class="mono-md">{{ money(r.subtotal) }}</dd></div>
       </dl>
-      <section v-for="g in packGroups" :key="g.eventId" class="pack" :aria-label="`Paquetes digitales${g.event ? ` de ${g.event}` : ''}`">
+      <section v-for="g in packGroups" :key="g.eventId" class="pack" :aria-label="t.cart.packsOf(g.event)">
         <span v-if="g.event" class="mono-sm muted">{{ g.event }}</span>
         <dl class="sum">
-          <div v-for="i in g.items" :key="i.label"><dt>{{ i.label }} × {{ i.quantity }}</dt><dd class="mono-md">{{ formatMoney(i.subtotal) }}</dd></div>
+          <div v-for="i in g.items" :key="i.label"><dt>{{ i.label }} × {{ i.quantity }}</dt><dd class="mono-md">{{ money(i.subtotal) }}</dd></div>
         </dl>
-        <p class="body-sm saving">Ahorras {{ formatMoney(g.savings) }} con paquetes</p>
+        <p class="body-sm saving">{{ t.cart.saves(money(g.savings)) }}</p>
       </section>
-      <p class="total"><strong>Total estimado:</strong> <span class="display-md amount">{{ formatMoney(view.total) }}</span></p>
-      <p v-if="paypal" class="caption muted">El envío, si lo eliges, se suma al pagar.</p>
-      <p v-else class="caption muted">El pago y la entrega (retiro o envío) se acuerdan por WhatsApp. Tienes 24 h para pagar.</p>
-      <Button v-if="paypal" variant="accent" size="lg" to="/checkout">Ir a pagar</Button>
-      <Button v-if="paypal && view.lines.some((r) => r.counted)" variant="secondary" size="lg" :href="whatsappHref" v-bind="waLink">Pedir por WhatsApp</Button>
-      <form v-if="!paypal && view.lines.some((r) => r.counted)" class="customer" novalidate aria-label="Tus datos" @submit.prevent="orderByWhatsapp">
-        <Field v-model="customer.name" label="Nombre" autocomplete="name" :error="shownErrors.name" />
-        <Field v-model="customer.phone" label="WhatsApp" type="tel" inputmode="tel" autocomplete="tel" hint="Con código de país, ej. +593 99 856 5995" :error="shownErrors.phone" />
+      <p class="total"><strong>{{ t.cart.totalEstimated }}</strong> <span class="display-md amount">{{ money(view.total) }}</span></p>
+      <p v-if="paypal" class="caption muted">{{ t.cart.shippingPaypal }}</p>
+      <p v-else class="caption muted">{{ t.cart.terms }}</p>
+      <Button v-if="paypal" variant="accent" size="lg" to="/checkout">{{ t.cart.checkout }}</Button>
+      <Button v-if="paypal && view.lines.some((r) => r.counted)" variant="secondary" size="lg" :href="whatsappHref" v-bind="waLink">{{ t.cart.orderWhatsapp }}</Button>
+      <form v-if="!paypal && view.lines.some((r) => r.counted)" class="customer" novalidate :aria-label="t.cart.yourData" @submit.prevent="orderByWhatsapp">
+        <Field v-model="customer.name" :label="t.cart.name" autocomplete="name" :error="shownErrors.name" />
+        <Field v-model="customer.phone" :label="t.cart.whatsapp" type="tel" inputmode="tel" autocomplete="tel" :hint="t.cart.phoneHint" :error="shownErrors.phone" />
         <!-- El correo solo se pide (y se guarda) si hay fotos digitales: las descargas se validan con el. -->
-        <Field v-if="hasDigital" v-model="customer.email" label="Correo" type="email" inputmode="email" autocomplete="email" hint="Con él descargas tus fotos digitales." :error="shownErrors.email" />
+        <Field v-if="hasDigital" v-model="customer.email" :label="t.cart.email" type="email" inputmode="email" autocomplete="email" :hint="t.cart.emailHint" :error="shownErrors.email" />
         <Alert v-if="orderError" tone="danger">{{ orderError }}</Alert>
-        <Button type="submit" variant="accent" size="lg" :disabled="ordering">{{ ordering ? 'Registrando tu pedido…' : 'Pedir por WhatsApp' }}</Button>
+        <Button type="submit" variant="accent" size="lg" :disabled="ordering">{{ ordering ? t.cart.registering : t.cart.orderWhatsapp }}</Button>
       </form>
-      <RouterLink to="/#eventos" class="more">Seguir viendo fotos</RouterLink>
+      <RouterLink to="/#eventos" class="more">{{ t.cart.keepBrowsing }}</RouterLink>
     </Card>
   </div>
 </template>

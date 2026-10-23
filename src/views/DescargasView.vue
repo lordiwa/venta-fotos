@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import DownloadList from '../components/DownloadList.vue'
-import { downloadErrorMessage, getDownloadLinks } from '../downloadsApi'
+import { getDownloadLinks } from '../downloadsApi'
+import { downloadErrorMessage, downloadNotice } from '../serverErrors'
 import { normalizeNumber, type DownloadResult } from '../downloadsLogic'
 import { Alert, Button, Card, Eyebrow, Field } from '../ui'
+import { useI18n } from '../i18n'
+
+const { t, locale } = useI18n()
 
 const number = ref('')
 const email = ref('')
@@ -23,7 +27,7 @@ async function submit() {
     result.value = await getDownloadLinks(n, email.value.trim())
     resultNumber.value = n
   } catch (e) {
-    error.value = downloadErrorMessage(e)
+    error.value = downloadErrorMessage(e, locale.value)
   } finally {
     busy.value = false
   }
@@ -33,18 +37,18 @@ async function submit() {
 <template>
   <div class="narrow">
     <div class="intro">
-      <Eyebrow>Archivos digitales</Eyebrow>
-      <h1 class="display-lg">Mis descargas</h1>
-      <p class="body">Escribe el número de tu pedido y el correo con el que compraste para generar enlaces nuevos a tus archivos digitales.</p>
+      <Eyebrow>{{ t.downloads.eyebrow }}</Eyebrow>
+      <h1 class="display-lg">{{ t.downloads.title }}</h1>
+      <p class="body">{{ t.downloads.intro }}</p>
     </div>
-    <Card as="form" aria-label="Buscar pedido" novalidate @submit.prevent="submit">
-      <Field v-model="number" label="Número de pedido" mono placeholder="TYYXUQRC" autocomplete="off" />
-      <Field v-model="email" label="Correo" type="email" autocomplete="email" />
-      <Button type="submit" variant="accent" size="lg" :disabled="busy">Generar enlaces</Button>
+    <Card as="form" :aria-label="t.downloads.formAria" novalidate @submit.prevent="submit">
+      <Field v-model="number" :label="t.downloads.number" mono placeholder="TYYXUQRC" autocomplete="off" />
+      <Field v-model="email" :label="t.downloads.email" type="email" autocomplete="email" />
+      <Button type="submit" variant="accent" size="lg" :disabled="busy">{{ t.downloads.submit }}</Button>
     </Card>
     <Alert v-if="error" tone="danger">{{ error }}</Alert>
-    <Card v-if="result" :title="`Pedido ${resultNumber}`" aria-label="Tus archivos">
-      <Alert v-if="result.message">{{ result.message }}</Alert>
+    <Card v-if="result" :title="t.downloads.orderTitle(resultNumber)" :aria-label="t.downloads.filesAria">
+      <Alert v-if="result.message">{{ downloadNotice(result.message, locale) }}</Alert>
       <DownloadList :files="result.files" :busy="busy" @refresh="submit" />
     </Card>
   </div>

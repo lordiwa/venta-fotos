@@ -2,13 +2,15 @@
 import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import { publicUrl } from '../photosApi'
 import PurchasePanel from './PurchasePanel.vue'
-import { swipeAction, isPrintOnly, PRINT_ONLY_LABEL } from '../galleryLogic'
+import { swipeAction, isPrintOnly } from '../galleryLogic'
 import { Icon } from '../ui'
+import { useI18n } from '../i18n'
 import type { Photo } from '../types'
 
 /** Vista ampliada: SOLO previewPath (con marca de agua). Nunca originalPath. Con `src` (portafolio, TASK-039) muestra esa imagen publica sin panel de compra. */
 const props = defineProps<{ photo: Photo | null; loading: boolean; hasPrev: boolean; hasNext: boolean; caption?: string; tag?: string; eventName?: string; src?: string; alt?: string }>()
 const emit = defineEmits<{ prev: []; next: []; close: [] }>()
+const { t } = useI18n()
 const url = ref<string | null>(null)
 const failed = ref(false)
 
@@ -58,20 +60,20 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); document.b
 
 
 <template>
-  <div ref="root" class="lb" role="dialog" aria-modal="true" aria-label="Foto ampliada" @touchstart.passive="start" @touchend.passive="end">
+  <div ref="root" class="lb" role="dialog" aria-modal="true" :aria-label="t.lightbox.dialog" @touchstart.passive="start" @touchend.passive="end">
     <div class="top">
-      <span class="mono-sm caption">{{ caption }}<span v-if="isPrintOnly(photo)" class="es-print-tag print-tag">{{ PRINT_ONLY_LABEL }}</span></span>
-      <button ref="closeBtn" class="round" aria-label="Cerrar" @click="emit('close')"><Icon name="cerrar" :size="18" /></button>
+      <span class="mono-sm caption">{{ caption }}<span v-if="isPrintOnly(photo)" class="es-print-tag print-tag">{{ t.gallery.printOnly }}</span></span>
+      <button ref="closeBtn" class="round" :aria-label="t.lightbox.close" @click="emit('close')"><Icon name="cerrar" :size="18" /></button>
     </div>
     <div class="stage">
       <div class="viewer">
-        <button v-if="hasPrev" class="round nav l" aria-label="Foto anterior" @click="emit('prev')"><Icon name="anterior" :size="20" /></button>
+        <button v-if="hasPrev" class="round nav l" :aria-label="t.lightbox.prev" @click="emit('prev')"><Icon name="anterior" :size="20" /></button>
         <figure class="photo">
-          <img v-if="url" :src="url" :width="photo?.width" :height="photo?.height" :alt="alt ?? 'Foto del evento'" />
-          <p v-else-if="loading || (photo && !failed)" class="mono-sm msg">Cargando…</p>
-          <p v-else class="mono-sm msg">Foto no disponible</p>
+          <img v-if="url" :src="url" :width="photo?.width" :height="photo?.height" :alt="alt ?? t.lightbox.alt" />
+          <p v-else-if="loading || (photo && !failed)" class="mono-sm msg">{{ t.common.loading }}</p>
+          <p v-else class="mono-sm msg">{{ t.lightbox.unavailable }}</p>
         </figure>
-        <button v-if="hasNext" class="round nav r" aria-label="Foto siguiente" @click="emit('next')"><Icon name="siguiente" :size="20" /></button>
+        <button v-if="hasNext" class="round nav r" :aria-label="t.lightbox.next" @click="emit('next')"><Icon name="siguiente" :size="20" /></button>
       </div>
       <PurchasePanel v-if="photo" :event-id="photo.eventId" :photo-id="photo.id" :label="tag" :event-name="eventName" :photo-name="photo.name" :print-only="photo.printOnly === true" />
     </div>

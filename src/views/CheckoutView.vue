@@ -9,8 +9,11 @@ import { formatMoney } from '../productsLogic'
 import { useCartStore } from '../stores/cart'
 import { currentPaymentMode } from '../paymentMode'
 import { classifyCaptureError, clearPending, CURRENCY, loadPending, loadPendingEmail, savePending, saveSummary, totalWithShipping, validateCheckoutForm, type CheckoutForm } from '../checkoutLogic'
-import { captureOrder, createOrder, errorMessage } from '../checkoutApi'
+import { captureOrder, createOrder } from '../checkoutApi'
+import { checkoutErrorMessage } from '../serverErrors'
 import { Alert, Button, Card, Field, OptionCard } from '../ui'
+import { useI18n } from '../i18n'
+import { productLabel } from '../i18n/format'
 import type { Product, StoreSettings } from '../types'
 
 const cart = useCartStore()
@@ -18,7 +21,12 @@ const router = useRouter()
 const clientId = currentPaymentMode() === 'whatsapp' ? undefined : (import.meta.env.VITE_PAYPAL_CLIENT_ID as string | undefined)
 const canSimulate = import.meta.env.DEV // CU12: el boton no existe en el build de produccion
 
-const PENDING_NOTICE = 'Confirmando tu pago anterior…'
+const { t, locale } = useI18n()
+const errorMessage = (e: unknown) => checkoutErrorMessage(e, locale.value)
+const money = (n: number) => formatMoney(n, locale.value)
+const pname = (name: string | undefined) => productLabel(name ?? t.value.common.product, t.value, locale.value)
+// Marca el aviso de "pago anterior" (informativo, no es un error); el texto cambia con el idioma.
+const pendingNotice = ref(false)
 const form = reactive<CheckoutForm>({ name: '', email: '', phone: '', method: 'retiro', address: '' })
 const products = ref<Product[]>([])
 const settings = ref<StoreSettings | null>(null)
@@ -39,7 +47,7 @@ const shippingCost = computed(() => settings.value?.shippingCost ?? 0)
 /** TASK-029: las lineas van a precio suelto; el ahorro de paquetes se resta aparte (igual que en el servidor). */
 const packSavings = computed(() => view.value.groups.reduce((s, g) => s + g.pricing.savingsCents, 0) / 100)
 const total = computed(() => totalWithShipping(view.value.total, form.method, hasPrints.value, shippingCost.value))
-const errors = computed(() => validateCheckoutForm(form, hasPrints.value))
+const errors = computed(() => validateCheckoutForm(form, hasPrints.value, locale.value))
 const shown = computed(() => (submitted.value ? errors.value : {}))
 
 /** Valida el formulario; si hay errores los muestra y no deja pagar. */
@@ -47,7 +55,7 @@ function ready(): boolean {
   submitted.value = true
   message.value = ''
   if (busy.value || retryId.value) return false
-  if (blocked.value) { message.value = 'Quita del carrito los productos que ya no están disponibles.'; return false }
+  if (blocked.value) { message.value = t.value.checkout.removeUnavailable; return false }
   return Object.keys(errors.value).length === 0
 }
 
@@ -64,11 +72,11 @@ async function finish(paypalOrderId: string, recovered = false) {
   } catch (e) {
     const outcome = classifyCaptureError(e)
     message.value = recovered && outcome === 'definitive'
-      ? 'No pudimos recuperar tu pago anterior. Si PayPal te cobró, contáctanos con tu comprobante.'
+      ? t.value.checkout.recoverFailed
       : errorMessage(e) // CU9: sin pedido pagado, el carrito se conserva
     if (outcome === 'retry') {
       retryId.value = paypalOrderId // se reintenta sobre el mismo id; no se crea otra orden
-      message.value = 'No pudimos confirmar tu pago. Reintenta la confirmación; no pagues de nuevo.'
+      message.value = t.value.checkout.retryHint
     } else {
       clearPending()
       retryId.value = null
@@ -96,18 +104,18 @@ async function mountButtons() {
   try {
     const paypal = await loadScript({ clientId, currency: CURRENCY })
     await nextTick()
-    if (!paypal?.Buttons || !paypalContainer.value) { message.value = 'No pudimos cargar PayPal. Recarga la página.'; return }
+    if (!paypal?.Buttons || !paypalContainer.value) { message.value = t.value.checkout.paypalLoadFailed; return }
     await paypal.Buttons({
       onClick: (_data, actions) => { if (!ready()) return actions.reject(); busy.value = true; return actions.resolve() },
       createOrder: async () => {
         try { return await start(false) } catch (e) { clearPending(); message.value = errorMessage(e); busy.value = false; throw e }
       },
       onApprove: async (data) => { savePending(data.orderID, form.email); await finish(data.orderID) }, // pendiente solo una vez aprobada en PayPal
-      onCancel: () => { clearPending(); busy.value = false; message.value = 'Cancelaste el pago. Tu carrito sigue igual; puedes intentarlo de nuevo.' },
-      onError: () => { clearPending(); busy.value = false; message.value ||= 'No pudimos completar el pago con PayPal. Intenta de nuevo.' },
+      onCancel: () => { clearPending(); busy.value = false; message.value = t.value.checkout.cancelled },
+      onError: () => { clearPending(); busy.value = false; message.value ||= t.value.checkout.paypalError },
     }).render(paypalContainer.value)
   } catch {
-    message.value = 'No pudimos cargar PayPal. Recarga la página.'
+    message.value = t.value.checkout.paypalLoadFailed
   }
 }
 
@@ -124,65 +132,65 @@ onMounted(async () => {
   await nextTick()
   await mountButtons()
   const pending = loadPending() // un pago anterior quedo sin confirmar: reintentar la captura del mismo id
-  if (pending) { message.value = PENDING_NOTICE; await finish(pending, true) }
+  if (pending) { pendingNotice.value = true; message.value = t.value.checkout.pending; await finish(pending, true) }
 })
 </script>
 
 <template>
   <div class="top">
     <ol class="eyebrow steps">
-      <li><RouterLink to="/carrito">Carrito</RouterLink></li><li aria-hidden="true">→</li><li aria-current="step" class="here">Pagar</li><li aria-hidden="true">→</li><li>Confirmación</li>
+      <li><RouterLink to="/carrito">{{ t.checkout.cart }}</RouterLink></li><li aria-hidden="true">→</li><li aria-current="step" class="here">{{ t.checkout.pay }}</li><li aria-hidden="true">→</li><li>{{ t.checkout.confirmation }}</li>
     </ol>
-    <h1 class="display-lg">Pagar</h1>
+    <h1 class="display-lg">{{ t.checkout.pay }}</h1>
   </div>
-  <p v-if="loading" class="mono-sm muted">Cargando…</p>
+  <p v-if="loading" class="mono-sm muted">{{ t.common.loading }}</p>
   <Alert v-else-if="loadError" tone="danger">
-    No pudimos cargar tu pedido.
-    <template #action><Button @click="router.go(0)">Reintentar</Button></template>
+    {{ t.checkout.loadFailed }}
+    <template #action><Button @click="router.go(0)">{{ t.common.retry }}</Button></template>
   </Alert>
   <div v-else-if="cart.lines.length" class="cols">
     <form novalidate class="form" @submit.prevent>
-      <Card title="Tus datos" aria-label="Tus datos">
+      <Card :title="t.checkout.yourData" :aria-label="t.checkout.yourData">
         <div class="pair">
-          <Field v-model="form.name" label="Nombre" autocomplete="name" :error="shown.name" />
-          <Field v-model="form.phone" label="Teléfono" type="tel" autocomplete="tel" :error="shown.phone" />
+          <Field v-model="form.name" :label="t.checkout.name" autocomplete="name" :error="shown.name" />
+          <Field v-model="form.phone" :label="t.checkout.phone" type="tel" autocomplete="tel" :error="shown.phone" />
         </div>
-        <Field v-model="form.email" label="Correo" type="email" autocomplete="email" :error="shown.email" />
-        <p class="caption muted">Te enviamos el número de pedido y los enlaces de descarga a este correo.</p>
+        <Field v-model="form.email" :label="t.checkout.email" type="email" autocomplete="email" :error="shown.email" />
+        <p class="caption muted">{{ t.checkout.emailNote }}</p>
       </Card>
-      <Card as="div" title="Entrega" aria-label="Entrega">
+      <Card as="div" :title="t.checkout.delivery" :aria-label="t.checkout.delivery">
         <template v-if="hasPrints">
           <fieldset>
-            <legend class="sr">Entrega</legend>
-            <OptionCard v-model="form.method" name="metodo" value="retiro" label="Retiro en persona" />
-            <OptionCard v-model="form.method" name="metodo" value="envio" label="Envío a domicilio" :meta="`+ ${formatMoney(shippingCost)}`" />
+            <legend class="sr">{{ t.checkout.delivery }}</legend>
+            <OptionCard v-model="form.method" name="metodo" value="retiro" :label="t.checkout.pickup" />
+            <OptionCard v-model="form.method" name="metodo" value="envio" :label="t.checkout.shipping" :meta="`+ ${money(shippingCost)}`" />
           </fieldset>
           <p v-if="form.method === 'retiro' && settings?.pickupInfo" class="pickup">{{ settings.pickupInfo }}</p>
-          <Field v-if="form.method === 'envio'" v-model="form.address" as="textarea" label="Dirección" :rows="3" autocomplete="street-address" :error="shown.address" />
+          <Field v-if="form.method === 'envio'" v-model="form.address" as="textarea" :label="t.checkout.address" :rows="3" autocomplete="street-address" :error="shown.address" />
         </template>
-        <p v-else class="body-sm muted">Tu pedido es solo digital: no requiere entrega.</p>
+        <p v-else class="body-sm muted">{{ t.checkout.digitalOnly }}</p>
       </Card>
     </form>
 
-    <Card as="aside" title="Resumen" aria-label="Resumen y pago" class="summary">
+    <Card as="aside" :title="t.checkout.summary" :aria-label="t.checkout.summaryAria" class="summary">
       <ul class="lines">
         <li v-for="r in view.lines" :key="r.key" :class="{ off: !r.counted }">
-          <span class="lname" :class="{ gone: !r.counted }">{{ r.product?.name ?? r.line.productName ?? 'Producto' }} × {{ r.quantity }}</span>
-          <span v-if="r.counted" class="mono-sm">{{ formatMoney(r.subtotal) }}</span>
-          <span v-else class="caption warn">no disponible</span>
+          <span class="lname" :class="{ gone: !r.counted }">{{ pname(r.product?.name ?? r.line.productName) }} × {{ r.quantity }}</span>
+          <span v-if="r.counted" class="mono-sm">{{ money(r.subtotal) }}</span>
+          <span v-else class="caption warn">{{ t.checkout.unavailable }}</span>
         </li>
-        <li v-if="packSavings"><span class="lname">Ahorro por paquetes digitales</span><span class="mono-sm">−{{ formatMoney(packSavings) }}</span></li>
+        <li v-if="packSavings"><span class="lname">{{ t.checkout.packSavings }}</span><span class="mono-sm">−{{ money(packSavings) }}</span></li>
       </ul>
-      <p class="total"><strong>Total:</strong> <span class="display-md amount">{{ formatMoney(total) }} <span class="label muted">{{ CURRENCY }}</span></span></p>
-      <Alert v-if="message" :tone="message === PENDING_NOTICE ? 'neutral' : 'danger'">{{ message }}</Alert>
-      <Button v-if="retryId" variant="secondary" :disabled="busy" @click="retryCapture">Reintentar confirmación</Button>
-      <Alert v-if="!clientId">Pago con PayPal no configurado</Alert>
+      <p class="total"><strong>{{ t.checkout.total }}</strong> <span class="display-md amount">{{ money(total) }} <span class="label muted">{{ CURRENCY }}</span></span></p>
+      <Alert v-if="message" :tone="pendingNotice && message === t.checkout.pending ? 'neutral' : 'danger'">{{ message }}</Alert>
+      <Button v-if="retryId" variant="secondary" :disabled="busy" @click="retryCapture">{{ t.checkout.retryConfirm }}</Button>
+      <Alert v-if="!clientId">{{ t.checkout.paypalMissing }}</Alert>
       <div v-show="!finalMessage" ref="paypalContainer" :aria-busy="busy" :class="{ off: busy }" />
       <div v-if="canSimulate && !finalMessage" class="sim">
-        <Button variant="ghost" :disabled="busy" @click="simulate">Simular pago</Button>
-        <span class="table-head muted">Solo en modo prueba</span>
+        <Button variant="ghost" :disabled="busy" @click="simulate">{{ t.checkout.simulate }}</Button>
+        <span class="table-head muted">{{ t.checkout.testOnly }}</span>
       </div>
-      <RouterLink to="/carrito" class="back">Volver al carrito</RouterLink>
+      <RouterLink to="/carrito" class="back">{{ t.checkout.backToCart }}</RouterLink>
     </Card>
   </div>
 </template>

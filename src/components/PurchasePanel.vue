@@ -6,11 +6,14 @@ import { getSettings } from '../settingsApi'
 import { buildWhatsAppMessage, currentLinkEnv, resolveWhatsappDigits, whatsappLinkAttrs, whatsappUrl } from '../whatsappLogic'
 import { useCartStore } from '../stores/cart'
 import { Alert, Button, Eyebrow, OptionCard, Stepper } from '../ui'
+import { useI18n } from '../i18n'
+import { productLabel } from '../i18n/format'
 import type { Product } from '../types'
 
 /** Selector de producto y cantidad para la foto abierta (CU1, CU3, CU10, CU11). */
 const props = defineProps<{ eventId: string; photoId: string; label?: string; eventName?: string; photoName?: string; printOnly?: boolean }>()
 const cart = useCartStore()
+const { t, locale } = useI18n()
 
 const products = ref<Product[]>([])
 const state = ref<'loading' | 'error' | 'ready'>('loading')
@@ -52,8 +55,8 @@ const whatsappHref = computed(() => {
   const p = selected.value
   if (!p) return ''
   const quantity = isDigital.value ? 1 : qty.value
-  const line = { event: props.eventName, photo: props.photoName ?? props.photoId, product: p.name, quantity, subtotal: Math.round(p.price * quantity * 100) / 100 }
-  return whatsappUrl(whatsappDigits.value, buildWhatsAppMessage({ lines: [line], total: line.subtotal }))
+  const line = { event: props.eventName, photo: props.photoName ?? props.photoId, product: productLabel(p.name, t.value, locale.value), quantity, subtotal: Math.round(p.price * quantity * 100) / 100 }
+  return whatsappUrl(whatsappDigits.value, buildWhatsAppMessage({ lines: [line], total: line.subtotal }, locale.value))
 })
 
 function add() {
@@ -65,40 +68,40 @@ function add() {
 
 <template>
   <div class="buy">
-    <p v-if="state === 'loading'" class="mono-sm muted">Cargando productos…</p>
+    <p v-if="state === 'loading'" class="mono-sm muted">{{ t.purchase.loading }}</p>
     <Alert v-else-if="state === 'error'" tone="danger">
-      No pudimos cargar los productos.
-      <template #action><Button @click="load">Reintentar</Button></template>
+      {{ t.purchase.loadFailed }}
+      <template #action><Button @click="load">{{ t.common.retry }}</Button></template>
     </Alert>
-    <Alert v-else-if="!offered.length">{{ printOnly ? 'Esta foto solo se vende impresa y por ahora no hay impresiones a la venta' : 'Por ahora no hay productos a la venta' }}</Alert>
+    <Alert v-else-if="!offered.length">{{ printOnly ? t.purchase.nonePrintOnly : t.purchase.none }}</Alert>
     <form v-else novalidate @submit.prevent="add">
       <div class="head">
         <Eyebrow v-if="label">{{ label }}</Eyebrow>
-        <h2 class="display-sm">Elige tu formato</h2>
+        <h2 class="display-sm">{{ t.purchase.choose }}</h2>
       </div>
       <fieldset>
-        <legend class="sr">Producto</legend>
+        <legend class="sr">{{ t.purchase.legend }}</legend>
         <OptionCard
           v-for="p in offered" :key="p.id" v-model="productId" name="producto" :value="p.id"
-          :label="p.name" :meta="p.kind === 'digital' ? 'Descarga en alta resolución' : 'Fine art en bastidor'" :price="formatMoney(p.price)"
+          :label="productLabel(p.name, t, locale)" :meta="p.kind === 'digital' ? t.purchase.digitalMeta : t.purchase.printMeta" :price="formatMoney(p.price, locale)"
         />
       </fieldset>
       <section v-if="hasPrintOffer(offered)" class="fineart">
-        <h3 class="label">Impresión fine art</h3>
-        <p class="body-sm muted">Cada foto se imprime en calidad fine art y se entrega montada en bastidor, lista para colgar. Garantía de duración del color de más de 200 años.</p>
-        <p class="body-sm muted">El envío corre por cuenta del comprador.</p>
+        <h3 class="label">{{ t.purchase.fineArtTitle }}</h3>
+        <p class="body-sm muted">{{ t.purchase.fineArtBody }}</p>
+        <p class="body-sm muted">{{ t.purchase.shipping }}</p>
       </section>
       <div v-if="!isDigital" class="qty">
-        <span class="label muted">Cantidad</span>
-        <Stepper v-model="qty" />
+        <span class="label muted">{{ t.purchase.quantity }}</span>
+        <Stepper v-model="qty" :label="t.stepper.label" :less-label="t.stepper.less" :more-label="t.stepper.more" />
       </div>
-      <p v-else class="body-sm muted note">Archivo digital: una descarga por foto, sin marca de agua.</p>
-      <p v-if="printOnly" class="body-sm muted note">Esta foto solo se vende impresa.</p>
-      <Button type="submit" variant="accent" size="lg" icon="carrito">Agregar al carrito</Button>
-      <Button variant="ghost" :href="whatsappHref" v-bind="waLink">Pedir esta foto por WhatsApp</Button>
+      <p v-else class="body-sm muted note">{{ t.purchase.digitalNote }}</p>
+      <p v-if="printOnly" class="body-sm muted note">{{ t.purchase.printOnlyNote }}</p>
+      <Button type="submit" variant="accent" size="lg" icon="carrito">{{ t.purchase.add }}</Button>
+      <Button variant="ghost" :href="whatsappHref" v-bind="waLink">{{ t.purchase.whatsapp }}</Button>
       <Alert v-if="confirmed" tone="success">
-        Agregado al carrito
-        <template #action><RouterLink to="/carrito" class="cart-link">Ver carrito</RouterLink></template>
+        {{ t.purchase.added }}
+        <template #action><RouterLink to="/carrito" class="cart-link">{{ t.purchase.viewCart }}</RouterLink></template>
       </Alert>
     </form>
   </div>

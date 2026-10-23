@@ -2,7 +2,10 @@
 import { computed, ref } from 'vue'
 import { isExpired, type DownloadFile } from '../downloadsLogic'
 import { Button } from '../ui'
+import { useI18n } from '../i18n'
+import { formatShortDate } from '../i18n/format'
 
+const { t, locale } = useI18n()
 const props = defineProps<{ files: DownloadFile[]; busy?: boolean }>()
 const emit = defineEmits<{ (e: 'refresh'): void }>()
 const now = ref(Date.now())
@@ -13,7 +16,7 @@ function onClick(ev: Event, f: DownloadFile) {
   now.value = Date.now()
   if (isExpired(f.expiresAt, now.value)) ev.preventDefault()
 }
-const expiryText = (f: DownloadFile) => new Date(f.expiresAt).toLocaleDateString('es')
+const expiryText = (f: DownloadFile) => formatShortDate(f.expiresAt, locale.value)
 </script>
 
 <template>
@@ -22,14 +25,14 @@ const expiryText = (f: DownloadFile) => new Date(f.expiresAt).toLocaleDateString
       <span class="mono-md name">{{ f.name }}</span>
       <span class="act">
         <template v-if="!isExpired(f.expiresAt, now)">
-          <span class="caption muted">Disponible hasta el {{ expiryText(f) }}</span>
-          <Button variant="accent" icon="descargar" :href="f.url" download target="_blank" rel="noopener" @click="onClick($event, f)">Descargar</Button>
+          <span class="caption muted">{{ t.downloads.availableUntil(expiryText(f)) }}</span>
+          <Button variant="accent" icon="descargar" :href="f.url" download target="_blank" rel="noopener" @click="onClick($event, f)">{{ t.downloads.download }}</Button>
         </template>
-        <span v-else class="body-sm warn">El enlace venció</span>
+        <span v-else class="body-sm warn">{{ t.downloads.expired }}</span>
       </span>
     </li>
   </ul>
-  <div v-if="expired"><Button :disabled="busy" @click="emit('refresh')">Generar un enlace nuevo</Button></div>
+  <div v-if="expired"><Button :disabled="busy" @click="emit('refresh')">{{ t.downloads.newLink }}</Button></div>
 </template>
 
 <style scoped>

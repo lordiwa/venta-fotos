@@ -1,6 +1,8 @@
 /** Logica pura del carrito (TASK-016): sin Firebase ni DOM. */
 import type { Product } from './types'
 import { digitalPackPricing, type PackPricing } from './packPricing'
+import { productLabel } from './i18n/format'
+import { messagesFor, type Locale } from './i18n/messages'
 
 export const MAX_QTY = 99
 export const CART_KEY = 'venta-fotos:cart'
@@ -102,21 +104,13 @@ export interface DigitalGroup {
 }
 
 export interface BreakdownItem { label: string; quantity: number; subtotal: number }
-export const SINGLES_LABEL = 'Fotos digitales sueltas'
 
 /** Desglose de un grupo: un renglon por paquete usado y uno por las sueltas. Suma = total del grupo. */
-export function packBreakdown(g: DigitalGroup): BreakdownItem[] {
-  const items = g.pricing.packs.map((u) => ({ label: u.pack.name, quantity: u.times, subtotal: (Math.round(u.pack.price * 100) * u.times) / 100 }))
-  if (g.pricing.singles) items.push({ label: SINGLES_LABEL, quantity: g.pricing.singles, subtotal: (Math.round(g.unitPrice * 100) * g.pricing.singles) / 100 })
+export function packBreakdown(g: DigitalGroup, lang: Locale = 'es'): BreakdownItem[] {
+  const m = messagesFor(lang)
+  const items = g.pricing.packs.map((u) => ({ label: productLabel(u.pack.name, m, lang), quantity: u.times, subtotal: (Math.round(u.pack.price * 100) * u.times) / 100 }))
+  if (g.pricing.singles) items.push({ label: m.cart.singles, quantity: g.pricing.singles, subtotal: (Math.round(g.unitPrice * 100) * g.pricing.singles) / 100 })
   return items
-}
-
-export const STATUS_MESSAGE: Record<LineStatus, string | null> = {
-  ok: null,
-  priceChanged: 'El precio cambió',
-  productUnavailable: 'Este producto ya no está disponible',
-  photoUnavailable: 'Esta foto ya no está disponible',
-  printOnly: 'Esta foto solo se vende impresa',
 }
 
 /** CU7/CU8/CU9: contrasta las lineas con el catalogo activo y la disponibilidad de la foto. Foto no disponible prevalece. Lo digital de una foto solo impresion no cuenta (TASK-030). */

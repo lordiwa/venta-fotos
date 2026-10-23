@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useCartStore } from '../stores/cart'
 import { TopBar, Wordmark } from '../ui'
+import { useI18n } from '../i18n'
 
 const cart = useCartStore()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -11,10 +13,10 @@ const cart = useCartStore()
     <main class="content"><RouterView /></main>
     <footer class="foot">
       <Wordmark to="/" class="foot-mark" />
-      <nav class="foot-links" aria-label="Pie">
-        <RouterLink to="/fotografo">Sobre el fotógrafo</RouterLink>
-        <RouterLink to="/descargas">Mis descargas</RouterLink>
-        <RouterLink to="/admin">Acceso de administración</RouterLink>
+      <nav class="foot-links" :aria-label="t.footer.nav">
+        <RouterLink to="/fotografo">{{ t.footer.about }}</RouterLink>
+        <RouterLink to="/descargas">{{ t.footer.downloads }}</RouterLink>
+        <RouterLink to="/admin">{{ t.footer.admin }}</RouterLink>
       </nav>
     </footer>
   </div>

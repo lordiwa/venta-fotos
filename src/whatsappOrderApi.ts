@@ -43,11 +43,3 @@ export function whatsappOpener(env: LinkEnv | undefined) {
     cancel() { tab?.close() },
   }
 }
-
-/** Mensaje de la Function si es de negocio; uno generico si fue un fallo interno o de red. */
-export function orderErrorMessage(e: unknown): string {
-  const x = e as { code?: string; message?: string }
-  return x.code && !['functions/internal', 'functions/unavailable', 'functions/unknown', 'functions/deadline-exceeded'].includes(x.code) && x.message
-    ? x.message
-    : 'No pudimos registrar tu pedido. Revisa tu conexión e intenta de nuevo.'
-}
